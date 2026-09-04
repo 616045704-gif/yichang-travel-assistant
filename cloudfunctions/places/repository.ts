@@ -1,8 +1,9 @@
-import type { Category, PageResult, PlaceDetail, PlaceSection, PlaceSummary } from '../../shared/contracts';
+import type { Category, PageResult, PlaceDetail, PlaceMarker, PlaceSection, PlaceSummary } from '../../shared/contracts';
 
 export interface PlaceRepository {
   list(input: { category?: Category; keyword?: string; tags?: string[]; cursor?: string | null; pageSize?: number }): Promise<PageResult<PlaceSummary>>;
   detail(placeId: string): Promise<PlaceDetail | null>;
+  markers(): Promise<PlaceMarker[]>;
 }
 
 type Database = { collection(name: string): { where(query: Record<string, unknown>): { skip(count: number): { limit(count: number): { get(): Promise<{ data: Record<string, unknown>[] }> } } }; doc(id: string): { get(): Promise<{ data: Record<string, unknown> }> } } };
@@ -21,6 +22,11 @@ function summary(document: Record<string, unknown>): PlaceSummary {
     coverFileId: typeof document.coverFileId === 'string' ? document.coverFileId : null, coverUrl: null, isFavorite: false,
     verifiedAt: String(document.verifiedAt),
   };
+}
+
+function marker(document: Record<string, unknown>): PlaceMarker {
+  const place = summary(document);
+  return { placeId: place.placeId, name: place.name, category: place.category, latitude: place.latitude, longitude: place.longitude, coordinateSystem: place.coordinateSystem };
 }
 
 function matches(document: Record<string, unknown>, input: { category?: Category; keyword?: string; tags?: string[] }) {
@@ -93,6 +99,17 @@ export function createPlaceRepository(database: Database): PlaceRepository {
           }),
         };
       } catch { return null; }
+    },
+    async markers() {
+      const records: Record<string, unknown>[] = [];
+      for (let skip = 0; ; skip += 100) {
+        const batch = (await database.collection('places').where({ status: 'published' }).skip(skip).limit(100).get()).data;
+        records.push(...batch);
+        if (batch.length < 100) break;
+      }
+      return records.filter(document => matches(document, {})).flatMap(document => {
+        try { return [marker(document)]; } catch { return []; }
+      });
     },
   };
 }

@@ -3,7 +3,7 @@ import { handlePlaceRequest } from '../../cloudfunctions/places/service';
 import { scenicDetail, scenicPlace } from '../fixtures/places';
 
 const storage = { getTempFileURL: vi.fn(async ({ fileList }: { fileList: string[] }) => ({ fileList: fileList.map(fileID => ({ fileID, tempFileURL: `https://temp.example/${fileID.slice(-4)}` })) })) };
-const repository = { list: vi.fn(), detail: vi.fn() };
+const repository = { list: vi.fn(), detail: vi.fn(), markers: vi.fn() };
 
 describe('placeService entry handler', () => {
   it('maps invalid list input to the public INVALID_INPUT envelope', async () => {
