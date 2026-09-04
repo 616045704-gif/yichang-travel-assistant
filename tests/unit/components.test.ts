@@ -1,0 +1,61 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+type Instance = { data: Record<string, unknown>; triggerEvent: ReturnType<typeof vi.fn>; setData(value: Record<string, unknown>): void };
+type Definition = { methods: Record<string, (this: Instance, event?: unknown) => void>; properties: Record<string, { value: unknown; observer?: (this: Instance) => void }> };
+async function component(name: string) {
+  let definition: Definition;
+  vi.stubGlobal('Component', (value: Definition) => { definition = value; });
+  await import(`../../miniprogram/components/${name}/index.ts`);
+  return definition!;
+}
+function instance(data: Record<string, unknown>): Instance {
+  return { data, triggerEvent: vi.fn(), setData(value) { Object.assign(this.data, value); } };
+}
+afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
+describe('reusable travel components', () => {
+  it('emits a valid category selection and rejects unknown values', async () => {
+    const definition = await component('category-filter');
+    const ctx = instance({ value: '' });
+    definition.methods.onSelect.call(ctx, { currentTarget: { dataset: { value: 'culture' } } });
+    expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category: 'culture' });
+    ctx.triggerEvent.mockClear();
+    definition.methods.onSelect.call(ctx, { currentTarget: { dataset: { value: 'unknown' } } });
+    expect(ctx.triggerEvent).not.toHaveBeenCalled();
+  });
+  it('only exposes retry from an error state', async () => {
+    const definition = await component('async-state');
+    for (const status of ['loading', 'empty', 'ready']) {
+      const ctx = instance({ status });
+      definition.methods.onRetry.call(ctx);
+      expect(ctx.triggerEvent).not.toHaveBeenCalled();
+    }
+    const ctx = instance({ status: 'error' });
+    definition.methods.onRetry.call(ctx);
+    expect(ctx.triggerEvent).toHaveBeenCalledWith('retry');
+  });
+  it('emits card actions without changing favorite or requesting location', async () => {
+    const definition = await component('place-card');
+    const ctx = instance({ place: { placeId: 'synthetic-test-id', isFavorite: false }, pending: false });
+    const getLocation = vi.fn();
+    vi.stubGlobal('wx', { getLocation, cloud: { callFunction: vi.fn() } });
+    definition.methods.onOpen.call(ctx);
+    definition.methods.onFavorite.call(ctx);
+    expect(ctx.triggerEvent).toHaveBeenCalledWith('open', { placeId: 'synthetic-test-id' });
+    expect(ctx.triggerEvent).toHaveBeenCalledWith('favoritechange', { placeId: 'synthetic-test-id', favorite: true });
+    expect(ctx.data.place).toEqual({ placeId: 'synthetic-test-id', isFavorite: false });
+    expect(getLocation).not.toHaveBeenCalled();
+    ctx.data.pending = true;
+    ctx.triggerEvent.mockClear();
+    definition.methods.onFavorite.call(ctx);
+    expect(ctx.triggerEvent).not.toHaveBeenCalled();
+    definition.methods.onImageError.call(ctx);
+    expect(ctx.data.imageFailed).toBe(true);
+    definition.properties.place.observer!.call(ctx);
+    expect(ctx.data.imageFailed).toBe(false);
+    ctx.data.place = null;
+    ctx.triggerEvent.mockClear();
+    definition.methods.onOpen.call(ctx);
+    definition.methods.onFavorite.call(ctx);
+    expect(ctx.triggerEvent).not.toHaveBeenCalled();
+  });
+});

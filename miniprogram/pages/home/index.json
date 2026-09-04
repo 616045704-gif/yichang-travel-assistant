@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "宜昌旅游助手" }
+{ "navigationBarTitleText": "宜昌旅游助手", "usingComponents": { "async-state": "/components/async-state/index" } }

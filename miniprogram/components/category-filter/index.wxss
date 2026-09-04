@@ -1,0 +1,1 @@
+.filters { display: flex; flex-wrap: wrap; gap: 12rpx; }.filter { width: auto; flex: 0 0 auto; max-width: 100%; margin: 0; padding: 20rpx 24rpx; min-height: 88rpx; line-height: 1.65; font-size: 25rpx; background: #ecede4; color: #6a7867; border-radius: 30rpx; }.filter::after { border: 0; }.selected { background: #176b5b; color: #fffefa; }

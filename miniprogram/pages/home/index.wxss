@@ -1,1 +1,20 @@
-view { padding: 40rpx; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24rpx; }
+.edition { font-size: 22rpx; color: var(--color-primary); }
+.hero { position: relative; overflow: hidden; min-height: 480rpx; border-radius: 40rpx; background: #173f38; color: #fff9e9; }
+.hero-copy { position: relative; z-index: 1; padding: 42rpx 36rpx; }
+.hero-kicker { display: block; color: #cbded0; font-size: 23rpx; letter-spacing: 4rpx; }
+.hero-title { display: block; white-space: pre-line; font-size: 64rpx; line-height: 1.3; letter-spacing: 5rpx; font-weight: 600; margin: 28rpx 0 20rpx; }
+.hero-caption { display: block; font-size: 23rpx; color: #d5e0d3; }
+.hero-button { display: inline-flex; align-items: center; gap: 36rpx; min-height: 88rpx; padding: 20rpx 28rpx; line-height: 1.5; margin-top: 30rpx; color: #284d40; background: #eddfb9; border-radius: 28rpx; font-size: 25rpx; }
+.hero-landscape { position: absolute; inset: 0; overflow: hidden; }
+.sun { position: absolute; width: 100rpx; height: 100rpx; border-radius: 50%; right: 54rpx; top: 54rpx; background: #c6af75; opacity: .85; }
+.mountain { position: absolute; width: 440rpx; height: 400rpx; transform: rotate(40deg); border-radius: 100rpx; }
+.mountain-back { right: -210rpx; bottom: -110rpx; background: #467464; }
+.mountain-front { right: -110rpx; bottom: -250rpx; background: #658b73; }
+.river { position: absolute; width: 450rpx; height: 150rpx; right: -120rpx; border: 2rpx solid #c5d5aa; border-radius: 50%; transform: rotate(-27deg); opacity: .4; }
+.river-one { bottom: -10rpx; }.river-two { bottom: -44rpx; }
+.ai-entry { margin-top: 28rpx; padding: 28rpx; display: flex; gap: 22rpx; }
+.ai-mark { width: 76rpx; height: 76rpx; flex-shrink: 0; border-radius: 26rpx; background: #e4ecde; color: var(--color-primary); font-size: 52rpx; text-align: center; line-height: 76rpx; }
+.ai-copy { flex: 1; min-width: 0; }.ai-title { display: block; font-size: 30rpx; font-weight: 600; }.ai-copy .note { display: block; margin: 6rpx 0 14rpx; }
+.disclaimer { display: block; font-size: 20rpx; color: var(--color-muted); line-height: 1.6; padding: 16rpx 8rpx 0; }
+.category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }.category-tile { border-radius: 28rpx; padding: 22rpx; background: #eceee4; display: flex; gap: 16rpx; align-items: center; font-size: 25rpx; }.category-number { font-size: 21rpx; color: #8b957e; }

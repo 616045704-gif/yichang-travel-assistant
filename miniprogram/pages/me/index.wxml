@@ -1,0 +1,8 @@
+<view class="page">
+  <text class="eyebrow">YOUR TRAVEL NOTES</text><text class="page-title">把旅途，慢慢收藏</text>
+  <view class="profile-card"><view class="profile-seal" aria-hidden="true">宜</view><view><text class="profile-title">你好，旅行者</text><text class="profile-subtitle">带着好奇心，认识这座城。</text></view></view>
+  <view class="card menu"><view wx:for="{{entries}}" wx:key="title" class="menu-row"><text class="menu-symbol" aria-hidden="true">{{item.symbol}}</text><view class="menu-copy"><text class="menu-title">{{item.title}}</text><text class="note">{{item.description}}</text></view><text class="menu-status">准备中</text></view></view>
+  <button class="privacy-button card" bindtap="showPrivacy"><text>隐私说明</text><text aria-hidden="true">→</text></button>
+  <text class="note personal-note">个人功能接入后，收藏、浏览与问答记录只向对应用户展示。</text>
+  <text class="footer-note">宜昌旅游助手 · 基础版</text>
+</view>

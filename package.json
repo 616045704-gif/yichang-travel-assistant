@@ -16,7 +16,7 @@
     "check:package": "node scripts/check-package.mjs",
     "verify:docs": "node scripts/verify-docs.mjs",
     "test:integration": "node scripts/platform-gate.mjs integration",
-    "test:e2e": "node scripts/platform-gate.mjs e2e",
+    "test:e2e": "node scripts/wechat-smoke.mjs",
     "validate:content": "node scripts/platform-gate.mjs content",
     "release:check": "node scripts/platform-gate.mjs release"
   },
@@ -27,6 +27,7 @@
     "esbuild": "0.28.2",
     "eslint": "9.39.2",
     "miniprogram-api-typings": "5.2.3",
+    "miniprogram-automator": "0.12.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "4.0.18"

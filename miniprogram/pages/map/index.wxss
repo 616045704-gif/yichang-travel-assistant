@@ -1,0 +1,1 @@
+.map-frame { margin: 30rpx 0 24rpx; }.city-map { width: 100%; height: 460rpx; }.map-caption { display: flex; justify-content: space-between; padding: 18rpx 24rpx; gap: 16rpx; font-size: 24rpx; }.location-card { margin-top: 26rpx; padding: 28rpx; }.location-card .note { display: block; margin-top: 14rpx; }.location-card button { margin-top: 22rpx; }

@@ -1,0 +1,7 @@
+<view class="page">
+  <text class="eyebrow">EXPLORE YICHANG</text><text class="page-title">发现你的心之所向</text><text class="subtitle">山水、人文与烟火，都值得停留。</text>
+  <view class="filter-wrap"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
+  <view class="section-heading"><text class="section-title">地点清单</text><text class="badge">资料准备中</text></view>
+  <view class="card"><async-state id="content-state" status="empty" title="这里，即将有新的发现" message="云端地点资料尚未接入。你可以先切换分类，接入后即可查看对应地点。" /></view>
+  <view class="discovery-note"><text class="discovery-note-title">让每一次出发，都有据可查</text><text class="note">地点上线后将附资料来源与核验日期，帮助你安排自己的旅程。</text></view>
+</view>

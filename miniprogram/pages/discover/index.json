@@ -1,0 +1,1 @@
+{ "navigationBarTitleText": "发现宜昌", "usingComponents": { "category-filter": "/components/category-filter/index", "async-state": "/components/async-state/index" } }

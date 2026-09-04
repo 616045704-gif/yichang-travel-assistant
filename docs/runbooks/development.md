@@ -42,6 +42,24 @@ npm run verify:docs
 
 - 输出为 `dist/miniprogram/` 和每个独立的 `dist/cloudfunctions/<函数名>/`，导入目录为 dist。
 - 发布候选构建使用 `npm run build:demo`，拒绝引入测试与模拟模块；当前无真实业务，不可作为体验版交付。
-- `test:integration`、`test:e2e`、`validate:content`、`release:check` 是明确的阶段关口，未接入时返回 BLOCKED（退出码 2），不冒充测试通过。对应阶段实现后替换。
+- `test:integration`、`validate:content`、`release:check` 是明确的阶段关口，未接入时返回 BLOCKED（退出码 2），不冒充测试通过。对应阶段实现后替换。
 - 单元测试使用临时合成资料，不调用微信、Dify 或真实数据库。
 - 禁止将个人配置、微信登录数据、身份标识、用户位置和原始截图提交 Git。
+
+## 微信模拟器回归
+
+已使用工具 2.02.2608060、基础库 3.16.2 和官方 miniprogram-automator 0.12.1 验证。先完成微信登录，在设置的安全页开启服务端口；不需要开启获取登录票据或全局自动信任。
+
+每次构建后，用本机实际的 CLI 路径开启本项目自动化，再执行：
+
+```powershell
+& 'D:\微信web开发者工具\cli.bat' auto --project 'D:\ChatGPT\宜昌旅游助手\dist' --auto-port 9420 --trust-project
+$env:WECHAT_AUTOMATION_ENDPOINT = 'ws://127.0.0.1:9420'
+npm run test:e2e
+```
+
+`--trust-project` 仅针对自己创建的本项目。工具需要片刻完成编译后才可连接；遇到端口未就绪，等待工具完成编译再运行测试。新版本 Windows 工具不能由旧 SDK 的 launch 直接启动，因此先运行官方 CLI，再使用 SDK connect。
+
+测试先核对 AppID，再切换四页、检查分类布局与点击、四种通用状态；结束恢复首页，截图写入 `.local/`。该脚本不创建云资源、不获取登录票据、不调用 Dify。没有配置本地端口时报告 BLOCKED；连接或断言失败时退出 1。
+
+重新构建会保留 `dist` 根目录及其 `project.private.config.json`，以兼容打开中的开发者工具；其余生成文件仍会替换，禁止手工修改。

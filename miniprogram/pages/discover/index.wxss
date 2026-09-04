@@ -1,0 +1,1 @@
+.filter-wrap { margin-top: 34rpx; }.discovery-note { margin-top: 30rpx; padding: 28rpx; border-left: 4rpx solid var(--color-gold); }.discovery-note-title { display: block; font-size: 26rpx; margin-bottom: 10rpx; }
