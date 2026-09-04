@@ -2,3 +2,9 @@ page { height: 100%; overflow: hidden; }
 .page.map-page { position: relative; width: 100%; height: 100vh; padding: 0; overflow: hidden; }
 .city-map { display: block; width: 100%; height: 100%; }
 .map-filters { position: absolute; z-index: 2; top: 24rpx; left: 24rpx; right: 24rpx; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
+.map-actions { position: absolute; z-index: 2; right: 24rpx; bottom: 48rpx; display: flex; flex-direction: column; align-items: flex-end; gap: 12rpx; }
+.nearby-button, .settings-button, .detail-button { color: #fcf8ef; background: #627968; border: 0; border-radius: 999rpx; font-size: 26rpx; line-height: 1.9; }
+.settings-button { background: #a44d3e; }
+.map-notice { max-width: 460rpx; padding: 14rpx 18rpx; border-radius: 12rpx; background: rgba(252, 248, 239, .94); color: #38382e; font-size: 24rpx; }
+.marker-card { position: absolute; z-index: 3; left: 24rpx; right: 24rpx; bottom: 48rpx; display: flex; flex-direction: column; gap: 10rpx; padding: 26rpx; border-radius: 18rpx; background: rgba(252, 248, 239, .97); box-shadow: 0 8rpx 24rpx rgba(56, 56, 46, .18); }
+.marker-category, .marker-distance { color: #627968; font-size: 24rpx; }.marker-name { color: #38382e; font-size: 34rpx; font-weight: 600; }.detail-button { align-self: flex-end; min-width: 180rpx; }

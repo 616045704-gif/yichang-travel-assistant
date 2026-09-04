@@ -1,4 +1,4 @@
-import type { Category, PageResult, PlaceDetail, PlaceSummary } from '../../shared/contracts';
+import type { Category, PageResult, PlaceDetail, PlaceMarker, PlaceSummary } from '../../shared/contracts';
 import type { PlaceListRequest } from '../view-models/place-list';
 
 type CloudEnvelope<T> = { result?: { code?: string; data?: T | null; message?: string } };
@@ -20,6 +20,14 @@ export async function getPlaceDetail(placeId: string): Promise<PlaceDetail> {
 
 export async function getHomePlaces(): Promise<{ featured: PlaceSummary[]; recommended: PlaceSummary[] }> {
   return call('home', {});
+}
+
+export async function getMapMarkers(): Promise<PlaceMarker[]> {
+  return (await call<{ items: PlaceMarker[] }>('markers', {})).items;
+}
+
+export async function getNearbyPlaces(location: { latitude: number; longitude: number }, category: Category | ''): Promise<PlaceMarker[]> {
+  return (await call<{ items: PlaceMarker[] }>('nearby', { ...location, ...(category ? { category } : {}) })).items;
 }
 
 export function isCategory(value: string): value is Category {

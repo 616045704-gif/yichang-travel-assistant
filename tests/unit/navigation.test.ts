@@ -67,16 +67,16 @@ describe('four-tab application', () => {
     vi.stubGlobal('wx', { showModal });
     await import('../../miniprogram/pages/me/index');
     page!.showPrivacy();
-    expect(showModal).toHaveBeenCalledWith(expect.objectContaining({ showCancel: false, content: expect.stringContaining('不读取定位') }));
+    expect(showModal).toHaveBeenCalledWith(expect.objectContaining({ showCancel: false, content: expect.stringContaining('定位我的附近') }));
   });
   it('includes all four async template branches with a retry binding', async () => {
     const template = await readFile('miniprogram/components/async-state/index.wxml', 'utf8');
     for (const state of ['loading', 'empty', 'error', 'ready']) expect(template).toContain(`status === '${state}'`);
     expect(template).toContain('bindtap="onRetry"');
     const map = await readFile('miniprogram/pages/map/index.wxml', 'utf8');
-    expect(map).toContain('show-location="{{false}}"');
+    expect(map).toContain('bindmarkertap="onMarkerTap"');
     expect(map).not.toContain('看看身边的宜昌');
-    expect(map).not.toContain('定位我的附近');
+    expect(map).toContain('定位我的附近');
     expect(map).not.toContain('page-title');
     expect(map).not.toContain('async-state');
   });

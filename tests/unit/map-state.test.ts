@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildMarkers, type MapPlace, type TravelMarker } from '../../miniprogram/view-models/map';
+import { buildMarkers, findPlaceByMarkerId, type MapPlace, type TravelMarker } from '../../miniprogram/view-models/map';
 import type { Category } from '../../shared/contracts';
 
 const places: MapPlace[] = [
@@ -61,5 +61,20 @@ describe('category map markers', () => {
     expect(page!.data.center).toEqual(center);
     expect(getLocation).not.toHaveBeenCalled();
     expect(setStorage).not.toHaveBeenCalled();
+  });
+  it('maps a marker tap to its public place and opens the shared detail route', async () => {
+    expect(findPlaceByMarkerId(places, '', buildMarkers(places, '')[0].id)?.placeId).toBe('test-a');
+    type MapPage = { data: { places: MapPlace[]; category: Category | ''; selectedPlace: MapPlace | null }; setData(value: Record<string, unknown>): void; onMarkerTap(event: { detail: { markerId: number } }): void; openSelectedPlace(): void };
+    let page: MapPage;
+    vi.stubGlobal('Page', (value: MapPage) => { page = value; });
+    const navigateTo = vi.fn();
+    vi.stubGlobal('wx', { navigateTo });
+    await import('../../miniprogram/pages/map/index');
+    page!.setData = function (value) { Object.assign(this.data, value); };
+    page!.data.places = places;
+    page!.data.category = '';
+    page!.onMarkerTap({ detail: { markerId: 1 } });
+    page!.openSelectedPlace();
+    expect(navigateTo).toHaveBeenCalledWith({ url: '/pages/place-detail/index?placeId=test-a' });
   });
 });

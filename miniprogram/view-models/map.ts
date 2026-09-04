@@ -1,6 +1,6 @@
 import { CATEGORIES, type Category, type PlaceSummary } from '../../shared/contracts';
 
-export type MapPlace = Pick<PlaceSummary, 'placeId' | 'name' | 'category' | 'latitude' | 'longitude' | 'coordinateSystem'>;
+export type MapPlace = Pick<PlaceSummary, 'placeId' | 'name' | 'category' | 'latitude' | 'longitude' | 'coordinateSystem'> & { distanceMeters?: number };
 
 export interface TravelMarker {
   id: number;
@@ -40,4 +40,12 @@ export function buildMarkers(places: readonly unknown[], category: Category | ''
       height: 38,
       callout: { content: place.name, display: 'BYCLICK', fontSize: 13, color: '#38382e', bgColor: '#fcf8ef', borderRadius: 8, padding: 8 },
     }));
+}
+
+export function findPlaceByMarkerId(places: readonly unknown[], category: Category | '', markerId: number): MapPlace | null {
+  const marker = buildMarkers(places, category).find(item => item.id === markerId);
+  if (!marker) return null;
+  const unique = new Map<string, MapPlace>();
+  for (const place of places) if (isMapPlace(place) && !unique.has(place.placeId)) unique.set(place.placeId, place);
+  return [...unique.values()].sort((a, b) => a.placeId.localeCompare(b.placeId)).find((place, index) => index + 1 === marker.id) || null;
 }
