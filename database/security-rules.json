@@ -1,0 +1,19 @@
+{
+  "$schema": "https://yichang-travel-mini-program.local/database-security-rules-v1.json",
+  "version": 1,
+  "default": { "read": false, "write": false },
+  "collections": {
+    "places": { "read": false, "write": false },
+    "place_contents": { "read": false, "write": false },
+    "favorites": { "read": false, "write": false },
+    "browse_history": { "read": false, "write": false },
+    "ai_sessions": { "read": false, "write": false },
+    "ai_messages": { "read": false, "write": false },
+    "trip_requests": { "read": false, "write": false },
+    "feedback": { "read": false, "write": false },
+    "app_settings": { "read": false, "write": false },
+    "user_preferences": { "read": false, "write": false },
+    "ai_jobs": { "read": false, "write": false },
+    "usage_counters": { "read": false, "write": false }
+  }
+}

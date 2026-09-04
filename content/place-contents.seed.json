@@ -1,0 +1,6 @@
+[
+  { "placeId": "demo-three-gorges-dam", "sections": [{ "type": "text", "text": "这是结构验证用的自编演示说明，不替代现场公告。" }], "visitAdvice": "出发前通过官方渠道确认参观条件。", "diningInfo": null, "notices": ["仅供出行参考。"], "updatedAt": "2026-09-04T00:00:00.000Z" },
+  { "placeId": "demo-yichang-food-street", "sections": [{ "type": "text", "text": "这是结构验证用的餐饮分类示例，未推荐具体商户。" }], "visitAdvice": null, "diningInfo": "请根据商户官方渠道确认菜单、营业和排队情况。", "notices": ["不提供价格或营业状态承诺。"], "updatedAt": "2026-09-04T00:00:00.000Z" },
+  { "placeId": "demo-yichang-museum", "sections": [{ "type": "text", "text": "这是结构验证用的文化地点示例。" }], "visitAdvice": "参观前确认当期开放信息。", "diningInfo": null, "notices": ["展览安排以馆方公告为准。"], "updatedAt": "2026-09-04T00:00:00.000Z" },
+  { "placeId": "demo-bailihuang-camping", "sections": [{ "type": "text", "text": "这是结构验证用的露营地点示例。" }], "visitAdvice": "提前确认天气与现场安全要求。", "diningInfo": null, "notices": ["不提供营位、价格或活动承诺。"], "updatedAt": "2026-09-04T00:00:00.000Z" }
+]

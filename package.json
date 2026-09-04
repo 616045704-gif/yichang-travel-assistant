@@ -17,7 +17,8 @@
     "verify:docs": "node scripts/verify-docs.mjs",
     "test:integration": "node scripts/platform-gate.mjs integration",
     "test:e2e": "node scripts/wechat-smoke.mjs",
-    "validate:content": "node scripts/platform-gate.mjs content",
+    "validate:content": "node scripts/validate-content.mjs",
+    "import:content": "node scripts/import-content.mjs",
     "release:check": "node scripts/platform-gate.mjs release"
   },
   "devDependencies": {
