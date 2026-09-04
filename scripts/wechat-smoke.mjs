@@ -64,8 +64,13 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(Number(mapSize.width), Number(pageSize.width));
     assert.deepEqual(await map.offset(), { left: 0, top: 0 });
     assert.equal(await mapPage.$('.location-card'), null);
+    const overlay = await mapPage.$('.map-filters');
+    assert.equal(await overlay.style('background-color'), 'rgba(0, 0, 0, 0)');
+    assert.equal(await overlay.style('box-shadow'), 'none');
+    assert.equal(await overlay.style('pointer-events'), 'none');
     const mapFilters = await mapPage.$('#categories');
     const mapButtons = await mapFilters.$$('.filter');
+    assert.equal(await mapButtons[0].style('pointer-events'), 'auto');
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
     await mapPage.callMethod('setPlaces', [
