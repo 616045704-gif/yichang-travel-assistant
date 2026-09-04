@@ -1,20 +1,26 @@
-.brand-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24rpx; }
-.edition { font-size: 22rpx; color: var(--color-primary); }
-.hero { position: relative; overflow: hidden; min-height: 480rpx; border-radius: 40rpx; background: #173f38; color: #fff9e9; }
-.hero-copy { position: relative; z-index: 1; padding: 42rpx 36rpx; }
-.hero-kicker { display: block; color: #cbded0; font-size: 23rpx; letter-spacing: 4rpx; }
-.hero-title { display: block; white-space: pre-line; font-size: 64rpx; line-height: 1.3; letter-spacing: 5rpx; font-weight: 600; margin: 28rpx 0 20rpx; }
-.hero-caption { display: block; font-size: 23rpx; color: #d5e0d3; }
-.hero-button { display: inline-flex; align-items: center; gap: 36rpx; min-height: 88rpx; padding: 20rpx 28rpx; line-height: 1.5; margin-top: 30rpx; color: #284d40; background: #eddfb9; border-radius: 28rpx; font-size: 25rpx; }
-.hero-landscape { position: absolute; inset: 0; overflow: hidden; }
-.sun { position: absolute; width: 100rpx; height: 100rpx; border-radius: 50%; right: 54rpx; top: 54rpx; background: #c6af75; opacity: .85; }
-.mountain { position: absolute; width: 440rpx; height: 400rpx; transform: rotate(40deg); border-radius: 100rpx; }
-.mountain-back { right: -210rpx; bottom: -110rpx; background: #467464; }
-.mountain-front { right: -110rpx; bottom: -250rpx; background: #658b73; }
-.river { position: absolute; width: 450rpx; height: 150rpx; right: -120rpx; border: 2rpx solid #c5d5aa; border-radius: 50%; transform: rotate(-27deg); opacity: .4; }
-.river-one { bottom: -10rpx; }.river-two { bottom: -44rpx; }
-.ai-entry { margin-top: 28rpx; padding: 28rpx; display: flex; gap: 22rpx; }
-.ai-mark { width: 76rpx; height: 76rpx; flex-shrink: 0; border-radius: 26rpx; background: #e4ecde; color: var(--color-primary); font-size: 52rpx; text-align: center; line-height: 76rpx; }
-.ai-copy { flex: 1; min-width: 0; }.ai-title { display: block; font-size: 30rpx; font-weight: 600; }.ai-copy .note { display: block; margin: 6rpx 0 14rpx; }
-.disclaimer { display: block; font-size: 20rpx; color: var(--color-muted); line-height: 1.6; padding: 16rpx 8rpx 0; }
-.category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }.category-tile { border-radius: 28rpx; padding: 22rpx; background: #eceee4; display: flex; gap: 16rpx; align-items: center; font-size: 25rpx; }.category-number { font-size: 21rpx; color: #8b957e; }
+.home-page { padding: 0 0 36rpx; }
+.hero { position: relative; height: 560rpx; overflow: hidden; background: var(--color-background); }
+.hero-art { position: absolute; width: 100%; height: 100%; display: block; }
+.hero-copy { position: relative; padding: 36rpx 42rpx 0; }
+.hero-kicker { display: block; color: #746c58; font-size: 20rpx; letter-spacing: 5rpx; }
+.hero-brand { display: flex; align-items: center; gap: 18rpx; margin-top: 8rpx; }
+.hero-title { font-family: "STKaiti", "KaiTi", "SimSun", serif; font-size: 112rpx; font-weight: 700; line-height: 1.3; letter-spacing: 14rpx; color: #34372c; }
+.hero-seal { font-family: var(--font-display); display: block; width: 38rpx; padding: 7rpx 5rpx; border: 3rpx double #f3d7ab; border-radius: 6rpx; background: var(--color-accent); color: #fff3dc; font-size: 21rpx; line-height: 1.3; text-align: center; }
+.hero-caption { display: block; font-family: var(--font-display); font-size: 27rpx; color: #73694f; letter-spacing: 5rpx; margin-top: 8rpx; }
+.hero-verse { position: absolute; left: 44rpx; top: 268rpx; white-space: pre-line; font-family: var(--font-display); font-size: 24rpx; line-height: 1.8; color: #7c775e; letter-spacing: 4rpx; }
+.hero-button { position: absolute; bottom: 46rpx; left: 40rpx; display: flex; align-items: center; justify-content: space-between; gap: 40rpx; min-height: 88rpx; padding: 18rpx 28rpx; line-height: 1.5; font-size: 25rpx; color: #5e583f; background: rgba(252, 248, 239, .94); border: 1rpx solid #cabb99; border-radius: 44rpx; box-shadow: 0 6rpx 18rpx rgba(76, 64, 38, .07); }
+.hero-button text { font-size: 40rpx; line-height: 1; }
+.home-content { position: relative; padding: 0 32rpx; margin-top: -18rpx; }
+.category-panel { padding: 30rpx 18rpx 16rpx; }
+.category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8rpx; }
+.category-tile { display: flex; align-items: center; flex-direction: column; min-width: 0; gap: 14rpx; }
+.category-seal { display: flex; align-items: center; justify-content: center; width: 94rpx; height: 94rpx; border: 5rpx double #ebdcba; border-radius: 30rpx; box-shadow: 0 0 0 1rpx #cabb95; transform: rotate(-4deg); }
+.category-icon { width: 56rpx; height: 56rpx; transform: rotate(4deg); }
+.seal-scenic { background: #b89b5f; }.seal-restaurant { background: #a9624d; }.seal-culture { background: #81927a; }.seal-camping { background: #73928c; }
+.category-label { font-family: var(--font-display); font-size: 23rpx; text-align: center; line-height: 1.5; min-height: 70rpx; }
+.category-footnote { display: flex; justify-content: center; gap: 48rpx; border-top: 1rpx solid #ece2cf; padding-top: 12rpx; color: #928267; font-family: var(--font-display); font-size: 20rpx; letter-spacing: 6rpx; }
+.ai-entry { position: relative; margin: 28rpx 4rpx 0; padding: 26rpx 32rpx; background: linear-gradient(100deg, #f0e3c9, #fbf6e9 70%, #e9e5d4); border-top: 6rpx double #c5ae7e; border-bottom: 6rpx double #c5ae7e; }
+.ai-copy { position: relative; z-index: 1; padding-right: 40rpx; }.ai-kicker { display: block; color: #8d774d; font-size: 21rpx; letter-spacing: 5rpx; }.ai-title { display: block; font-family: var(--font-display); font-size: 34rpx; font-weight: 600; margin: 6rpx 0; }.ai-copy .note { display: block; margin-bottom: 14rpx; }.ai-entry .badge { background: #e7d9b9; color: #74613b; }
+.scroll-rod { position: absolute; width: 10rpx; top: -14rpx; bottom: -14rpx; background: linear-gradient(90deg, #8d7245, #d9c8a2, #92764b); border-radius: 6rpx; }.scroll-left { left: -5rpx; }.scroll-right { right: -5rpx; }
+.ai-decoration { position: absolute; right: 28rpx; top: 28rpx; white-space: pre-line; font-family: var(--font-display); font-size: 52rpx; line-height: 1.5; color: #b8bea6; opacity: .5; }
+.disclaimer { display: block; font-size: 20rpx; color: var(--color-muted); line-height: 1.6; padding: 20rpx 6rpx 0; }

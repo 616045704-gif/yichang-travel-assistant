@@ -1,16 +1,29 @@
-<view class="page">
-  <view class="brand-row"><text class="eyebrow">YICHANG · CITY GUIDE</text><text class="edition">山水宜昌</text></view>
+<view class="page home-page">
   <view class="hero">
-    <view class="hero-landscape" aria-hidden="true"><view class="sun"></view><view class="mountain mountain-back"></view><view class="mountain mountain-front"></view><view class="river river-one"></view><view class="river river-two"></view></view>
-    <view class="hero-copy"><text class="hero-kicker">一城山水，慢慢发现</text><view class="hero-title"><view>山水之间</view><view>遇见宜昌</view></view><text class="hero-caption">把喜欢的风景，留给下一次出发。</text><button class="hero-button" bindtap="openDiscover">去发现宜昌 <text>→</text></button></view>
+    <image class="hero-art" src="/assets/illustrations/yichang-ink.jpg" mode="aspectFill" aria-hidden="true" />
+    <view class="hero-copy">
+      <text class="hero-kicker">一江清碧 · 两岸青山</text>
+      <view class="hero-brand"><text class="hero-title">宜昌</text><text class="hero-seal">山水之城</text></view>
+      <text class="hero-caption">山水入画，行旅成诗</text>
+    </view>
+    <text class="hero-verse">把日子放慢
+把山水看遍</text>
+    <button class="hero-button" bindtap="openDiscover">去发现宜昌 <text aria-hidden="true">›</text></button>
   </view>
-  <view class="card ai-entry">
-    <view class="ai-mark" aria-hidden="true">✧</view><view class="ai-copy"><text class="ai-title">你的宜昌旅行助手</text><text class="note">聊聊想去的地方，计划一段好时光。</text><text class="badge">AI 问答准备中</text></view>
+  <view class="home-content">
+    <view class="category-panel card">
+      <view class="category-grid"><view wx:for="{{categories}}" wx:key="value" class="category-tile"><view class="category-seal seal-{{item.value}}"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /></view><text class="category-label">{{item.label}}</text></view></view>
+      <view class="category-footnote"><text>山水有境</text><text>人间有味</text></view>
+    </view>
+    <view class="ai-entry">
+      <view class="scroll-rod scroll-left" aria-hidden="true"></view><view class="scroll-rod scroll-right" aria-hidden="true"></view>
+      <view class="ai-copy"><text class="ai-kicker">与山水相逢</text><text class="ai-title">你的宜昌旅行助手</text><text class="note">聊聊心之所向，写下旅途的序章。</text><text class="badge">AI 问答准备中</text></view>
+      <text class="ai-decoration" aria-hidden="true">山
+水</text>
+    </view>
+    <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
+    <view class="section-heading"><text class="section-title">宜昌 · 值得停留</text><text class="section-note">精选地点</text></view>
+    <view class="card"><async-state status="empty" title="好风景，正在整理" message="地点资料尚未接入。核验并导入后，这里将展示精选推荐。" /></view>
+    <text class="footer-note">一城山水 · 慢慢发现</text>
   </view>
-  <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
-  <view class="section-heading"><text class="section-title">从兴趣出发</text><text class="section-note">四种方式，认识宜昌</text></view>
-  <view class="category-grid"><view wx:for="{{categories}}" wx:key="value" class="category-tile"><text class="category-number">0{{index + 1}}</text><text>{{item.label}}</text></view></view>
-  <view class="section-heading"><text class="section-title">精选地点</text><text class="section-note">等待云端资料</text></view>
-  <view class="card"><async-state status="empty" title="好风景，正在整理" message="地点资料尚未接入。核验并导入后，这里将展示精选推荐。" /></view>
-  <text class="footer-note">宜昌 · 值得慢慢走</text>
 </view>

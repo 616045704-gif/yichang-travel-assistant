@@ -1,5 +1,5 @@
 <view class="page">
-  <text class="eyebrow">EXPLORE YICHANG</text><text class="page-title">发现你的心之所向</text><text class="subtitle">山水、人文与烟火，都值得停留。</text>
+  <view class="chapter-heading"><text class="chapter-seal">寻境</text><view><text class="eyebrow">宜昌 · 山水人文</text><text class="page-title">寻一处心之所向</text></view></view><text class="subtitle">山水、人文与烟火，都值得停留。</text><view class="paper-rule" aria-hidden="true"></view>
   <view class="filter-wrap"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
   <view class="section-heading"><text class="section-title">地点清单</text><text class="badge">资料准备中</text></view>
   <view class="card"><async-state id="content-state" status="empty" title="这里，即将有新的发现" message="云端地点资料尚未接入。你可以先切换分类，接入后即可查看对应地点。" /></view>

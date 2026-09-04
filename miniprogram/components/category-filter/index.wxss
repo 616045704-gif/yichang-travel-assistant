@@ -1,1 +1,3 @@
-.filters { display: flex; flex-wrap: wrap; gap: 12rpx; }.filter { pointer-events: auto; width: auto; flex: 0 0 auto; max-width: 100%; margin: 0; padding: 20rpx 24rpx; min-height: 88rpx; line-height: 1.65; font-size: 25rpx; background: #ecede4; color: #6a7867; border-radius: 30rpx; }.filter::after { border: 0; }.selected { background: #176b5b; color: #fffefa; }
+.filters { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.filter { pointer-events: auto; width: auto; flex: 0 0 auto; max-width: 100%; margin: 0; padding: 18rpx 22rpx; min-height: 88rpx; line-height: 1.65; font-size: 25rpx; background: #fcf8ef; color: #635e4e; border: 1rpx solid #d6c8ac; border-radius: 44rpx; box-shadow: 0 3rpx 10rpx rgba(85, 67, 37, .1); }
+.filter::after { border: 0; }.selected { background: #a44d3e; border-color: #a44d3e; color: #fff8e9; }

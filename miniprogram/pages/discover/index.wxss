@@ -1,1 +1,1 @@
-.filter-wrap { margin-top: 34rpx; }.discovery-note { margin-top: 30rpx; padding: 28rpx; border-left: 4rpx solid var(--color-gold); }.discovery-note-title { display: block; font-size: 26rpx; margin-bottom: 10rpx; }
+.filter-wrap { margin-top: 24rpx; }.discovery-note { margin-top: 30rpx; padding: 28rpx; border-left: 4rpx solid var(--color-gold); background: linear-gradient(90deg, #efe4cf, transparent); }.discovery-note-title { display: block; font-family: var(--font-display); font-size: 28rpx; margin-bottom: 10rpx; }

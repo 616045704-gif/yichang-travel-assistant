@@ -38,6 +38,6 @@ export function buildMarkers(places: readonly unknown[], category: Category | ''
       iconPath: '/assets/icons/location.png',
       width: 30,
       height: 38,
-      callout: { content: place.name, display: 'BYCLICK', fontSize: 13, color: '#203e36', bgColor: '#fffefa', borderRadius: 8, padding: 8 },
+      callout: { content: place.name, display: 'BYCLICK', fontSize: 13, color: '#38382e', bgColor: '#fcf8ef', borderRadius: 8, padding: 8 },
     }));
 }

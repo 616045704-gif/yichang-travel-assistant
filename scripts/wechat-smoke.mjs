@@ -26,6 +26,21 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       const page = await miniProgram.switchTab(`/pages/${name}/index`);
       await page.waitFor('.page');
       assert.equal(page.path, `pages/${name}/index`);
+      if (name === 'home') {
+        const hero = await page.$('.hero-art');
+        assert.ok(hero);
+        const art = await miniProgram.callWxMethod('getImageInfo', { src: '/assets/illustrations/yichang-ink.jpg' });
+        assert.ok(art.width > 0 && art.height > 0, 'Original landscape asset must load');
+        assert.equal(await (await page.$('.hero-title')).text(), '宜昌');
+        const icons = await page.$$('.category-icon');
+        assert.equal(icons.length, 4);
+        const viewport = await page.size();
+        for (const icon of icons) {
+          const offset = await icon.offset();
+          const size = await icon.size();
+          assert.ok(offset.left >= 0 && offset.left + size.width <= viewport.width, 'Category icons must fit the viewport');
+        }
+      }
       await miniProgram.screenshot({ path: path.resolve('.local', `wechat-${name}.png`) });
       console.log(`PASS: ${name}`);
     }

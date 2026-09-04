@@ -1,22 +1,47 @@
 {
-  "pages": ["pages/home/index", "pages/discover/index", "pages/map/index", "pages/me/index"],
+  "pages": [
+    "pages/home/index",
+    "pages/discover/index",
+    "pages/map/index",
+    "pages/me/index"
+  ],
   "window": {
     "navigationBarTitleText": "宜昌旅游助手",
-    "navigationBarBackgroundColor": "#F7F5EF",
+    "navigationBarBackgroundColor": "#F5EDDF",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F5EF"
+    "backgroundColor": "#F5EDDF"
   },
   "style": "v2",
   "tabBar": {
-    "color": "#76837D",
-    "selectedColor": "#176B5B",
-    "backgroundColor": "#FFFEFA",
+    "color": "#817969",
+    "selectedColor": "#A44D3E",
+    "backgroundColor": "#FCF8EF",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/home/index", "text": "首页", "iconPath": "assets/icons/home.png", "selectedIconPath": "assets/icons/home-active.png" },
-      { "pagePath": "pages/discover/index", "text": "发现", "iconPath": "assets/icons/discover.png", "selectedIconPath": "assets/icons/discover-active.png" },
-      { "pagePath": "pages/map/index", "text": "地图", "iconPath": "assets/icons/map.png", "selectedIconPath": "assets/icons/map-active.png" },
-      { "pagePath": "pages/me/index", "text": "我的", "iconPath": "assets/icons/me.png", "selectedIconPath": "assets/icons/me-active.png" }
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/discover/index",
+        "text": "发现",
+        "iconPath": "assets/icons/discover.png",
+        "selectedIconPath": "assets/icons/discover-active.png"
+      },
+      {
+        "pagePath": "pages/map/index",
+        "text": "地图",
+        "iconPath": "assets/icons/map.png",
+        "selectedIconPath": "assets/icons/map-active.png"
+      },
+      {
+        "pagePath": "pages/me/index",
+        "text": "我的",
+        "iconPath": "assets/icons/me.png",
+        "selectedIconPath": "assets/icons/me-active.png"
+      }
     ]
   },
   "sitemapLocation": "sitemap.json"

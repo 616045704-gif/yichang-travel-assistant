@@ -1,14 +1,16 @@
 page {
-  --color-primary: #176b5b;
-  --color-deep: #173f38;
-  --color-gold: #c4a46b;
-  --color-gold-light: #f0e7d5;
-  --color-background: #f7f5ef;
-  --color-surface: #fffefa;
-  --color-text: #203e36;
-  --color-muted: #75817a;
-  --color-border: #e5e8df;
-  --radius-card: 36rpx;
-  --radius-control: 32rpx;
-  --space-page: 36rpx;
+  --color-primary: #627968;
+  --color-deep: #3f574a;
+  --color-accent: #a44d3e;
+  --color-gold: #b29a65;
+  --color-gold-light: #ebe0c9;
+  --color-background: #f5eddf;
+  --color-surface: #fcf8ef;
+  --color-text: #38382e;
+  --color-muted: #817969;
+  --color-border: #e4d7bf;
+  --font-display: "STSong", "Songti SC", "SimSun", serif;
+  --radius-card: 24rpx;
+  --radius-control: 24rpx;
+  --space-page: 32rpx;
 }
