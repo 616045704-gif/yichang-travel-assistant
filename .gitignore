@@ -9,6 +9,10 @@ project.private.config.json
 node_modules/
 dist/
 coverage/
+.local-tools/
+.local/
+config/local.json
+*.tsbuildinfo
 
 # Editor and operating-system files
 .DS_Store

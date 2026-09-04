@@ -1,0 +1,10 @@
+{
+  "description": "宜昌旅游助手：原生微信小程序",
+  "projectname": "yichang-travel",
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "dist/miniprogram/",
+  "cloudfunctionRoot": "dist/cloudfunctions/",
+  "setting": { "es6": true, "enhance": true, "minified": true, "urlCheck": true },
+  "condition": {}
+}

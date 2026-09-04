@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/home/index"],
+  "window": {
+    "navigationBarTitleText": "宜昌旅游助手",
+    "navigationBarBackgroundColor": "#F7F5EF",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F7F5EF"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
