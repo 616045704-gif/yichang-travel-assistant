@@ -52,6 +52,7 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
   await build({
     absWorkingDir: root, entryPoints: entries, outbase: source, outdir: path.join(output, 'miniprogram'),
     bundle: true, platform: 'neutral', format: 'cjs', target: 'es2018', logLevel: 'silent',
+    minifySyntax: mode === 'demo',
     define: { __CLOUD_ENV__: JSON.stringify(local.cloudEnv || ''), __BUILD_MODE__: JSON.stringify(mode) },
     plugins: [boundary],
   });
