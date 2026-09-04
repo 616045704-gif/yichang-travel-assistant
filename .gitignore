@@ -1,0 +1,15 @@
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+secrets/
+project.private.config.json
+
+# Local dependency and build output
+node_modules/
+dist/
+coverage/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
