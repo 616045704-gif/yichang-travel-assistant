@@ -51,7 +51,6 @@ Page({
       this.setData({ error: error instanceof Error ? error.message : '当前没有可重试的问题' });
     }
   },
-  openTripForm() { wx.navigateTo({ url: '/pages/trip-form/index' }); },
   sync() {
     this.setData({ input: model.state.input, isSubmitting: model.state.isSubmitting, result: model.state.result });
   },

@@ -18,10 +18,18 @@ describe('travel visual presentation', () => {
       expect((await readFile(`miniprogram/assets/icons/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
   });
-  it('renders a reachable mock assistant and the AI disclaimer in the themed home', async () => {
+  it('renders separate AI chat and trip entry cards with the disclaimer in the themed home', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
-    expect(home).toContain('开始问问旅行助手');
+    const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
+    const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
+    expect(home).toContain('自由问答');
+    expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
+    expect(home).toContain('bindtap="openTripForm"');
+    expect(homeStyle).toContain('.ai-entry-grid');
+    expect(homeStyle).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(chat).not.toContain('我要定制行程');
+    expect(chat).not.toContain('bindtap="openTripForm"');
     expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
     expect(home).toContain('status="empty"');
     expect(home).toContain('bindtap="openDiscover"');

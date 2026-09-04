@@ -21,14 +21,16 @@ describe('four-tab application', () => {
     page!.openDiscover();
     expect(switchTab).toHaveBeenCalledWith({ url: '/pages/discover/index' });
   });
-  it('opens the registered AI chat route from home', async () => {
-    let page: { openAiChat(): void };
+  it('opens each homepage AI card on its own existing route', async () => {
+    let page: { openAiChat(): void; openTripForm(): void };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
     const navigateTo = vi.fn();
     vi.stubGlobal('wx', { navigateTo });
     await import('../../miniprogram/pages/home/index');
     page!.openAiChat();
-    expect(navigateTo).toHaveBeenCalledWith({ url: '/pages/ai-chat/index' });
+    page!.openTripForm();
+    expect(navigateTo).toHaveBeenNthCalledWith(1, { url: '/pages/ai-chat/index' });
+    expect(navigateTo).toHaveBeenNthCalledWith(2, { url: '/pages/trip-form/index' });
   });
   it('startup without a cloud environment does not initialize or locate', async () => {
     let app: { globalData: { cloudStatus: string }; onLaunch(): void };
