@@ -1,0 +1,1 @@
+{ "navigationBarTitleText": "AI 旅游助手", "usingComponents": { "message-bubble": "/components/message-bubble/index", "source-card": "/components/source-card/index" } }

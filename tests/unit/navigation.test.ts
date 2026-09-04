@@ -68,6 +68,20 @@ describe('four-tab application', () => {
     expect(privacy).toContain('位置不会长期保存');
     expect(privacy).toContain('不要求手机号登录');
   });
+  it('registers all AI routes and renders the mandatory warning and mock label', async () => {
+    const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
+    expect(app.pages).toEqual(expect.arrayContaining([
+      'pages/ai-chat/index',
+      'pages/trip-form/index',
+      'pages/ai-history/index',
+    ]));
+    const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
+    expect(chat).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
+    expect(chat).toContain('模拟回答，仅用于交互测试');
+    expect(chat).not.toContain('rich-text');
+    const history = await readFile('miniprogram/pages/ai-history/index.wxml', 'utf8');
+    expect(history).toContain('模拟记录，未持久化');
+  });
   it('includes all four async template branches with a retry binding', async () => {
     const template = await readFile('miniprogram/components/async-state/index.wxml', 'utf8');
     for (const state of ['loading', 'empty', 'error', 'ready']) expect(template).toContain(`status === '${state}'`);
