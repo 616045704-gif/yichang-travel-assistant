@@ -18,7 +18,7 @@
 
 - 首页：品牌主视觉、发现入口、四分类、AI 准备状态、精选资料未接入提示。
 - 发现：四分类与全部切换，未接入时如实显示空状态；没有合成地点。
-- 地图：固定宜昌城区中心，允许拖动缩放，没有用户位置与地点标记；附近按钮暂不可用。
+- 地图：按照[分类大地图调整](../superpowers/specs/2026-09-04-map-first-design.md)铺满内容区，顶部悬浮分类；移除标题、说明和附近卡片。公开地点结果接入后，切换分类更新对应标记；当前默认无地点数据，不读取用户位置。
 - 我的：收藏、浏览、问答、偏好、反馈均标注准备中；隐私说明可打开。
 
 ## 组件契约
@@ -26,6 +26,7 @@
 - `async-state`：loading 显示加载；empty 显示说明；error 显示错误与重试，触发 retry；ready 显示 slot。
 - `category-filter`：接收 value，只发 categorychange，detail 为 category；类别使用共享枚举。
 - `place-card`：仅展示传入的地点，发 open(placeId) 与 favoritechange(placeId, favorite)；等待服务端确认收藏，pending 时禁用；图片失败显示占位。
+- 地图 `setPlaces` 接收公开地点结果；`buildMarkers` 排除无效坐标、重复 placeId 和未知分类，切分类保持数字 ID 与视野稳定，点击标记气泡显示地点名。
 
 数据组件不得申请定位或调用 Dify。云环境未配置时启动不调用初始化；配置后关闭 traceUser，SDK 初始化状态不代表云业务已连通。
 

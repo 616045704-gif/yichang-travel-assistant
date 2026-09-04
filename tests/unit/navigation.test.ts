@@ -54,7 +54,7 @@ describe('four-tab application', () => {
     else await import('../../miniprogram/pages/map/index');
     page!.setData = vi.fn();
     page!.onCategoryChange({ detail: { category: 'camping' } });
-    expect(page!.setData).toHaveBeenCalledWith({ category: 'camping' });
+    expect(page!.setData).toHaveBeenCalledWith(expect.objectContaining({ category: 'camping' }));
     expect(getLocation).not.toHaveBeenCalled();
     expect(callFunction).not.toHaveBeenCalled();
     if (name === 'map') expect(page!.data.markers).toEqual([]);
@@ -74,7 +74,10 @@ describe('four-tab application', () => {
     expect(template).toContain('bindtap="onRetry"');
     const map = await readFile('miniprogram/pages/map/index.wxml', 'utf8');
     expect(map).toContain('show-location="{{false}}"');
-    expect(map).toContain('disabled>定位我的附近');
+    expect(map).not.toContain('看看身边的宜昌');
+    expect(map).not.toContain('定位我的附近');
+    expect(map).not.toContain('page-title');
+    expect(map).not.toContain('async-state');
   });
   it('lets category buttons fit their labels instead of the native fixed width', async () => {
     const css = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');

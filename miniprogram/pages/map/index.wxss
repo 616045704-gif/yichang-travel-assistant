@@ -1,1 +1,4 @@
-.map-frame { margin: 30rpx 0 24rpx; }.city-map { width: 100%; height: 460rpx; }.map-caption { display: flex; justify-content: space-between; padding: 18rpx 24rpx; gap: 16rpx; font-size: 24rpx; }.location-card { margin-top: 26rpx; padding: 28rpx; }.location-card .note { display: block; margin-top: 14rpx; }.location-card button { margin-top: 22rpx; }
+page { height: 100%; overflow: hidden; }
+.page.map-page { position: relative; width: 100%; height: 100vh; padding: 0; overflow: hidden; }
+.city-map { display: block; width: 100%; height: 100%; }
+.map-filters { position: absolute; z-index: 2; top: 24rpx; left: 24rpx; right: 24rpx; padding: 16rpx; border: 1rpx solid rgba(229, 232, 223, .85); border-radius: 36rpx; background: rgba(255, 254, 250, .96); box-shadow: 0 8rpx 28rpx rgba(32, 62, 54, .12); }

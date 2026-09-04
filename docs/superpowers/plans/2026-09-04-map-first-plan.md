@@ -20,11 +20,11 @@
 
 接口：MapPlace 仅包含 placeId、name、category、latitude、longitude、coordinateSystem；buildMarkers(places, category) 输出原生数字 ID 标记；页面 setPlaces(places) 同步当前分类的标记，onCategoryChange 重新筛选。
 
-- [ ] 写分类切换、全部恢复、稳定 ID、无效坐标、重复地点、无数据及视野不变测试，运行确认行为缺失。
-- [ ] 实现纯筛选转换：在全部有效地点上排序分配 ID，再按分类筛选；图标统一，点击气泡显示地点名。
-- [ ] 实现满高地图和顶部悬浮分类，删除卡片和说明，保留原生 tab。
-- [ ] 扩展模拟器检查：测地图占满内容区，注入明确标注的合成点测试实际分类事件，结束恢复空数据，不截图或发布测试点。
-- [ ] 运行 test、test:coverage、typecheck、lint、build、check:package、verify:docs、test:e2e 及差异检查。
-- [ ] 只暂存本次文件并提交 `feat: make map immersive with category marker filtering`。
+- [x] 写分类切换、全部恢复、稳定 ID、无效坐标、重复地点、无数据及视野不变测试，运行确认行为缺失。
+- [x] 实现纯筛选转换：在全部有效地点上排序分配 ID，再按分类筛选；图标统一，点击气泡显示地点名。
+- [x] 实现满高地图和顶部悬浮分类，删除卡片和说明，保留原生 tab。
+- [x] 扩展模拟器检查：测地图占满内容区，注入明确标注的合成点测试实际分类事件，结束恢复空数据，不截图或发布测试点。
+- [x] 运行 test、test:coverage、typecheck、lint、build、check:package、verify:docs、test:e2e 及差异检查。
+- [x] 只暂存本次文件并提交 `feat: make map immersive with category marker filtering`。
 
 纯模型验收示例：同一输入含 scenic 与 restaurant 时，buildMarkers(input, 'scenic') 只返回前者，buildMarkers(input, '') 返回两者，前者在两次输出中的 ID 相同。NaN 纬度和不支持的坐标系直接排除。

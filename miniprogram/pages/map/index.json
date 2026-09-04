@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "地图找附近", "usingComponents": { "category-filter": "/components/category-filter/index", "async-state": "/components/async-state/index" } }
+{ "navigationBarTitleText": "地图", "disableScroll": true, "usingComponents": { "category-filter": "/components/category-filter/index" } }

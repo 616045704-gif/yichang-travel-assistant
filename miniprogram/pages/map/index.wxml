@@ -1,7 +1,4 @@
-<view class="page">
-  <text class="eyebrow">A LITTLE CLOSER</text><text class="page-title">换个角度，看宜昌</text><text class="subtitle">从城区出发，寻找沿途的风景。</text>
-  <view class="map-frame card"><map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="11" markers="{{markers}}" show-location="{{false}}" enable-scroll="{{true}}" enable-zoom="{{true}}" /><view class="map-caption"><text>宜昌城区视图</text><text class="note">非你的当前位置</text></view></view>
-  <category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" />
-  <view class="location-card card"><text class="section-title">看看身边的宜昌</text><text class="note">附近功能接入后，仅在你主动点击并授权时读取位置，用于当次 20 公里范围查询。</text><button class="button-primary" disabled>定位我的附近 · 准备中</button><text class="note">目前不会申请定位；你仍可拖动地图浏览。</text></view>
-  <async-state id="content-state" status="empty" title="地点标记尚未接入" message="这里会展示来自云数据库的地点，不使用示例地点代替真实资料。" />
+<view class="page map-page">
+  <map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="11" markers="{{markers}}" show-location="{{false}}" enable-scroll="{{true}}" enable-zoom="{{true}}" />
+  <view class="map-filters"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
 </view>

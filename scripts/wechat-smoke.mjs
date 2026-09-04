@@ -11,6 +11,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
 } else {
   let miniProgram;
   let state;
+  let mapPage;
   let verifiedProject = false;
   try {
     const local = JSON.parse(await readFile('config/local.json', 'utf8'));
@@ -54,10 +55,43 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       console.log(`PASS: ${status}`);
     }
     console.log('PASS: category layout and selection');
+    mapPage = await miniProgram.switchTab('/pages/map/index');
+    await mapPage.waitFor('#city-map');
+    const map = await mapPage.$('#city-map');
+    const mapSize = await map.size();
+    const pageSize = await mapPage.size();
+    assert.ok(Math.abs(Number(mapSize.height) - Number(pageSize.height)) <= 1, 'Map must fit the content viewport without overflowing');
+    assert.equal(Number(mapSize.width), Number(pageSize.width));
+    assert.deepEqual(await map.offset(), { left: 0, top: 0 });
+    assert.equal(await mapPage.$('.location-card'), null);
+    const mapFilters = await mapPage.$('#categories');
+    const mapButtons = await mapFilters.$$('.filter');
+    const center = await mapPage.data('center');
+    // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
+    await mapPage.callMethod('setPlaces', [
+      { placeId: 'e2e-scenic', name: '自动化测试点（景区）', category: 'scenic', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' },
+      { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
+    ]);
+    assert.equal((await mapPage.data('markers')).length, 2);
+    await mapButtons[1].tap();
+    await mapPage.waitFor(400);
+    assert.equal(await mapPage.data('category'), 'scenic');
+    assert.equal((await mapPage.data('markers')).length, 1);
+    // Element.property stringifies object arrays; query the actual component properties instead.
+    const nativeMarkers = await miniProgram.evaluate(() => new Promise(resolve => {
+      wx.createSelectorQuery().select('#city-map').fields({ properties: ['markers'] }, resolve).exec();
+    }));
+    assert.deepEqual(nativeMarkers.markers, await mapPage.data('markers'));
+    await mapButtons[0].tap();
+    await mapPage.waitFor(400);
+    assert.equal((await mapPage.data('markers')).length, 2);
+    assert.deepEqual(await mapPage.data('center'), center);
+    console.log('PASS: full map viewport and category marker updates');
   } catch (error) {
     console.error(`WeChat smoke check failed: ${error.message}`);
     process.exitCode = 1;
   } finally {
+    if (mapPage) await mapPage.callMethod('setPlaces', []).catch(() => {});
     if (state) await state.setData({ status: 'empty' }).catch(() => {});
     if (miniProgram) {
       if (verifiedProject) await miniProgram.switchTab('/pages/home/index').catch(() => {});
