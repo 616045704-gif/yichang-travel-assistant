@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { loadAndValidateContent, validateContent } from '../../scripts/validate-content.mjs';
 import { planImport } from '../../scripts/import-content.mjs';
+import { planSecurityRules } from '../../scripts/plan-security-rules.mjs';
 
 const root = process.cwd();
 
@@ -20,7 +21,7 @@ describe('demo place content', () => {
   });
 
   it('rejects unverified dynamic facts and invalid image IDs', () => {
-    const place = { placeId: 'dynamic', category: 'scenic', latitude: 30, longitude: 111, coordinateSystem: 'GCJ-02', sources: [{ title: 'official', url: 'https://example.test', licenseNote: 'self-authored' }], verifiedAt: '2026-09-04T00:00:00.000Z', status: 'draft', coverFileId: 'https://wrong', openNotice: '票价 10 元' };
+    const place = { placeId: 'dynamic', name: 'name', aliases: [], category: 'scenic', district: 'district', address: 'address', intro: 'intro', tags: [], latitude: 30, longitude: 111, coordinateSystem: 'GCJ-02', sources: [{ title: 'official', url: 'https://example.test', licenseNote: 'self-authored' }], verifiedAt: '2026-09-04T00:00:00.000Z', updatedAt: '2026-09-04T00:00:00.000Z', status: 'draft', coverFileId: 'https://wrong', openNotice: '需预约' };
     const detail = { placeId: 'dynamic', sections: [{ type: 'image', fileId: 'wrong' }], updatedAt: '2026-09-04T00:00:00.000Z' };
     expect(validateContent([place], [detail]).join('\n')).toMatch(/coverFileId|unverified dynamic|sections/);
   });
@@ -34,5 +35,11 @@ describe('demo place content', () => {
   it('keeps seed data as JSON rather than frontend literals', async () => {
     const raw = await readFile('content/places.seed.json', 'utf8');
     expect(raw).toContain('demo-three-gorges-dam');
+  });
+
+  it('generates one deployable deny-all CloudBase operation per collection', async () => {
+    const operations = await planSecurityRules({ root, envId: 'yichang-dev' });
+    expect(operations).toHaveLength(12);
+    expect(operations.every((operation: { Action: string; Param: { AclTag: string; Rule: string } }) => operation.Action === 'ModifySafeRule' && operation.Param.AclTag === 'CUSTOM' && operation.Param.Rule === '{"read":false,"write":false}')).toBe(true);
   });
 });

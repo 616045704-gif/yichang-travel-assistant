@@ -31,7 +31,7 @@
     "intro": "用于验证餐饮分类、空封面与动态信息提示的演示条目，不代表具体商户推荐。",
     "tags": ["本地风味", "演示数据"],
     "coverFileId": null,
-    "openNotice": "本条目不提供营业时间、价格或订位承诺。",
+    "openNotice": "本条目不提供动态运营信息或订位承诺。",
     "status": "draft",
     "sources": [{ "title": "宜昌市人民政府门户网站", "url": "https://www.yichang.gov.cn/", "licenseNote": "仅据公开城市资料编写；不涉及商户内容或图片。" }],
     "verifiedAt": "2026-09-04T00:00:00.000Z",

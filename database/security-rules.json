@@ -1,19 +1,17 @@
 {
-  "$schema": "https://yichang-travel-mini-program.local/database-security-rules-v1.json",
   "version": 1,
-  "default": { "read": false, "write": false },
-  "collections": {
-    "places": { "read": false, "write": false },
-    "place_contents": { "read": false, "write": false },
-    "favorites": { "read": false, "write": false },
-    "browse_history": { "read": false, "write": false },
-    "ai_sessions": { "read": false, "write": false },
-    "ai_messages": { "read": false, "write": false },
-    "trip_requests": { "read": false, "write": false },
-    "feedback": { "read": false, "write": false },
-    "app_settings": { "read": false, "write": false },
-    "user_preferences": { "read": false, "write": false },
-    "ai_jobs": { "read": false, "write": false },
-    "usage_counters": { "read": false, "write": false }
-  }
+  "rules": [
+    { "collection": "places", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "place_contents", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "favorites", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "browse_history", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "ai_sessions", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "ai_messages", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "trip_requests", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "feedback", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "app_settings", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "user_preferences", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "ai_jobs", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } },
+    { "collection": "usage_counters", "aclTag": "CUSTOM", "rule": { "read": false, "write": false } }
+  ]
 }

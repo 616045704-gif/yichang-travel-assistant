@@ -19,6 +19,7 @@
     "test:e2e": "node scripts/wechat-smoke.mjs",
     "validate:content": "node scripts/validate-content.mjs",
     "import:content": "node scripts/import-content.mjs",
+    "plan:security-rules": "node scripts/plan-security-rules.mjs",
     "release:check": "node scripts/platform-gate.mjs release"
   },
   "devDependencies": {
