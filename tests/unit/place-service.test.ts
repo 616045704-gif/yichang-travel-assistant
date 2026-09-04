@@ -9,7 +9,7 @@ function database() {
     { ...culturePlace, _id: 'draft-place', name: '草稿地点', status: 'draft', aliases: [], sources: [] },
   ];
   const contents = { [scenicPlace.placeId]: { _id: scenicPlace.placeId, sections: scenicDetail.sections, visitAdvice: scenicDetail.visitAdvice, diningInfo: null } };
-  return { collection(name: string) { return { where() { return { limit() { return { async get() { return { data: places }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? places.find(item => item._id === id) : contents[id as keyof typeof contents]; if (!data) throw new Error('not found'); return { data }; } }; } }; } };
+  return { collection(name: string) { return { where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: places.slice(offset, offset + count) }; } }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? places.find(item => item._id === id) : contents[id as keyof typeof contents]; if (!data) throw new Error('not found'); return { data }; } }; } }; } };
 }
 
 describe('place repository', () => {
@@ -27,5 +27,14 @@ describe('place repository', () => {
     const repository = createPlaceRepository(database());
     await expect(repository.detail('missing')).resolves.toBeNull();
     await expect(repository.detail('draft-place')).resolves.toBeNull();
+  });
+  it('reads beyond the database batch and rejects a tampered cursor', async () => {
+    const many = Array.from({ length: 101 }, (_, index) => ({ ...scenicPlace, _id: `synthetic-${index}`, name: `地点${index.toString().padStart(3, '0')}`, status: 'published', aliases: [], sources: [] }));
+    const db = { collection() { return { where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: many.slice(offset, offset + count) }; } }; } }; } }; }, doc() { return { async get() { throw new Error('not found'); } }; } }; } };
+    const repository = createPlaceRepository(db);
+    const first = await repository.list({ pageSize: 50 });
+    const third = await repository.list({ cursor: (await repository.list({ cursor: first.nextCursor, pageSize: 50 })).nextCursor, pageSize: 50 });
+    expect(third.items).toHaveLength(1);
+    await expect(repository.list({ cursor: 'eyJub3QiOiJhbi1pc3N1ZWQtY3Vyc29yIn0' })).rejects.toThrow('分页游标无效');
   });
 });

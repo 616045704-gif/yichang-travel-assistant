@@ -35,7 +35,7 @@ export interface Source {
 
 export type PlaceSection =
   | { type: 'text'; text: string }
-  | { type: 'image'; fileId: string; alt: string };
+  | { type: 'image'; fileId: string; alt: string; url?: string | null };
 
 export interface PlaceDetail extends PlaceSummary {
   openNotice: string | null;

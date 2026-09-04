@@ -1,17 +1,22 @@
-import type { Category, PageResult, PlaceDetail, PlaceSummary } from '../../shared/contracts';
+import type { Category, PageResult, PlaceDetail, PlaceSection, PlaceSummary } from '../../shared/contracts';
 
 export interface PlaceRepository {
   list(input: { category?: Category; keyword?: string; tags?: string[]; cursor?: string | null; pageSize?: number }): Promise<PageResult<PlaceSummary>>;
   detail(placeId: string): Promise<PlaceDetail | null>;
 }
 
-type Database = { collection(name: string): { where(query: Record<string, unknown>): { limit(count: number): { get(): Promise<{ data: Record<string, unknown>[] }> } }; doc(id: string): { get(): Promise<{ data: Record<string, unknown> }> } } };
+type Database = { collection(name: string): { where(query: Record<string, unknown>): { skip(count: number): { limit(count: number): { get(): Promise<{ data: Record<string, unknown>[] }> } } }; doc(id: string): { get(): Promise<{ data: Record<string, unknown> }> } } };
 const categories: Category[] = ['scenic', 'restaurant', 'culture', 'camping'];
 
+export class InvalidPlaceInputError extends Error {}
+
 function summary(document: Record<string, unknown>): PlaceSummary {
+  const latitude = Number(document.latitude);
+  const longitude = Number(document.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || document.coordinateSystem !== 'GCJ-02') throw new InvalidPlaceInputError('地点坐标无效。');
   return {
     placeId: String(document._id), name: String(document.name), category: document.category as Category,
-    district: String(document.district), address: String(document.address), latitude: Number(document.latitude), longitude: Number(document.longitude),
+    district: String(document.district), address: String(document.address), latitude, longitude,
     coordinateSystem: 'GCJ-02', intro: String(document.intro), tags: Array.isArray(document.tags) ? document.tags.map(String) : [],
     coverFileId: typeof document.coverFileId === 'string' ? document.coverFileId : null, coverUrl: null, isFavorite: false,
     verifiedAt: String(document.verifiedAt),
@@ -28,20 +33,46 @@ function matches(document: Record<string, unknown>, input: { category?: Category
   return !(input.tags?.some(tag => !tags.includes(tag.trim())));
 }
 
-function decodeCursor(cursor: string | null | undefined) { return cursor ? JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as [string, string] : null; }
+function decodeCursor(cursor: string | null | undefined) {
+  if (!cursor) return null;
+  try {
+    const decoded: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+    if (!Array.isArray(decoded) || decoded.length !== 2 || !decoded.every(value => typeof value === 'string' && value.length)) throw new Error('invalid');
+    return decoded as [string, string];
+  } catch { throw new InvalidPlaceInputError('分页游标无效。'); }
+}
 function encodeCursor(document: Record<string, unknown>) { return Buffer.from(JSON.stringify([document.name, document._id])).toString('base64url'); }
+
+function safeSections(value: unknown): PlaceSection[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap<PlaceSection>(section => {
+    if (!section || typeof section !== 'object') return [];
+    const item = section as Record<string, unknown>;
+    if (item.type === 'text' && typeof item.text === 'string') return [{ type: 'text' as const, text: item.text }];
+    if (item.type === 'image' && typeof item.fileId === 'string' && item.fileId.startsWith('cloud://') && typeof item.alt === 'string') return [{ type: 'image' as const, fileId: item.fileId, alt: item.alt }];
+    return [];
+  });
+}
 
 export function createPlaceRepository(database: Database): PlaceRepository {
   return {
     async list(input) {
       const pageSize = Math.min(Math.max(input.pageSize || 20, 1), 50);
       const cursor = decodeCursor(input.cursor);
-      const records = (await database.collection('places').where({ status: 'published' }).limit(100).get()).data
+      const records: Record<string, unknown>[] = [];
+      for (let skip = 0; ; skip += 100) {
+        const batch = (await database.collection('places').where({ status: 'published' }).skip(skip).limit(100).get()).data;
+        records.push(...batch);
+        if (batch.length < 100) break;
+      }
+      const filtered = records
         .filter(document => matches(document, input))
         .sort((a, b) => `${a.name}\u0000${a._id}`.localeCompare(`${b.name}\u0000${b._id}`));
-      const start = cursor ? records.findIndex(item => item.name === cursor[0] && item._id === cursor[1]) + 1 : 0;
-      const page = records.slice(Math.max(start, 0), Math.max(start, 0) + pageSize);
-      return { items: page.map(summary), nextCursor: start + pageSize < records.length ? encodeCursor(page[page.length - 1]) : null };
+      const cursorIndex = cursor ? filtered.findIndex(item => item.name === cursor[0] && item._id === cursor[1]) : -1;
+      if (cursor && cursorIndex < 0) throw new InvalidPlaceInputError('分页游标无效。');
+      const start = cursor ? cursorIndex + 1 : 0;
+      const page = filtered.slice(start, start + pageSize);
+      return { items: page.map(summary), nextCursor: start + pageSize < filtered.length ? encodeCursor(page[page.length - 1]) : null };
     },
     async detail(placeId) {
       try {
@@ -53,8 +84,13 @@ export function createPlaceRepository(database: Database): PlaceRepository {
           ...summary(place), openNotice: typeof place.openNotice === 'string' ? place.openNotice : null,
           visitAdvice: typeof content.visitAdvice === 'string' ? content.visitAdvice : null,
           diningInfo: typeof content.diningInfo === 'string' ? content.diningInfo : null,
-          sections: Array.isArray(content.sections) ? content.sections.filter(section => section && (section.type === 'text' || section.type === 'image')) as PlaceDetail['sections'] : [],
-          sources: (Array.isArray(place.sources) ? place.sources : []).map(source => ({ kind: 'local_verified' as const, title: String(source.title), url: typeof source.url === 'string' ? source.url : null, verifiedAt: typeof place.verifiedAt === 'string' ? place.verifiedAt : null, placeId })),
+          sections: safeSections(content.sections),
+          sources: (Array.isArray(place.sources) ? place.sources : []).flatMap(source => {
+            if (!source || typeof source !== 'object') return [];
+            const item = source as Record<string, unknown>;
+            if (typeof item.title !== 'string' || !item.title.trim()) return [];
+            return [{ kind: 'local_verified' as const, title: item.title, url: typeof item.url === 'string' ? item.url : null, verifiedAt: typeof item.verifiedAt === 'string' ? item.verifiedAt : null, placeId }];
+          }),
         };
       } catch { return null; }
     },
