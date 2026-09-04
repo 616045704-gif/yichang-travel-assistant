@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
@@ -12,6 +13,13 @@ describe('personal pages', () => {
     page!.showPrivacy();
     expect(navigateTo).toHaveBeenNthCalledWith(1, { url: '/pages/records/index?type=favorites' });
     expect(navigateTo).toHaveBeenNthCalledWith(2, { url: '/pages/privacy/index' });
+  });
+  it('links AI history from my page without calling userService', async () => {
+    const me = await readFile('miniprogram/pages/me/index.ts', 'utf8');
+    const template = await readFile('miniprogram/pages/me/index.wxml', 'utf8');
+    expect(me).toContain('/pages/ai-history/index');
+    expect(me).not.toContain("listRecords('trips'");
+    expect(template).toContain('模拟记录，未持久化');
   });
   it('does not send an identity field from the user client', async () => {
     const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: { placeId: 'place-1', favorite: true } } }));

@@ -18,9 +18,10 @@ describe('travel visual presentation', () => {
       expect((await readFile(`miniprogram/assets/icons/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
   });
-  it('preserves honest feature states and the AI disclaimer in the themed home', async () => {
+  it('renders a reachable mock assistant and the AI disclaimer in the themed home', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
-    expect(home).toContain('AI 问答准备中');
+    expect(home).toContain('开始问问旅行助手');
+    expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
     expect(home).toContain('status="empty"');
     expect(home).toContain('bindtap="openDiscover"');

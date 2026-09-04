@@ -17,7 +17,7 @@
     </view>
     <view class="ai-entry">
       <view class="scroll-rod scroll-left" aria-hidden="true"></view><view class="scroll-rod scroll-right" aria-hidden="true"></view>
-      <view class="ai-copy"><text class="ai-kicker">与山水相逢</text><text class="ai-title">你的宜昌旅行助手</text><text class="note">聊聊心之所向，写下旅途的序章。</text><text class="badge">AI 问答准备中</text></view>
+      <view class="ai-copy"><text class="ai-kicker">与山水相逢</text><text class="ai-title">你的宜昌旅行助手</text><text class="note">聊聊心之所向，写下旅途的序章。</text><button class="ai-action" bindtap="openAiChat">开始问问旅行助手 <text aria-hidden="true">›</text></button></view>
       <text class="ai-decoration" aria-hidden="true">山
 水</text>
     </view>
