@@ -60,14 +60,13 @@ describe('four-tab application', () => {
     else expect(callFunction).not.toHaveBeenCalled();
     if (name === 'map') expect(page!.data.markers).toEqual([]);
   });
-  it('opens truthful privacy information without login or storage', async () => {
-    let page: { showPrivacy(): void };
-    vi.stubGlobal('Page', (value: typeof page) => { page = value; });
-    const showModal = vi.fn();
-    vi.stubGlobal('wx', { showModal });
-    await import('../../miniprogram/pages/me/index');
-    page!.showPrivacy();
-    expect(showModal).toHaveBeenCalledWith(expect.objectContaining({ showCancel: false, content: expect.stringContaining('定位我的附近') }));
+  it('registers personal routes and gives privacy its own truthful page', async () => {
+    const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
+    expect(app.pages).toEqual(expect.arrayContaining(['pages/records/index', 'pages/preferences/index', 'pages/privacy/index']));
+    const privacy = await readFile('miniprogram/pages/privacy/index.wxml', 'utf8');
+    expect(privacy).toContain('定位我的附近');
+    expect(privacy).toContain('位置不会长期保存');
+    expect(privacy).toContain('不要求手机号登录');
   });
   it('includes all four async template branches with a retry binding', async () => {
     const template = await readFile('miniprogram/components/async-state/index.wxml', 'utf8');

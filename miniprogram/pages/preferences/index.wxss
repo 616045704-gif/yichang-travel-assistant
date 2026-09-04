@@ -1,0 +1,1 @@
+.choices { display: flex; flex-wrap: wrap; gap: 18rpx; padding: 28rpx; }.choice { margin: 0; padding: 14rpx 24rpx; background: #f5eddf; color: var(--color-text); font-size: 26rpx; border: 1rpx solid var(--color-border); }.choice.selected { background: #627968; border-color: #627968; color: #fff; }.save-button { margin-top: 36rpx; background: #a44d3e; color: #fff; }

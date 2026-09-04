@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createPlaceRepository } from '../../cloudfunctions/places/repository';
 import { culturePlace, scenicDetail, scenicPlace } from '../fixtures/places';
+import { handlePlaceRequest } from '../../cloudfunctions/places/service';
 
 function database() {
   const places = [
@@ -36,5 +37,11 @@ describe('place repository', () => {
     const third = await repository.list({ cursor: (await repository.list({ cursor: first.nextCursor, pageSize: 50 })).nextCursor, pageSize: 50 });
     expect(third.items).toHaveLength(1);
     await expect(repository.list({ cursor: 'eyJub3QiOiJhbi1pc3N1ZWQtY3Vyc29yIn0' })).rejects.toThrow('分页游标无效');
+  });
+  it('projects only the trusted user’s favorite state into public place responses', async () => {
+    const repository = createPlaceRepository(database());
+    const storage = { async getTempFileURL() { return { fileList: [] }; } };
+    const response = await handlePlaceRequest({ action: 'detail', placeId: scenicPlace.placeId }, { repository, storage, favoritePlaceIds: async ids => new Set(ids) });
+    expect(response).toMatchObject({ code: 'OK', data: { placeId: scenicPlace.placeId, isFavorite: true } });
   });
 });

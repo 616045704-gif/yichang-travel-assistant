@@ -65,3 +65,11 @@ export interface ApiResult<T> {
   message: string;
   traceId: string;
 }
+
+export type RecordType = 'favorites' | 'browse' | 'trips';
+
+export interface UserRecord {
+  recordId: string;
+  placeId: string;
+  recordedAt: string;
+}

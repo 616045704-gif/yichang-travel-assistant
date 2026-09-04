@@ -1,0 +1,1 @@
+.privacy-card { display: flex; flex-direction: column; gap: 16rpx; padding: 30rpx; line-height: 1.8; }.privacy-title { margin-top: 12rpx; font-family: var(--font-display); font-size: 32rpx; color: var(--color-ink); }

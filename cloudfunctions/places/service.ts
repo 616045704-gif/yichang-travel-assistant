@@ -35,11 +35,15 @@ export function listInput(event: Event) {
   return { category: category as never, keyword: keyword as string | undefined, tags: tags as string[] | undefined, cursor: cursor as string | null | undefined, pageSize: pageSize as number | undefined };
 }
 
-export async function handlePlaceRequest(event: Event, dependencies: { repository: PlaceRepository; storage: Storage }) {
+export async function handlePlaceRequest(event: Event, dependencies: { repository: PlaceRepository; storage: Storage; favoritePlaceIds?: (placeIds: string[]) => Promise<Set<string>> }) {
+  const withFavorites = async <T extends { placeId: string; isFavorite: boolean }>(items: T[]) => {
+    const ids = await dependencies.favoritePlaceIds?.(items.map(item => item.placeId)) ?? new Set<string>();
+    return items.map(item => ({ ...item, isFavorite: ids.has(item.placeId) }));
+  };
   if (event.action === 'list') {
     try {
       const page = await dependencies.repository.list(listInput(event));
-      return ok({ ...page, items: await resolveCoverUrls(page.items, dependencies.storage) });
+      return ok({ ...page, items: await resolveCoverUrls(await withFavorites(page.items), dependencies.storage) });
     } catch (error) { return fail(error instanceof InvalidPlaceInputError ? 'INVALID_INPUT' : 'INTERNAL_ERROR', error instanceof InvalidPlaceInputError ? error.message : '地点资料暂时无法加载。'); }
   }
   if (event.action === 'detail') {
@@ -47,7 +51,8 @@ export async function handlePlaceRequest(event: Event, dependencies: { repositor
     const detail = await dependencies.repository.detail(event.placeId);
     if (!detail) return fail('NOT_FOUND', '该地点暂不可查看。');
     const [withCover] = await resolveCoverUrls([detail], dependencies.storage);
-    return ok({ ...withCover, sections: await resolveSectionImageUrls(detail.sections, dependencies.storage) });
+    const [withFavorite] = await withFavorites([withCover]);
+    return ok({ ...withFavorite, sections: await resolveSectionImageUrls(detail.sections, dependencies.storage) });
   }
   if (event.action === 'markers') {
     try { return ok({ items: await dependencies.repository.markers() }); }
