@@ -3,7 +3,8 @@
     "pages/home/index",
     "pages/discover/index",
     "pages/map/index",
-    "pages/me/index"
+    "pages/me/index",
+    "pages/place-detail/index"
   ],
   "window": {
     "navigationBarTitleText": "宜昌旅游助手",

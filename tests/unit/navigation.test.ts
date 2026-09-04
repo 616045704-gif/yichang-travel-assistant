@@ -44,7 +44,7 @@ describe('four-tab application', () => {
     if (state !== 'unavailable') expect(init).toHaveBeenCalledWith({ env: 'synthetic-development-env', traceUser: false });
     expect(getLocation).not.toHaveBeenCalled();
   });
-  it.each(['discover', 'map'])('%s changes category without loading user data or location', async name => {
+  it.each(['discover', 'map'])('%s changes category without reading location', async name => {
     let page: { data: { category: string; markers?: unknown[] }; setData: ReturnType<typeof vi.fn>; onCategoryChange(event: unknown): void };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
     const getLocation = vi.fn();
@@ -56,7 +56,8 @@ describe('four-tab application', () => {
     page!.onCategoryChange({ detail: { category: 'camping' } });
     expect(page!.setData).toHaveBeenCalledWith(expect.objectContaining({ category: 'camping' }));
     expect(getLocation).not.toHaveBeenCalled();
-    expect(callFunction).not.toHaveBeenCalled();
+    if (name === 'discover') expect(callFunction).toHaveBeenCalledWith(expect.objectContaining({ name: 'placeService' }));
+    else expect(callFunction).not.toHaveBeenCalled();
     if (name === 'map') expect(page!.data.markers).toEqual([]);
   });
   it('opens truthful privacy information without login or storage', async () => {
