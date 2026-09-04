@@ -16,6 +16,12 @@ describe('user initiated location permission', () => {
     await expect(requestCurrentLocation()).rejects.toThrow('denied');
     expect(getLocation).not.toHaveBeenCalled();
   });
+  it('normalizes a denial from the first system authorization prompt', async () => {
+    const getLocation = vi.fn();
+    vi.stubGlobal('wx', { getSetting: ({ success }: { success: (result: { authSetting: Record<string, boolean> }) => void }) => success({ authSetting: {} }), authorize: ({ fail }: { fail: (reason: { errMsg: string }) => void }) => fail({ errMsg: 'authorize:fail auth deny' }), getLocation });
+    await expect(requestCurrentLocation()).rejects.toThrow('denied');
+    expect(getLocation).not.toHaveBeenCalled();
+  });
   it('opens settings only from an explicit retry action', async () => {
     const openSetting = vi.fn(({ success }: { success: (result: { authSetting: Record<string, boolean> }) => void }) => success({ authSetting: { 'scope.userLocation': true } }));
     vi.stubGlobal('wx', { openSetting });

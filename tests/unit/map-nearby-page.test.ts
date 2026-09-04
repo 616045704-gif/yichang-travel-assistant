@@ -52,6 +52,15 @@ describe('nearby map page', () => {
     await page.onOpenSettings();
     expect(callFunction).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: 'nearby' }) }));
   });
+  it('shows settings after a first authorization prompt is denied without requesting nearby places', async () => {
+    const callFunction = vi.fn();
+    const page = await loadPage({ cloud: { callFunction }, getSetting: ({ success }: { success: (result: { authSetting: Record<string, boolean> }) => void }) => success({ authSetting: {} }), authorize: ({ fail }: { fail: (reason: { errMsg: string }) => void }) => fail({ errMsg: 'authorize:fail auth deny' }) });
+    await page.locateNearby();
+    expect(page.data.showSettings).toBe(true);
+    expect(page.data.notice).toContain('未获得定位权限');
+    expect(page.data.nearbyMode).toBe(false);
+    expect(callFunction).not.toHaveBeenCalled();
+  });
 
   it('clears the in-memory nearby session when leaving the map', async () => {
     const page = await loadPage({ cloud: { callFunction: vi.fn() } });

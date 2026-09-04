@@ -11,6 +11,7 @@ Page({
   data: { center: YICHANG_CENTER, places: [] as MapPlace[], markers: [] as TravelMarker[], category: '' as Category | '', selectedPlace: null as MapPlace | null, notice: '', locating: false, nearbyMode: false, showLocation: false, showSettings: false },
   onShow() { if (!this.data.nearbyMode) void this.loadPublicMarkers(); },
   onHide() { requestSerial += 1; nearbyLocation = null; this.setData({ center: YICHANG_CENTER, nearbyMode: false, showLocation: false, selectedPlace: null, locating: false, showSettings: false }); },
+  onUnload() { this.onHide(); },
   async loadPublicMarkers() {
     const token = ++requestSerial;
     try {

@@ -1,6 +1,13 @@
 export type LocationFailure = 'denied' | 'unavailable';
 export type CurrentLocation = { latitude: number; longitude: number };
 
+function wasDenied(error: unknown): boolean {
+  if (error instanceof Error) return error.message === 'denied' || /auth deny|authorize:fail/i.test(error.message);
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { errMsg?: unknown; message?: unknown };
+  return [value.errMsg, value.message].some(message => typeof message === 'string' && /auth deny|authorize:fail/i.test(message));
+}
+
 function getSettings(): Promise<WechatMiniprogram.GetSettingSuccessCallbackResult> {
   return new Promise((resolve, reject) => wx.getSetting({ success: resolve, fail: reject }));
 }
@@ -18,10 +25,7 @@ export async function requestCurrentLocation(): Promise<CurrentLocation> {
     if (setting.authSetting['scope.userLocation'] === false) throw new Error('denied');
     if (setting.authSetting['scope.userLocation'] !== true) await authorizeLocation();
     return await getLocation();
-  } catch (error) {
-    if (error instanceof Error && error.message === 'denied') throw error;
-    throw new Error('unavailable');
-  }
+  } catch (error) { throw new Error(wasDenied(error) ? 'denied' : 'unavailable'); }
 }
 
 export async function openLocationSettings(): Promise<boolean> {
