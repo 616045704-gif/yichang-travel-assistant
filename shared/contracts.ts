@@ -33,6 +33,38 @@ export interface Source {
   placeId: string;
 }
 
+export type AiKind = 'chat' | 'trip';
+export type AiStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out';
+
+export interface TripInput {
+  destination: string;
+  people: number;
+  totalBudgetCny: number;
+  days: number;
+  preferences: string[];
+}
+
+export interface AiRequest {
+  requestId: string;
+  kind: AiKind;
+  question?: string;
+  trip?: TripInput;
+}
+
+export interface AiResult {
+  requestId: string;
+  status: AiStatus;
+  answer: string | null;
+  mode: 'mock';
+  error: string | null;
+  localFacts: string[];
+  references: Source[];
+}
+
+export interface AiClient {
+  submit(request: AiRequest): Promise<AiResult>;
+}
+
 export type PlaceSection =
   | { type: 'text'; text: string }
   | { type: 'image'; fileId: string; alt: string; url?: string | null };
