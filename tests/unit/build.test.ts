@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, readdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -35,6 +35,16 @@ describe('deployable build boundary', () => {
     await buildProject({ root });
     expect(await readFile(path.join(root, 'dist/miniprogram/app.js'), 'utf8')).toContain('App(');
     expect(await readdir(path.join(root, 'dist/miniprogram'))).not.toContain('app.ts');
+  });
+  it('preserves the imported project directory and IDE preferences across rebuilds', async () => {
+    const root = await fixture();
+    await put(root, 'dist/project.private.config.json', '{"libVersion":"3.16.2"}');
+    await put(root, 'dist/miniprogram/stale.js', 'stale');
+    const before = await stat(path.join(root, 'dist'));
+    await buildProject({ root });
+    expect((await stat(path.join(root, 'dist'))).ino).toBe(before.ino);
+    expect(await readFile(path.join(root, 'dist/project.private.config.json'), 'utf8')).toContain('3.16.2');
+    expect(await readdir(path.join(root, 'dist/miniprogram'))).not.toContain('stale.js');
   });
   it('rejects a missing entry', async () => {
     const root = await fixture();

@@ -20,9 +20,15 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
   if (Object.keys(local).some(key => !['appid', 'cloudEnv'].includes(key))) throw new Error('Unexpected local config field');
   if (local.appid && !/^(wx[a-f0-9]{16}|touristappid)$/.test(local.appid)) throw new Error('Invalid AppID');
   if (local.cloudEnv && (typeof local.cloudEnv !== 'string' || !/^[a-zA-Z0-9-]+$/.test(local.cloudEnv))) throw new Error('Invalid cloud environment');
-  // Only this fixed output directory may be replaced; never accept a user-supplied output path.
+  // Keep the IDE's imported directory openable on Windows; only replace generated children.
   if (path.dirname(output) !== root || path.basename(output) !== 'dist') throw new Error('Unsafe output path');
-  await rm(output, { recursive: true, force: true });
+  await mkdir(output, { recursive: true });
+  for (const item of await readdir(output, { withFileTypes: true })) {
+    if (item.name === 'project.private.config.json' && item.isFile()) continue;
+    const generatedPath = path.resolve(output, item.name);
+    if (path.dirname(generatedPath) !== output) throw new Error('Unsafe generated path');
+    await rm(generatedPath, { recursive: true, force: true });
+  }
   await mkdir(path.join(output, 'miniprogram'), { recursive: true });
   await mkdir(path.join(output, 'cloudfunctions'), { recursive: true });
   const files = await listFiles(source);
