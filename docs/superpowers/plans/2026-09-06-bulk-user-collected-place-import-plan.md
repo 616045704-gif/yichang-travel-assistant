@@ -119,7 +119,7 @@ git commit -m "feat: label user-collected local references"
 
 **Consumes:** JSON Lines files from Task 1.
 
-**Produces:** exact non-secret console procedure: export backup, import `places` then `place_contents` using Upsert, and post-import verification.
+**Produces:** exact non-secret console procedure: export backup, import `place_contents` then `places` using Upsert, and post-import verification.
 
 - [ ] **Step 1: Add a failing runbook contract test**
 
