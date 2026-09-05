@@ -280,7 +280,8 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
             const storedConversationId = typeof record.difyConversationId === 'string' && record.difyConversationId && record.difyConversationId.length <= 256
               ? record.difyConversationId
               : null;
-            if (!session.difyConversationId && storedConversationId && recordGeneration === session.generation
+            if (!session.difyConversationId && !session.activeRequestId && !session.activeAttemptToken && !session.leaseUntil
+              && storedConversationId && recordGeneration === session.generation
               && session.lastCompletedRequestId === request.requestId) {
               await transaction.collection('ai_sessions').doc(sessionId).set({ data: sessionDocument(ownerId, request.kind, {
                 ...session, difyConversationId: storedConversationId,

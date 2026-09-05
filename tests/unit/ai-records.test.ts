@@ -238,6 +238,29 @@ describe('private AI records', () => {
     await expect(conversations.get('owner-a', 'chat')).resolves.toBe('private-first');
   });
 
+  it('does not repair an older cached pointer while the same-kind session has an active lease', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const firstToken = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, firstToken, result(chatRequest.requestId, '第一答'), 'private-first', now);
+    const sessionEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_sessions:'));
+    if (!sessionEntry) throw new Error('expected session');
+    fixture.documents.set(sessionEntry[0], { ...sessionEntry[1], difyConversationId: null });
+    await claimToken(
+      records,
+      'owner-a',
+      { ...chatRequest, requestId: 'active-request', question: '当前进行中的问题' },
+      new Date(now.getTime() + 1_000),
+    );
+    const before = snapshot(fixture.documents);
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 2_000))).resolves.toMatchObject({
+      state: 'cached', result: { answer: '第一答' },
+    });
+    expect(snapshot(fixture.documents)).toEqual(before);
+  });
+
   it.each([
     ['a mismatched result status', { status: 'failed' }],
     ['a mismatched result request ID', { requestId: 'other-request' }],
@@ -276,7 +299,7 @@ describe('private AI records', () => {
     });
   });
 
-  it.each([2, 3, 4])('rolls back every claim write when transaction set %i fails', async setNumber => {
+  it.each([1, 2, 3, 4])('rolls back every claim write when transaction set %i fails', async setNumber => {
     const fixture = createAiDatabaseFixture();
     fixture.failNextTransactionSetAt(setNumber);
     await expect(createAiRecordRepository(fixture).claim(
