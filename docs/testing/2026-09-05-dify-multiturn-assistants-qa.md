@@ -50,3 +50,43 @@
 - 既有 `tests/integration/database-security.test.ts` 所需云数据库集成环境。
 
 真实环境可用后，应按 [`dify-chatflow.md`](../runbooks/dify-chatflow.md) 完成双助手首次/后续对话、相互隔离重置、错误提示与双用户、Android/iPhone 验收，并单独更新测试记录。
+
+## 真实云环境补充验收（2026-09-05）
+
+### 环境与责任边界
+
+- 执行角色：部署实施者与自动化验证执行者；本节不是独立测试团队复验，不替代后续双用户和真机验收。
+- 被测 Git：`f57b054 test: stabilize WeChat async state smoke checks`，包含 `6b418e0..f57b054` 的双 Chatflow 实现、部署修复和模拟器验收修复。
+- 微信主体：AppID `wx266dd8f36d10f4c9`；腾讯云账号 `100052554087`；CloudBase 环境 `yichang-dev-d3glky2csb41de48e`。
+- 云函数：`aiService`（`lam-3kiqf3yf`），Node.js 20.19，状态“正常”，执行超时 120 秒。
+- 云端资源：`places`、`place_contents`、`ai_sessions` 均已创建并设置为 `ADMINONLY`；函数环境已配置 `DIFY_BASE_URL`、两套各自的 API Base URL 和两套各自的 API Key。本文档、Git 变更和测试输出均未记录密钥值。
+
+### 实际执行与结果
+
+| 实际检查 | 结果 |
+| --- | --- |
+| 微信开发者工具 CLI 登录与项目核验 | 通过：CLI 返回已登录；自动化运行时核对实际 AppID 与本地忽略配置一致；模拟器基础库为 3.16.2。 |
+| `node scripts/wechat-smoke.mjs`（通过本地自动化端口连接） | 通过：首页、发现、地图、我的四个入口，loading/error/empty/ready 四状态，分类布局与选择、全屏地图和分类点位更新均输出 PASS。 |
+| 忽略目录中的真实 AI 冒烟脚本 | 通过：`chat` 初次问答返回 `OK/dify`（116 字）；`trip` 初次规划返回 `OK/dify`（1501 字）；重置 `chat` 后，以不含行程表单的追问继续 `trip` 仍返回 `OK/dify`（812 字）；随后重新建立 `chat` 返回 `OK/dify`（57 字）。脚本只输出类型、状态、模式和长度。 |
+| `node node_modules/vitest/vitest.mjs run` | 通过：23 个文件、122 项测试；1 个需专用云数据库凭据的既有测试跳过。 |
+| `node node_modules/typescript/bin/tsc --noEmit` | 通过。 |
+| `node node_modules/eslint/bin/eslint.js .` | 通过。 |
+| `node scripts/build.mjs` | 通过：development 构建就绪；构建产物使用已忽略的本地 AppID 与云环境 ID。 |
+| `node scripts/check-package.mjs` | 通过：客户端路由、资源和前后端边界验证通过。 |
+| `node scripts/import-content.mjs --target development --dry-run` | 通过：4 个地点及对应详情通过导入前校验；未执行云端写入。 |
+| `node scripts/verify-docs.mjs`、`git diff --check` | 通过。 |
+
+真实调用的顺序验证了 `chat` 与 `trip` 使用不同的 Dify 应用配置。`trip` 在 `chat` 被重置后仍可只凭追问继续，证明云端按用户与 `kind` 保存独立会话槽位；随后 `chat` 可重新建立自己的会话。前端全程只调用 `wx.cloud.callFunction({ name: 'aiService' })`。
+
+### 联调中发现并修复的问题
+
+- CloudBase 普通云函数默认 3 秒超时不足以等待 blocking Chatflow；已将 `aiService` 执行超时调整为 120 秒，客户端内部仍保留 90 秒上游中断与可理解的超时提示。
+- 首轮配置复核发现 `DIFY_TRIP_API_KEY` 曾误用 `chat` 应用密钥；已从 `trip` 应用访问点重新核验并替换。最终四次真实调用均在更正后执行。
+- 微信开发者工具 3.16.2 会使旧的组件自动化句柄保留先前分支；`f57b054` 改为由页面更新状态并在每次状态切换后重新获取组件句柄，完整模拟器回归通过。
+
+### 结论与剩余未测项
+
+- 阻断缺陷：无。
+- 结论：正确账号下的双 Dify Chatflow、CloudBase 函数入口、blocking 请求、真实微信身份注入和独立会话续接已通过联调，可供后续内容导入与真机验收。
+- 云端 `places`/`place_contents` 当前未导入发布态内容；真实函数已成功访问空集合，但“非空已核验资料传入 Dify”本次只由自动化单元测试覆盖。仓库中的 4 条示例均为 `draft`，且导入工具没有管理端写入适配器，因此未绕过发布流程写入云端。
+- 仍未执行：两个真实微信用户之间的端到端隔离、真实上游超时/非 2xx 故障注入、Android 与 iPhone 真机连续演示、需专用集成环境的云数据库规则测试。以上均不得视为已放行。
