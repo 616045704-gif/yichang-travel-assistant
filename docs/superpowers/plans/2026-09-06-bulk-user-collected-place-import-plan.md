@@ -6,7 +6,7 @@
 
 **Architecture:** A local-only workbook converter reads a supplied `.xlsx` path and produces deterministic CloudBase JSON Lines for the two existing collections. It never copies the workbook into the repository or mini-program package. Public records carry `sourceLevel: "user_collected"`; the existing retrieval and source presentation paths use that field to avoid calling the material officially verified.
 
-**Tech Stack:** Node.js 22, SheetJS `xlsx`, TypeScript, Vitest, CloudBase Console JSON Lines import with Upsert.
+**Tech Stack:** bundled Python with `openpyxl`, Node.js 22, TypeScript, Vitest, CloudBase Console JSON Lines import with Upsert.
 
 ## Global Constraints
 
@@ -21,14 +21,12 @@
 ### Task 1: Add a tested workbook-to-record converter
 
 **Files:**
-- Create: `scripts/convert-user-collected-workbook.mjs`
-- Create: `tests/unit/user-collected-import.test.ts`
-- Modify: `package.json`
-- Modify: `package-lock.json`
+- Create: `scripts/convert_user_collected_workbook.py`
+- Create: `tests/unit/test_user_collected_import.py`
 
 **Consumes:** an `.xlsx` workbook with the 17 user-provided columns.
 
-**Produces:** `convertWorkbookRows(rows, importedAt)` returning `{ places, contents, report }`, and CLI output at `.local/import/places.jsonl` and `.local/import/place_contents.jsonl`.
+**Produces:** `convert_workbook_rows(rows, imported_at)` returning `{ places, contents, report }`, and CLI output at `.local/import/places.jsonl` and `.local/import/place_contents.jsonl`.
 
 - [ ] **Step 1: Add failing mapping tests**
 
@@ -36,17 +34,17 @@ Create three object rows covering a scenic overview, a restaurant and a camping 
 
 - [ ] **Step 2: Run the focused test to confirm the converter is absent**
 
-Run: `node node_modules/vitest/vitest.mjs run tests/unit/user-collected-import.test.ts`
+Run: `python -m unittest tests/unit/test_user_collected_import.py`
 
-Expected: FAIL because `convert-user-collected-workbook.mjs` does not exist.
+Expected: FAIL because `convert_user_collected_workbook.py` does not exist.
 
-- [ ] **Step 3: Add SheetJS and implement the pure mapping**
+- [ ] **Step 3: Use bundled openpyxl and implement the pure mapping**
 
-Add `xlsx` as a development dependency. Implement these exports:
+Implement these functions:
 
 ```js
-export function convertWorkbookRows(rows, importedAt) { /* returns places, contents, report */ }
-export async function convertWorkbook({ sourcePath, outputDir, importedAt = new Date() }) { /* reads first sheet and writes JSON Lines */ }
+def convert_workbook_rows(rows, imported_at):  # returns places, contents, report
+def convert_workbook(source_path, output_dir, imported_at=None):  # reads first sheet and writes JSON Lines
 ```
 
 Map categories exactly as specified in the design. Build `placeId` from a normalized Chinese name plus a short SHA-256 suffix so repeated runs are stable and collisions cannot overwrite another row. Use `coverFileId: null`, `coordinateSystem: 'GCJ-02'`, `status: 'published'`, `sourceLevel: 'user_collected'`, and one source record with title `向半斗整理收集`, `url: null`, a collection note, and the imported timestamp. Set `openNotice` to the fixed `资料参考，出行前请以官方公告为准。`; put price, opening-hour, facilities and parking cells only in a bounded text `sections` reference block, never in `intro`, `openNotice`, `visitAdvice`, or `diningInfo`, because the latter fields are sent to Dify. Strip control characters and cap every mapped field before output.
@@ -60,9 +58,9 @@ Require `--source <path>` and optional `--out <directory>`. Reject a workbook wh
 Run:
 
 ```powershell
-node node_modules/vitest/vitest.mjs run tests/unit/user-collected-import.test.ts
+python -m unittest tests/unit/test_user_collected_import.py
 node node_modules/typescript/bin/tsc --noEmit
-node node_modules/eslint/bin/eslint.js scripts/convert-user-collected-workbook.mjs tests/unit/user-collected-import.test.ts
+node node_modules/eslint/bin/eslint.js .
 ```
 
 Expected: PASS.
@@ -70,7 +68,7 @@ Expected: PASS.
 Commit:
 
 ```powershell
-git add -- package.json package-lock.json scripts/convert-user-collected-workbook.mjs tests/unit/user-collected-import.test.ts
+git add -- scripts/convert_user_collected_workbook.py tests/unit/test_user_collected_import.py
 git commit -m "feat: convert user-collected place workbook"
 ```
 
@@ -168,7 +166,7 @@ git commit -m "docs: add user-collected place import runbook"
 Run the full test suite, typecheck, lint, build, package check and document verification. Then invoke:
 
 ```powershell
-node scripts/convert-user-collected-workbook.mjs --source "<user-provided-workbook>"
+python scripts/convert_user_collected_workbook.py --source "<user-provided-workbook>"
 ```
 
 Expected: two JSON Lines files below `.local/import/`, 387 accepted rows, four category counts, and no exposed record contents in terminal output.
