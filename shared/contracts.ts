@@ -61,6 +61,11 @@ export interface AiResult {
   references: Source[];
 }
 
+export interface AiHistoryItem extends AiResult {
+  kind: AiKind;
+  createdAt: string;
+}
+
 export interface AiClient {
   submit(request: AiRequest): Promise<AiResult>;
 }

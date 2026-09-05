@@ -91,7 +91,8 @@ describe('four-tab application', () => {
     expect(chat).toContain('模拟回答，仅用于交互测试');
     expect(chat).not.toContain('rich-text');
     const history = await readFile('miniprogram/pages/ai-history/index.wxml', 'utf8');
-    expect(history).toContain('模拟记录，未持久化');
+    expect(history).toContain('自由问答与行程定制分别保存');
+    expect(history).toContain("status === 'ready'");
   });
   it('includes all four async template branches with a retry binding', async () => {
     const template = await readFile('miniprogram/components/async-state/index.wxml', 'utf8');

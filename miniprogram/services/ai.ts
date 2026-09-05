@@ -1,4 +1,4 @@
-import type { AiClient, AiKind, AiRequest, AiResult } from '../../shared/contracts';
+import type { AiClient, AiHistoryItem, AiKind, AiRequest, AiResult } from '../../shared/contracts';
 
 declare const __BUILD_MODE__: string;
 
@@ -28,13 +28,13 @@ function createDevelopmentAiClient(): AiClient {
 }
 
 let client: AiClient | null = isDevelopmentMock() ? createDevelopmentAiClient() : null;
-const records: AiResult[] = [];
+const records: AiHistoryItem[] = [];
 
 export function configureAiClient(next: AiClient | null) {
   client = next;
 }
 
-async function callAi<T>(action: 'submit' | 'resetConversation', payload: Record<string, unknown>): Promise<T> {
+async function callAi<T>(action: 'submit' | 'resetConversation' | 'listRecords', payload: Record<string, unknown>): Promise<T> {
   if (!wx.cloud?.callFunction) throw new Error('AI_UNAVAILABLE');
   const response = await wx.cloud.callFunction({ name: 'aiService', data: { action, ...payload } }) as CloudEnvelope<T>;
   if (response.result?.code !== 'OK' || response.result.data == null) throw new Error(response.result?.message || 'AI_UNAVAILABLE');
@@ -48,7 +48,7 @@ function clearMockConversation(kind: AiKind) {
 export async function submitAi(request: AiRequest): Promise<AiResult> {
   if (!client) return callAi<AiResult>('submit', { request });
   const result = await client.submit(request);
-  records.push(result);
+  records.push({ ...result, kind: request.kind, createdAt: new Date().toISOString() });
   return result;
 }
 
@@ -60,6 +60,11 @@ export async function resetAiConversation(kind: AiKind): Promise<void> {
   await callAi('resetConversation', { kind });
 }
 
-export function listMockAiRecords(): AiResult[] {
+export function listMockAiRecords(): AiHistoryItem[] {
   return [...records];
+}
+
+export async function listAiRecords(): Promise<AiHistoryItem[]> {
+  if (client) return listMockAiRecords();
+  return callAi<AiHistoryItem[]>('listRecords', {});
 }

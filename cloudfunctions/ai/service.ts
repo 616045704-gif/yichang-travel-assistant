@@ -2,9 +2,10 @@ import type { AiRequest, AiResult, TripInput } from '../../shared/contracts';
 import type { DifyClient } from './dify';
 import type { AiConversationRepository } from './repository';
 import type { LocalFactRetriever } from './retrieval';
+import { AiRecordConflictError, type AiRecordRepository } from './records';
 
 type Event = { action?: unknown; request?: unknown; kind?: unknown };
-type ErrorCode = 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'AI_UNAVAILABLE' | 'AI_TIMEOUT' | 'INTERNAL_ERROR';
+type ErrorCode = 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'CONFLICT' | 'AI_UNAVAILABLE' | 'AI_TIMEOUT' | 'INTERNAL_ERROR';
 
 function ok(data: unknown) { return { code: 'OK' as const, data, message: '', traceId: 'ai-service' }; }
 function fail(code: ErrorCode, message: string) { return { code, data: null, message, traceId: 'ai-service' }; }
@@ -35,6 +36,7 @@ function requestInput(value: unknown): AiRequest | null {
 }
 
 function safeError(error: unknown) {
+  if (error instanceof AiRecordConflictError) return fail('CONFLICT', '该请求编号已用于其他内容，请重新提交。');
   if (error && typeof error === 'object' && (error as { code?: unknown }).code === 'AI_TIMEOUT') return fail('AI_TIMEOUT', 'AI 服务响应超时，请稍后重试。');
   if (error && typeof error === 'object' && (error as { code?: unknown }).code === 'AI_UNAVAILABLE') return fail('AI_UNAVAILABLE', 'AI 服务暂不可用，请稍后重试。');
   return fail('INTERNAL_ERROR', 'AI 服务暂时无法处理，请稍后重试。');
@@ -44,6 +46,7 @@ export interface AiServiceDependencies {
   ownerId: string | null;
   user: string;
   repository: AiConversationRepository;
+  records: AiRecordRepository;
   dify: DifyClient;
   retrieve: LocalFactRetriever;
 }
@@ -52,6 +55,10 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   if (!dependencies.ownerId) return fail('UNAUTHENTICATED', '请在微信中重新进入后再试。');
   if (!event || typeof event !== 'object') return fail('INVALID_INPUT', '不支持的 AI 服务请求。');
   const { ownerId } = dependencies;
+  if (event.action === 'listRecords') {
+    try { return ok(await dependencies.records.list(ownerId)); }
+    catch { return fail('INTERNAL_ERROR', 'AI 记录暂时无法读取，请稍后重试。'); }
+  }
   if (event.action === 'resetConversation') {
     if (event.kind !== 'chat' && event.kind !== 'trip') return fail('INVALID_INPUT', '会话类型无效。');
     try { await dependencies.repository.reset(ownerId, event.kind); return ok({ kind: event.kind }); }
@@ -61,12 +68,15 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   const request = requestInput(event.request);
   if (!request) return fail('INVALID_INPUT', '提问或行程信息无效。');
   try {
+    const existing = await dependencies.records.find(ownerId, request);
+    if (existing) return ok(existing);
     const conversationId = await dependencies.repository.get(ownerId, request.kind);
     if (request.kind === 'trip' && !request.trip && !conversationId) return fail('INVALID_INPUT', '请先提交行程信息，再继续调整。');
     const localFacts = await dependencies.retrieve(request);
     const response = await dependencies.dify.send(request.kind, request, conversationId, dependencies.user, localFacts);
-    await dependencies.repository.save(ownerId, request.kind, response.conversationId);
     const result: AiResult = { requestId: request.requestId, status: 'succeeded', answer: response.answer, mode: 'dify', error: null, localFacts, references: [] };
+    await dependencies.records.save(ownerId, request, result);
+    await dependencies.repository.save(ownerId, request.kind, response.conversationId);
     return ok(result);
   } catch (error) { return safeError(error); }
 }

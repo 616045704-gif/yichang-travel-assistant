@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiRequest, AiResult } from '../../shared/contracts';
 import { createAiConversationRepository } from '../../cloudfunctions/ai/repository';
+import { createAiRecordRepository, type AiRecordRepository } from '../../cloudfunctions/ai/records';
 import { createLocalFactRetriever } from '../../cloudfunctions/ai/retrieval';
 import { handleAiRequest } from '../../cloudfunctions/ai/service';
 import type { DifyClient } from '../../cloudfunctions/ai/dify';
@@ -58,6 +59,17 @@ describe('development mock AI service', () => {
     const { submitAi } = await import('../../miniprogram/services/ai');
     await expect(submitAi(request)).rejects.toThrow('AI 服务暂不可用，请稍后重试。');
   });
+
+  it('loads live history through the owner-scoped aiService action', async () => {
+    vi.stubGlobal('__BUILD_MODE__', 'demo');
+    const history = [{ requestId: 'c1', kind: 'chat', createdAt: '2026-09-05T00:00:00.000Z', status: 'succeeded', answer: '回答', mode: 'dify', error: null, localFacts: [], references: [] }];
+    const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: history } }));
+    vi.stubGlobal('wx', { cloud: { callFunction } });
+    const { listAiRecords } = await import('../../miniprogram/services/ai');
+
+    await expect(listAiRecords()).resolves.toEqual(history);
+    expect(callFunction).toHaveBeenCalledWith({ name: 'aiService', data: { action: 'listRecords' } });
+  });
 });
 
 function database() {
@@ -73,9 +85,22 @@ function database() {
             async set(input: { data: Record<string, unknown> }) { documents.set(key, { ...input.data }); },
           };
         },
+        where(query: Record<string, unknown>) {
+          return { limit() { return { async get() {
+            const data = [...documents.entries()]
+              .filter(([key]) => key.startsWith(`${name}:`))
+              .map(([, value]) => value)
+              .filter(value => Object.entries(query).every(([field, expected]) => value[field] === expected));
+            return { data };
+          } }; } };
+        },
       };
     },
   };
+}
+
+function emptyRecords(): AiRecordRepository {
+  return { find: vi.fn(async () => null), save: vi.fn(async () => undefined), list: vi.fn(async () => []) };
 }
 
 describe('private live AI service', () => {
@@ -85,7 +110,7 @@ describe('private live AI service', () => {
     const client: DifyClient = { send: vi.fn()
       .mockResolvedValueOnce({ answer: '聊天回答', conversationId: 'chat-c1' })
       .mockResolvedValueOnce({ answer: '行程回答', conversationId: 'trip-c1' }) };
-    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, dify: client, retrieve: vi.fn(async () => ['本地已核验资料']) };
+    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, records: createAiRecordRepository(db), dify: client, retrieve: vi.fn(async () => ['本地已核验资料']) };
     await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat', question: '问什么' } }, dependencies);
     await handleAiRequest({ action: 'submit', request: { requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'] } } }, dependencies);
     await handleAiRequest({ action: 'resetConversation', kind: 'chat' }, dependencies);
@@ -93,6 +118,22 @@ describe('private live AI service', () => {
     await expect(repository.get('trusted-owner', 'trip')).resolves.toBe('trip-c1');
     expect(client.send).toHaveBeenNthCalledWith(1, 'chat', expect.anything(), null, 'derived-user', ['本地已核验资料']);
     expect(client.send).toHaveBeenNthCalledWith(2, 'trip', expect.anything(), null, 'derived-user', ['本地已核验资料']);
+  });
+
+  it('returns a persisted result for an identical requestId without calling Dify twice', async () => {
+    const db = database();
+    const dify: DifyClient = { send: vi.fn(async () => ({ answer: '聊天回答', conversationId: 'chat-c1' })) };
+    const dependencies = {
+      ownerId: 'trusted-owner', user: 'derived-user', repository: createAiConversationRepository(db), records: createAiRecordRepository(db),
+      dify, retrieve: vi.fn(async () => ['本地已核验资料']),
+    };
+    const event = { action: 'submit', request: { requestId: 'same-id', kind: 'chat', question: '同一个问题' } } as const;
+
+    await expect(handleAiRequest(event, dependencies)).resolves.toMatchObject({ code: 'OK', data: { answer: '聊天回答' } });
+    await expect(handleAiRequest(event, dependencies)).resolves.toMatchObject({ code: 'OK', data: { answer: '聊天回答' } });
+    expect(dify.send).toHaveBeenCalledTimes(1);
+    expect(dependencies.retrieve).toHaveBeenCalledTimes(1);
+    await expect(handleAiRequest({ action: 'submit', request: { requestId: 'same-id', kind: 'chat', question: '换一个问题' } }, dependencies)).resolves.toMatchObject({ code: 'CONFLICT' });
   });
 
   it('does not hide database permission failures as missing conversations', async () => {
@@ -108,7 +149,7 @@ describe('private live AI service', () => {
   it('returns only safe errors for unauthenticated, malformed and unavailable requests', async () => {
     const repository = createAiConversationRepository(database());
     const dify: DifyClient = { send: vi.fn(async () => { throw Object.assign(new Error('chat-secret'), { code: 'AI_UNAVAILABLE' }); }) };
-    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, dify, retrieve: vi.fn(async () => []) };
+    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, records: emptyRecords(), dify, retrieve: vi.fn(async () => []) };
     expect((await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat', question: '问什么' } }, { ...dependencies, ownerId: null })).code).toBe('UNAUTHENTICATED');
     expect((await handleAiRequest(null, dependencies)).code).toBe('INVALID_INPUT');
     expect((await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat' } }, dependencies)).code).toBe('INVALID_INPUT');
@@ -120,7 +161,7 @@ describe('private live AI service', () => {
   it('accepts a budget with at most two decimals and rejects a more precise budget', async () => {
     const repository = createAiConversationRepository(database());
     const dify: DifyClient = { send: vi.fn(async () => ({ answer: '行程回答', conversationId: 'trip-c1' })) };
-    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, dify, retrieve: vi.fn(async () => []) };
+    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, records: emptyRecords(), dify, retrieve: vi.fn(async () => []) };
     const valid = await handleAiRequest({ action: 'submit', request: { requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000.50, days: 2, preferences: ['自然风景'] } } }, dependencies);
     const invalid = await handleAiRequest({ action: 'submit', request: { requestId: 't2', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000.555, days: 2, preferences: ['自然风景'] } } }, dependencies);
     expect(valid).toMatchObject({ code: 'OK', data: { status: 'succeeded' } });
