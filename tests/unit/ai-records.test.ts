@@ -7,6 +7,7 @@ import {
   AiRetryLimitError,
   createAiRecordRepository,
 } from '../../cloudfunctions/ai/records';
+import { createAiConversationRepository } from '../../cloudfunctions/ai/repository';
 import { quotaWindows } from '../../cloudfunctions/ai/quota';
 import { createAiDatabaseFixture } from '../helpers/ai-database';
 
@@ -78,15 +79,44 @@ describe('private AI records', () => {
     const records = createAiRecordRepository(createAiDatabaseFixture());
     const base = new Date('2026-09-06T00:00:00.000Z');
     for (let index = 0; index < 3; index += 1) {
-      await records.claim('owner-a', { ...chatRequest, requestId: `minute-${index}` }, base);
+      const limitedRequest = { ...chatRequest, requestId: `minute-${index}` };
+      const token = await claimToken(records, 'owner-a', limitedRequest, base);
+      await records.fail('owner-a', limitedRequest, token, 'failed', base);
     }
     await expect(records.claim('owner-a', { ...chatRequest, requestId: 'minute-4' }, base)).rejects.toBeInstanceOf(AiRateLimitError);
     await expect(records.claim('owner-b', { ...chatRequest, requestId: 'minute-owner-b' }, base)).resolves.toMatchObject({ state: 'claimed' });
     for (let index = 3; index < 20; index += 1) {
-      await records.claim('owner-a', { ...chatRequest, requestId: `day-${index}` }, new Date(base.getTime() + index * 60_000));
+      const limitedRequest = { ...chatRequest, requestId: `day-${index}` };
+      const now = new Date(base.getTime() + index * 60_000);
+      const token = await claimToken(records, 'owner-a', limitedRequest, now);
+      await records.fail('owner-a', limitedRequest, token, 'failed', now);
     }
     await expect(records.claim('owner-a', { ...chatRequest, requestId: 'day-21' }, new Date(base.getTime() + 21 * 60_000))).rejects.toBeInstanceOf(AiRateLimitError);
     await expect(records.claim('owner-a', { ...chatRequest, requestId: 'next-day' }, new Date('2026-09-06T16:00:00.000Z'))).resolves.toMatchObject({ state: 'claimed' });
+  });
+
+  it('serializes different request IDs for one owner and kind but keeps chat and trip independent', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const first = await records.claim('owner-a', { requestId: 'chat-1', kind: 'chat', question: '第一问' }, now);
+    expect(first).toMatchObject({ state: 'claimed', attemptToken: expect.any(String), conversationId: null, sessionGeneration: 0 });
+    await expect(records.claim('owner-a', { requestId: 'chat-2', kind: 'chat', question: '第二问' }, now)).resolves.toEqual({ state: 'running' });
+    await expect(records.claim('owner-a', {
+      requestId: 'trip-1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] },
+    }, now)).resolves.toMatchObject({ state: 'claimed', attemptToken: expect.any(String), conversationId: null, sessionGeneration: 0 });
+    const sessions = [...fixture.documents.entries()].filter(([key]) => key.startsWith('ai_sessions:'));
+    expect(sessions).toHaveLength(2);
+    expect([...fixture.documents.values()].filter(value => value.activeAttemptToken === (first.state === 'claimed' ? first.attemptToken : ''))).toHaveLength(1);
+  });
+
+  it('returns missing_session for a trip follow-up without charging or writing', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    await expect(records.claim('owner-a', {
+      requestId: 'trip-followup', kind: 'trip', question: '第二天轻松一点',
+    }, new Date('2026-09-06T00:00:00.000Z'))).resolves.toEqual({ state: 'missing_session' });
+    expect(snapshot(fixture.documents)).toEqual([]);
   });
 
   it('stores only a sanitized public result and never returns the private conversation ID', async () => {
@@ -138,6 +168,99 @@ describe('private AI records', () => {
     });
   });
 
+  it('does not let an in-flight completion restore a reset session', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const conversations = createAiConversationRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const claim = await records.claim('owner-a', chatRequest, now);
+    expect(claim).toMatchObject({ state: 'claimed', attemptToken: expect.any(String), sessionGeneration: 0 });
+    if (claim.state !== 'claimed') throw new Error('expected claimed request');
+    await conversations.reset('owner-a', 'chat');
+    await records.complete(
+      'owner-a', chatRequest, claim.attemptToken, result(chatRequest.requestId, '旧请求回答'), 'old-private-id', new Date(now.getTime() + 1_000),
+    );
+    await expect(conversations.get('owner-a', 'chat')).resolves.toBeNull();
+    const session = [...fixture.documents.values()].find(value => value.kind === 'chat' && 'generation' in value && !('requestId' in value));
+    expect(session).toMatchObject({ generation: 1, activeRequestId: null, activeAttemptToken: null, lastCompletedRequestId: null });
+  });
+
+  it('does not let an in-flight failure clear or rewrite a reset session', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const conversations = createAiConversationRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const token = await claimToken(records, 'owner-a', chatRequest, now);
+    await conversations.reset('owner-a', 'chat');
+    const beforeSession = snapshot(fixture.documents).find(([key]) => key.startsWith('ai_sessions:'));
+    await records.fail('owner-a', chatRequest, token, 'failed', new Date(now.getTime() + 1_000));
+    expect(snapshot(fixture.documents).find(([key]) => key.startsWith('ai_sessions:'))).toEqual(beforeSession);
+  });
+
+  it('rolls back a failed transactional reset', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const conversations = createAiConversationRepository(fixture);
+    await claimToken(records, 'owner-a', chatRequest, new Date('2026-09-06T00:00:00.000Z'));
+    const before = snapshot(fixture.documents);
+    fixture.failNextTransactionSetAt(1);
+    await expect(conversations.reset('owner-a', 'chat')).rejects.toThrow('injected set failure 1');
+    expect(snapshot(fixture.documents)).toEqual(before);
+  });
+
+  it('never rolls the active session back when an older cached request is replayed', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const conversations = createAiConversationRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const firstToken = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, firstToken, result(chatRequest.requestId, '第一答'), 'private-first', now);
+    const secondRequest = { ...chatRequest, requestId: 'request-2', question: '第二问' };
+    const secondToken = await claimToken(records, 'owner-a', secondRequest, new Date(now.getTime() + 1_000));
+    await records.complete('owner-a', secondRequest, secondToken, result(secondRequest.requestId, '第二答'), 'private-second', new Date(now.getTime() + 1_000));
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 2_000))).resolves.toMatchObject({ state: 'cached' });
+    await expect(conversations.get('owner-a', 'chat')).resolves.toBe('private-second');
+  });
+
+  it('narrowly repairs only the last completed request when its current-generation pointer is missing', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const conversations = createAiConversationRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const token = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, token, result(chatRequest.requestId, '第一答'), 'private-first', now);
+    const sessionEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_sessions:'));
+    if (!sessionEntry) throw new Error('expected session');
+    fixture.documents.set(sessionEntry[0], { ...sessionEntry[1], difyConversationId: null });
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 1_000))).resolves.toMatchObject({ state: 'cached' });
+    await expect(conversations.get('owner-a', 'chat')).resolves.toBe('private-first');
+  });
+
+  it.each([
+    ['a mismatched result status', { status: 'failed' }],
+    ['a mismatched result request ID', { requestId: 'other-request' }],
+  ])('rejects a cached success with %s without repairing its session', async (_case, resultPatch) => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const token = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, token, result(chatRequest.requestId, '第一答'), 'private-first', now);
+    const requestEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_messages:'));
+    const sessionEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_sessions:'));
+    if (!requestEntry || !sessionEntry) throw new Error('expected request and session records');
+    fixture.documents.set(requestEntry[0], {
+      ...requestEntry[1],
+      result: { ...(requestEntry[1].result as Record<string, unknown>), ...resultPatch },
+    });
+    fixture.documents.set(sessionEntry[0], { ...sessionEntry[1], difyConversationId: null });
+    const beforeSession = structuredClone(fixture.documents.get(sessionEntry[0]));
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 1_000))).rejects.toThrow('invalid successful AI record');
+    expect(fixture.documents.get(sessionEntry[0])).toEqual(beforeSession);
+  });
+
   it('stores only whitelisted trip input fields', async () => {
     const fixture = createAiDatabaseFixture();
     const repository = createAiRecordRepository(fixture);
@@ -153,7 +276,7 @@ describe('private AI records', () => {
     });
   });
 
-  it.each([2, 3])('rolls back every claim write when transaction set %i fails', async setNumber => {
+  it.each([2, 3, 4])('rolls back every claim write when transaction set %i fails', async setNumber => {
     const fixture = createAiDatabaseFixture();
     fixture.failNextTransactionSetAt(setNumber);
     await expect(createAiRecordRepository(fixture).claim(
@@ -162,21 +285,29 @@ describe('private AI records', () => {
     expect(snapshot(fixture.documents)).toEqual([]);
   });
 
-  it('rolls back failed complete and fail writes', async () => {
+  it.each([1, 2])('rolls back every complete write when transaction set %i fails', async setNumber => {
     const fixture = createAiDatabaseFixture();
     const repository = createAiRecordRepository(fixture);
     const now = new Date('2026-09-06T00:00:00.000Z');
     const attemptToken = await claimToken(repository, 'owner-a', chatRequest, now);
     const before = snapshot(fixture.documents);
 
-    fixture.failNextTransactionSetAt(1);
+    fixture.failNextTransactionSetAt(setNumber);
     await expect(repository.complete(
       'owner-a', chatRequest, attemptToken, result(chatRequest.requestId, '回答'), 'conversation', now,
-    )).rejects.toThrow('injected set failure 1');
+    )).rejects.toThrow(`injected set failure ${setNumber}`);
     expect(snapshot(fixture.documents)).toEqual(before);
+  });
 
-    fixture.failNextTransactionSetAt(1);
-    await expect(repository.fail('owner-a', chatRequest, attemptToken, 'failed', now)).rejects.toThrow('injected set failure 1');
+  it.each([1, 2])('rolls back every fail write when transaction set %i fails', async setNumber => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const attemptToken = await claimToken(repository, 'owner-a', chatRequest, now);
+    const before = snapshot(fixture.documents);
+
+    fixture.failNextTransactionSetAt(setNumber);
+    await expect(repository.fail('owner-a', chatRequest, attemptToken, 'failed', now)).rejects.toThrow(`injected set failure ${setNumber}`);
     expect(snapshot(fixture.documents)).toEqual(before);
   });
 

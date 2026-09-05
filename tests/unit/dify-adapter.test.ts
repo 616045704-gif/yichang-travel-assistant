@@ -4,9 +4,8 @@ import { createDifyClient } from '../../cloudfunctions/ai/dify';
 type RequestCall = (url: string, init: RequestInit) => Promise<Response>;
 
 const environment = {
-  DIFY_CHAT_API_BASE_URL: 'https://chat.example',
+  DIFY_BASE_URL: 'https://common.example/v1',
   DIFY_CHAT_API_KEY: 'chat-secret',
-  DIFY_TRIP_API_BASE_URL: 'https://trip.example/',
   DIFY_TRIP_API_KEY: 'trip-secret',
 };
 
@@ -16,7 +15,7 @@ describe('server-only Dify adapter', () => {
     const client = createDifyClient(environment, fetch);
 
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '三峡大坝适合几月？' }, null, 'wx-user-a', [])).resolves.toEqual({ answer: '春秋较舒适', conversationId: 'chat-c1' });
-    expect(fetch).toHaveBeenCalledWith('https://chat.example/v1/chat-messages', expect.objectContaining({ method: 'POST' }));
+    expect(fetch).toHaveBeenCalledWith('https://common.example/v1/chat-messages', expect.objectContaining({ method: 'POST' }));
     expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({
       inputs: { local_verified_facts: '' }, query: '三峡大坝适合几月？', response_mode: 'blocking', conversation_id: '', user: 'wx-user-a',
     });
@@ -24,19 +23,31 @@ describe('server-only Dify adapter', () => {
 
   it('accepts the Dify API endpoint when it already ends with v1', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
-    const client = createDifyClient({ ...environment, DIFY_CHAT_API_BASE_URL: 'https://api.dify.ai/v1' }, fetch);
+    const client = createDifyClient({ ...environment, DIFY_BASE_URL: 'https://api.dify.ai/v1' }, fetch);
 
     await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []);
 
     expect(fetch.mock.calls[0][0]).toBe('https://api.dify.ai/v1/chat-messages');
   });
 
-  it('uses the required common DIFY_BASE_URL when per-kind overrides are absent', async () => {
+  it('uses one common base URL and distinct server-only credentials for chat and trip', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
-    const client = createDifyClient({ DIFY_BASE_URL: 'https://common.example/v1', DIFY_CHAT_API_KEY: 'chat-secret', DIFY_TRIP_API_KEY: 'trip-secret' }, fetch);
+    const client = createDifyClient({ DIFY_BASE_URL: 'https://unit.example/v1', DIFY_CHAT_API_KEY: 'unit-chat-credential', DIFY_TRIP_API_KEY: 'unit-trip-credential' }, fetch);
 
     await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []);
+    await client.send('trip', { requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] } }, null, 'wx-user-a', []);
 
+    expect(fetch.mock.calls.map(call => call[0])).toEqual(['https://unit.example/v1/chat-messages', 'https://unit.example/v1/chat-messages']);
+    expect(fetch.mock.calls.map(call => (call[1]?.headers as Record<string, string>).Authorization)).toEqual([
+      'Bearer unit-chat-credential', 'Bearer unit-trip-credential',
+    ]);
+    expect(JSON.stringify(fetch.mock.calls)).not.toContain('DIFY_CHAT_API_KEY');
+  });
+
+  it('ignores legacy per-kind base URL overrides', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
+    const client = createDifyClient({ ...environment, DIFY_CHAT_API_BASE_URL: 'https://stale.example' }, fetch);
+    await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []);
     expect(fetch.mock.calls[0][0]).toBe('https://common.example/v1/chat-messages');
   });
 
@@ -52,7 +63,7 @@ describe('server-only Dify adapter', () => {
     expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toEqual({
       inputs: { local_verified_facts: '' }, query: '第二天轻松一些', response_mode: 'blocking', conversation_id: 'trip-c1', user: 'wx-user-a',
     });
-    expect(fetch.mock.calls[1][0]).toBe('https://trip.example/v1/chat-messages');
+    expect(fetch.mock.calls[1][0]).toBe('https://common.example/v1/chat-messages');
   });
 
   it('maps missing configuration and request failures to safe public errors', async () => {
@@ -76,6 +87,17 @@ describe('server-only Dify adapter', () => {
     expect(pause).toHaveBeenNthCalledWith(2, 400);
   });
 
+  it.each([429, 500, 502, 503, 504])('retries allowlisted transient status %i', async status => {
+    const fetch = vi.fn<RequestCall>()
+      .mockResolvedValueOnce(new Response('', { status }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ answer: '恢复', conversation_id: 'chat-c1' }), { status: 200 }));
+    const pause = vi.fn(async () => undefined);
+    const client = createDifyClient(environment, fetch, pause);
+    await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).resolves.toMatchObject({ answer: '恢复' });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(pause).toHaveBeenCalledWith(150);
+  });
+
   it('does not retry permanent upstream errors', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response('', { status: 400 }));
     const pause = vi.fn(async () => undefined);
@@ -88,7 +110,7 @@ describe('server-only Dify adapter', () => {
 
   it('rejects a non-HTTPS service endpoint without making a request', async () => {
     const fetch = vi.fn<RequestCall>();
-    const client = createDifyClient({ ...environment, DIFY_CHAT_API_BASE_URL: 'http://insecure.example' }, fetch);
+    const client = createDifyClient({ ...environment, DIFY_BASE_URL: 'http://insecure.example' }, fetch);
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
     expect(fetch).not.toHaveBeenCalled();
   });

@@ -1,4 +1,5 @@
 import type { AiRequest } from '../../shared/contracts';
+import { isMissingDocument } from './database-errors';
 
 type Document = Record<string, unknown>;
 type Database = { collection(name: string): { where(query: Document): { limit(count: number): { get(): Promise<{ data: Document[] }> } }; doc(id: string): { get(): Promise<{ data: Document }> } } };
@@ -39,7 +40,10 @@ function matches(place: Document, term: string) {
 
 async function contentFor(database: Database, placeId: string) {
   try { return (await database.collection('place_contents').doc(placeId).get()).data; }
-  catch { return {}; }
+  catch (error) {
+    if (isMissingDocument(error)) return {};
+    throw error;
+  }
 }
 
 function fact(place: Document, content: Document) {

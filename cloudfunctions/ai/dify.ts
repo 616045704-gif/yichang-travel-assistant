@@ -19,8 +19,7 @@ type DifyPayload = { inputs: Record<string, string | number>; query: string; res
 const DIFY_TIMEOUT_MS = 45_000;
 
 function configuration(kind: AiKind, environment: DifyEnvironment) {
-  const baseUrl = environment[kind === 'chat' ? 'DIFY_CHAT_API_BASE_URL' : 'DIFY_TRIP_API_BASE_URL']?.trim()
-    || environment.DIFY_BASE_URL?.trim();
+  const baseUrl = environment.DIFY_BASE_URL?.trim();
   const apiKey = environment[kind === 'chat' ? 'DIFY_CHAT_API_KEY' : 'DIFY_TRIP_API_KEY']?.trim();
   if (!baseUrl || !apiKey) throw new DifyServiceError('AI_UNAVAILABLE');
   try {

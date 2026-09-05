@@ -1,6 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AiHistoryItem, AiKind, AiRequest, AiResult, Source } from '../../shared/contracts';
+import { isMissingDocument } from './database-errors';
 import { CLAIM_STALE_MS, MAX_LOGICAL_ATTEMPTS, quotaWindows, RETRY_COOLDOWN_MS } from './quota';
+import { aiSessionDocumentId } from './repository';
 
 type Document = Record<string, unknown>;
 type DocumentReference = {
@@ -21,25 +23,16 @@ type Database = Transaction & {
 };
 
 export type AiRecordClaim =
-  | { state: 'claimed'; attemptToken: string }
+  | { state: 'claimed'; attemptToken: string; conversationId: string | null; sessionGeneration: number }
   | { state: 'running' }
+  | { state: 'missing_session' }
   | { state: 'cached'; result: AiResult };
 
 export interface AiRecordRepository {
-  list(ownerId: string): Promise<AiHistoryItem[]>;
-  /** Transitional compatibility for the Task 2 service migration. */
-  find(ownerId: string, request: AiRequest): Promise<AiResult | null>;
-  /** Transitional compatibility for the Task 2 service migration. */
-  save(ownerId: string, request: AiRequest, result: AiResult): Promise<void>;
-  claim?(ownerId: string, request: AiRequest, now: Date): Promise<AiRecordClaim>;
-  complete?(ownerId: string, request: AiRequest, attemptToken: string, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
-  fail?(ownerId: string, request: AiRequest, attemptToken: string, status: 'failed' | 'timed_out', now: Date): Promise<void>;
-}
-
-export interface AtomicAiRecordRepository extends AiRecordRepository {
   claim(ownerId: string, request: AiRequest, now: Date): Promise<AiRecordClaim>;
   complete(ownerId: string, request: AiRequest, attemptToken: string, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
   fail(ownerId: string, request: AiRequest, attemptToken: string, status: 'failed' | 'timed_out', now: Date): Promise<void>;
+  list(ownerId: string): Promise<AiHistoryItem[]>;
 }
 
 export class AiRecordConflictError extends Error {}
@@ -85,15 +78,6 @@ function requestHash(request: AiRequest) {
 
 function collectionName(kind: AiKind) {
   return kind === 'chat' ? 'ai_messages' : 'trip_requests';
-}
-
-function isNotFound(error: unknown) {
-  if (!error || typeof error !== 'object') return false;
-  const value = error as { code?: unknown; errCode?: unknown; errMsg?: unknown; message?: unknown };
-  const code = String(value.code ?? value.errCode ?? '').toUpperCase();
-  const message = String(value.message ?? value.errMsg ?? '').toLowerCase();
-  return code === 'NOT_FOUND' || code.includes('DOCUMENT_NOT_FOUND') || message === 'not found' || message.includes('document does not exist')
-    || /^document\.get:fail document with _id \S+ does not exist$/.test(message);
 }
 
 function boundedString(value: unknown, limit: number) {
@@ -142,7 +126,7 @@ async function getDocument(collection: Collection, id: string) {
   try {
     return (await collection.doc(id).get()).data ?? null;
   } catch (error) {
-    if (isNotFound(error)) return null;
+    if (isMissingDocument(error)) return null;
     throw error;
   }
 }
@@ -170,6 +154,67 @@ function assertActiveAttempt(record: Document, attemptToken: string) {
   if (typeof attemptToken !== 'string' || !attemptToken || record.attemptToken !== attemptToken || record.status !== 'running') {
     throw new AiRecordConflictError('AI attempt is no longer active');
   }
+}
+
+type SessionState = {
+  generation: number;
+  difyConversationId: string | null;
+  activeRequestId: string | null;
+  activeAttemptToken: string | null;
+  leaseUntil: string | null;
+  lastCompletedRequestId: string | null;
+};
+
+function optionalString(value: unknown, field: string) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string' || !value || value.length > 256) throw new Error(`invalid AI session ${field}`);
+  return value;
+}
+
+function sessionState(record: Document | null, ownerId: string, kind: AiKind): SessionState {
+  if (!record) {
+    return {
+      generation: 0,
+      difyConversationId: null,
+      activeRequestId: null,
+      activeAttemptToken: null,
+      leaseUntil: null,
+      lastCompletedRequestId: null,
+    };
+  }
+  if (record.ownerId !== ownerId || record.kind !== kind) throw new Error('invalid AI session owner');
+  const generation = record.generation === undefined ? 0 : record.generation;
+  if (!Number.isSafeInteger(generation) || Number(generation) < 0) throw new Error('invalid AI session generation');
+  const activeRequestId = optionalString(record.activeRequestId, 'activeRequestId');
+  const activeAttemptToken = optionalString(record.activeAttemptToken, 'activeAttemptToken');
+  const leaseUntil = optionalString(record.leaseUntil, 'leaseUntil');
+  if ([activeRequestId, activeAttemptToken, leaseUntil].filter(value => value !== null).length !== 0
+    && (!activeRequestId || !activeAttemptToken || !leaseUntil || !validIsoTimestamp(leaseUntil))) {
+    throw new Error('invalid AI session lease');
+  }
+  return {
+    generation: generation as number,
+    difyConversationId: optionalString(record.difyConversationId, 'difyConversationId'),
+    activeRequestId,
+    activeAttemptToken,
+    leaseUntil,
+    lastCompletedRequestId: optionalString(record.lastCompletedRequestId, 'lastCompletedRequestId'),
+  };
+}
+
+function sessionDocument(ownerId: string, kind: AiKind, state: SessionState, updatedAt: string): Document {
+  return { ownerId, kind, ...state, updatedAt };
+}
+
+function hasLiveLease(state: SessionState, now: Date) {
+  return !!state.activeRequestId && !!state.leaseUntil && Date.parse(state.leaseUntil) > now.getTime();
+}
+
+function recordSessionGeneration(record: Document) {
+  if (!Number.isSafeInteger(record.sessionGeneration) || Number(record.sessionGeneration) < 0) {
+    throw new Error('invalid AI record sessionGeneration');
+  }
+  return record.sessionGeneration as number;
 }
 
 function transactionRunner(database: Database) {
@@ -205,70 +250,93 @@ async function chargeQuota(transaction: Transaction, ownerId: string, now: Date)
   }));
 }
 
-export function createAiRecordRepository(database: Database): AtomicAiRecordRepository {
+export function createAiRecordRepository(database: Database): AiRecordRepository {
   const runTransaction = <T>(callback: (transaction: Transaction) => Promise<T>) => transactionRunner(database)(callback, 3);
   return {
     async claim(ownerId, request, now) {
       return runTransaction(async transaction => {
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
-        const record = await getDocument(collection, id);
+        const sessionId = aiSessionDocumentId(ownerId, request.kind);
+        const [record, storedSession] = await Promise.all([
+          getDocument(collection, id),
+          getDocument(transaction.collection('ai_sessions'), sessionId),
+        ]);
+        const session = sessionState(storedSession, ownerId, request.kind);
         const timestamp = now.toISOString();
-        if (!record) {
-          const attemptToken = newAttemptToken();
-          await chargeQuota(transaction, ownerId, now);
-          await collection.doc(id).set({ data: {
-            ownerId,
-            requestId: request.requestId,
-            kind: request.kind,
-            inputHash: requestHash(request),
-            request: sanitizedRequest(request),
-            status: 'running',
-            attemptCount: 1,
-            attemptToken,
-            claimedAt: timestamp,
-            quotaChargedAt: timestamp,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          } });
-          return { state: 'claimed', attemptToken };
+
+        let attemptCount = 1;
+        if (record) {
+          assertMatchingRecord(record, ownerId, request);
+          assertOperationalRecord(record);
+          if (record.status === 'succeeded') {
+            const result = safeResult(record.result);
+            if (!result || result.status !== 'succeeded' || result.requestId !== request.requestId) {
+              throw new Error('invalid successful AI record');
+            }
+            const recordGeneration = Number.isSafeInteger(record.sessionGeneration) && Number(record.sessionGeneration) >= 0
+              ? record.sessionGeneration as number
+              : null;
+            const storedConversationId = typeof record.difyConversationId === 'string' && record.difyConversationId && record.difyConversationId.length <= 256
+              ? record.difyConversationId
+              : null;
+            if (!session.difyConversationId && storedConversationId && recordGeneration === session.generation
+              && session.lastCompletedRequestId === request.requestId) {
+              await transaction.collection('ai_sessions').doc(sessionId).set({ data: sessionDocument(ownerId, request.kind, {
+                ...session, difyConversationId: storedConversationId,
+              }, timestamp) });
+            }
+            return { state: 'cached', result };
+          }
+          const claimedAt = Date.parse(String(record.claimedAt ?? ''));
+          if (record.status === 'running' && Number.isFinite(claimedAt) && claimedAt + CLAIM_STALE_MS > now.getTime()) {
+            return { state: 'running' };
+          }
+          if (record.status !== 'running' && record.status !== 'failed' && record.status !== 'timed_out') {
+            throw new Error('invalid AI request status');
+          }
+          attemptCount = record.attemptCount as number;
+          if (attemptCount >= MAX_LOGICAL_ATTEMPTS) throw new AiRetryLimitError('AI retry limit exceeded');
+          const latestAttemptAt = Date.parse(String(record.updatedAt ?? record.claimedAt ?? ''));
+          if (!Number.isFinite(latestAttemptAt) || latestAttemptAt + RETRY_COOLDOWN_MS > now.getTime()) {
+            throw new AiRequestInProgressError('AI retry cooldown active');
+          }
+          attemptCount += 1;
         }
 
-        assertMatchingRecord(record, ownerId, request);
-        assertOperationalRecord(record);
-        if (record.status === 'succeeded') {
-          const result = safeResult(record.result);
-          if (!result) throw new Error('invalid successful AI record');
-          return {
-            state: 'cached',
-            result,
-          };
-        }
-        const claimedAt = Date.parse(String(record.claimedAt ?? ''));
-        if (record.status === 'running' && Number.isFinite(claimedAt) && claimedAt + CLAIM_STALE_MS > now.getTime()) {
-          return { state: 'running' };
-        }
-        if (record.status !== 'running' && record.status !== 'failed' && record.status !== 'timed_out') {
-          throw new Error('invalid AI request status');
-        }
-        const attemptCount = record.attemptCount as number;
-        if (attemptCount >= MAX_LOGICAL_ATTEMPTS) throw new AiRetryLimitError('AI retry limit exceeded');
-        const latestAttemptAt = Date.parse(String(record.updatedAt ?? record.claimedAt ?? ''));
-        if (!Number.isFinite(latestAttemptAt) || latestAttemptAt + RETRY_COOLDOWN_MS > now.getTime()) {
-          throw new AiRequestInProgressError('AI retry cooldown active');
-        }
+        if (hasLiveLease(session, now) && session.activeRequestId !== request.requestId) return { state: 'running' };
+        if (request.kind === 'trip' && !request.trip && !session.difyConversationId) return { state: 'missing_session' };
+
         const attemptToken = newAttemptToken();
+        if (!record) await chargeQuota(transaction, ownerId, now);
         await collection.doc(id).set({ data: {
           ...record,
+          ownerId,
+          requestId: request.requestId,
+          kind: request.kind,
+          inputHash: requestHash(request),
           request: sanitizedRequest(request),
           status: 'running',
           attemptToken,
           claimedAt: timestamp,
-          quotaChargedAt: typeof record.quotaChargedAt === 'string' && record.quotaChargedAt ? record.quotaChargedAt : timestamp,
+          quotaChargedAt: record?.quotaChargedAt ?? timestamp,
+          sessionGeneration: session.generation,
+          createdAt: typeof record?.createdAt === 'string' ? record.createdAt : timestamp,
           updatedAt: timestamp,
-          attemptCount: attemptCount + 1,
+          attemptCount,
         } });
-        return { state: 'claimed', attemptToken };
+        await transaction.collection('ai_sessions').doc(sessionId).set({ data: sessionDocument(ownerId, request.kind, {
+          ...session,
+          activeRequestId: request.requestId,
+          activeAttemptToken: attemptToken,
+          leaseUntil: new Date(now.getTime() + CLAIM_STALE_MS).toISOString(),
+        }, timestamp) });
+        return {
+          state: 'claimed',
+          attemptToken,
+          conversationId: session.difyConversationId,
+          sessionGeneration: session.generation,
+        };
       });
     },
 
@@ -277,11 +345,17 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
       await runTransaction(async transaction => {
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
-        const record = await getDocument(collection, id);
+        const sessionId = aiSessionDocumentId(ownerId, request.kind);
+        const [record, storedSession] = await Promise.all([
+          getDocument(collection, id),
+          getDocument(transaction.collection('ai_sessions'), sessionId),
+        ]);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
         assertOperationalRecord(record);
         assertActiveAttempt(record, attemptToken);
+        const sessionGeneration = recordSessionGeneration(record);
+        const session = sessionState(storedSession, ownerId, request.kind);
         const sanitizedResult = safeResult(result);
         if (!sanitizedResult || sanitizedResult.status !== 'succeeded' || sanitizedResult.requestId !== request.requestId) {
           throw new Error('invalid successful AI result');
@@ -294,6 +368,17 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
           difyConversationId,
           updatedAt: now.toISOString(),
         } });
+        if (session.generation === sessionGeneration && session.activeRequestId === request.requestId
+          && session.activeAttemptToken === attemptToken) {
+          await transaction.collection('ai_sessions').doc(sessionId).set({ data: sessionDocument(ownerId, request.kind, {
+            ...session,
+            difyConversationId,
+            activeRequestId: null,
+            activeAttemptToken: null,
+            leaseUntil: null,
+            lastCompletedRequestId: request.requestId,
+          }, now.toISOString()) });
+        }
       });
     },
 
@@ -301,17 +386,32 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
       await runTransaction(async transaction => {
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
-        const record = await getDocument(collection, id);
+        const sessionId = aiSessionDocumentId(ownerId, request.kind);
+        const [record, storedSession] = await Promise.all([
+          getDocument(collection, id),
+          getDocument(transaction.collection('ai_sessions'), sessionId),
+        ]);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
         assertOperationalRecord(record);
         assertActiveAttempt(record, attemptToken);
+        const sessionGeneration = recordSessionGeneration(record);
+        const session = sessionState(storedSession, ownerId, request.kind);
         await collection.doc(id).set({ data: {
           ...record,
           request: sanitizedRequest(request),
           status,
           updatedAt: now.toISOString(),
         } });
+        if (session.generation === sessionGeneration && session.activeRequestId === request.requestId
+          && session.activeAttemptToken === attemptToken) {
+          await transaction.collection('ai_sessions').doc(sessionId).set({ data: sessionDocument(ownerId, request.kind, {
+            ...session,
+            activeRequestId: null,
+            activeAttemptToken: null,
+            leaseUntil: null,
+          }, now.toISOString()) });
+        }
       });
     },
 
@@ -325,23 +425,6 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
         if (!result || item.ownerId !== ownerId || item.kind !== kind || typeof item.createdAt !== 'string') return [];
         return [{ ...result, kind, createdAt: item.createdAt }];
       }).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, 50);
-    },
-
-    async find(ownerId, request) {
-      const data = await getDocument(database.collection(collectionName(request.kind)), documentId(ownerId, request.requestId));
-      if (!data || data.ownerId !== ownerId || data.kind !== request.kind) return null;
-      if (data.inputHash !== requestHash(request)) throw new AiRecordConflictError('requestId already used');
-      return safeResult(data.result);
-    },
-
-    async save(ownerId, request, result) {
-      const timestamp = new Date().toISOString();
-      const sanitizedResult = safeResult(result);
-      if (!sanitizedResult) throw new Error('invalid AI result');
-      await database.collection(collectionName(request.kind)).doc(documentId(ownerId, request.requestId)).set({ data: {
-        ownerId, requestId: request.requestId, kind: request.kind, inputHash: requestHash(request),
-        request: sanitizedRequest(request), result: sanitizedResult, status: sanitizedResult.status, createdAt: timestamp, updatedAt: timestamp,
-      } });
     },
   };
 }
