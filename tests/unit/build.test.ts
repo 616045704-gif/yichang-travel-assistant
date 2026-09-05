@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, writeFile, readFile, rm, readdir, stat } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -78,6 +79,14 @@ describe('deployable build boundary', () => {
     expect(code).toContain('value = 7');
     expect(code).not.toContain('../../shared');
     expect(JSON.parse(await readFile(path.join(root, 'dist/cloudfunctions/health/package.json'), 'utf8')).main).toBe('index.js');
+  });
+  it('keeps import.meta.url runnable in CommonJS cloud-function bundles', async () => {
+    const root = await fixture();
+    await put(root, 'cloudfunctions/health/index.ts', "import { createRequire } from 'node:module'; const load = createRequire(import.meta.url); exports.main = () => typeof load;");
+    await buildProject({ root });
+    const loadBundle = createRequire(import.meta.url);
+    const bundle = loadBundle(path.join(root, 'dist/cloudfunctions/health/index.js')) as { main: () => string };
+    expect(bundle.main()).toBe('function');
   });
   it('declares the CloudBase server SDK required by aiService', async () => {
     const manifest = JSON.parse(await readFile(path.join(process.cwd(), 'cloudfunctions/aiService/package.json'), 'utf8'));

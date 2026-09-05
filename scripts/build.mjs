@@ -69,7 +69,11 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
     const target = path.join(output, 'cloudfunctions', folder.name);
     const manifest = await readOptional(path.join(cloudRoot, folder.name, 'package.json'), {});
     const dependencies = manifest.dependencies || {};
-    await build({ entryPoints: [entry], outfile: path.join(target, 'index.js'), bundle: true, platform: 'node', format: 'cjs', target: 'node18', external: Object.keys(dependencies), logLevel: 'silent' });
+    await build({
+      entryPoints: [entry], outfile: path.join(target, 'index.js'), bundle: true,
+      platform: 'node', format: 'cjs', target: 'node18', external: Object.keys(dependencies), logLevel: 'silent',
+      define: { 'import.meta.url': '__filename' },
+    });
     await writeFile(path.join(target, 'package.json'), JSON.stringify({ name: folder.name.toLowerCase(), version: '0.1.0', main: 'index.js', dependencies }, null, 2));
   }
   const project = JSON.parse(await readFile(path.join(root, 'project.config.json'), 'utf8'));
