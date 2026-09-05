@@ -124,6 +124,10 @@ describe('deployable build boundary', () => {
     expect(await readFile(path.join(root, 'dist/miniprogram/services/ai.js'), 'utf8')).toContain('aiService');
     await put(root, 'miniprogram/services/ai.ts', 'const endpoint = "https://api.dify.ai"; export { endpoint };');
     await expect(buildProject({ root, mode: 'demo' })).rejects.toThrow(/Client boundary/);
+    for (const leak of ['DIFY_CHAT_API_KEY', 'Authorization: "Bearer secret"', '"/v1/chat-messages"']) {
+      await put(root, 'miniprogram/services/ai.ts', `export const leaked = ${JSON.stringify(leak)};`);
+      await expect(buildProject({ root, mode: 'demo' })).rejects.toThrow(/Client boundary/);
+    }
   });
   it('validates component resources, styles, sitemap and tab icons', async () => {
     const root = await fixture();
@@ -153,6 +157,8 @@ describe('deployable build boundary', () => {
     await expect(checkPackage({ root })).rejects.toThrow(/Forbidden/);
     await rm(path.join(root, 'dist/miniprogram/stray.ts'));
     await put(root, 'dist/miniprogram/leak.js', 'const value = "wx-server-sdk";');
+    await expect(checkPackage({ root })).rejects.toThrow(/boundary/);
+    await put(root, 'dist/miniprogram/leak.js', 'const value = "DIFY_TRIP_API_KEY";');
     await expect(checkPackage({ root })).rejects.toThrow(/boundary/);
   });
   it('validates documentation links and incomplete drafts', async () => {

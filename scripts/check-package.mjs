@@ -54,7 +54,7 @@ export async function checkPackage({ root = process.cwd(), mode = 'development' 
     if (mode === 'demo' && /(^|[/.\-_])(mock|fixtures?|tests?)([/.\-_]|$)/i.test(relative)) throw new Error(`Mock in demo: ${relative}`);
     if (!/\.(js|json|wxml|wxss|wxs)$/.test(file)) continue;
     const code = await readFile(file, 'utf8');
-    if (/DIFY_API_KEY|api\.dify\.|wx-server-sdk|\bwx\.request\s*\(|-----BEGIN .*PRIVATE KEY/.test(code)) throw new Error(`Client boundary violation: ${relative}`);
+    if (/DIFY_[A-Z0-9_]+|api\.dify\.|authorization\s*[:=]\s*[`'"]?bearer|\/v1\/chat-messages|wx-server-sdk|\bwx\.request\s*\(|-----BEGIN .*PRIVATE KEY/i.test(code)) throw new Error(`Client boundary violation: ${relative}`);
   }
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -41,7 +41,7 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
         if (!/^(miniprogram|shared)\//.test(relative)) throw new Error(`Client boundary: ${relative}`);
         if (mode === 'demo' && /(^|[/.\-_])(mock|fixtures?|tests?)([/.\-_]|$)/i.test(relative)) throw new Error(`Mock excluded from demo: ${relative}`);
         const text = await readFile(file, 'utf8');
-        if (/api\.dify\.|DIFY_API_KEY|\bwx\.request\s*\(/i.test(text)) throw new Error(`Client boundary: external API request in ${relative}`);
+        if (/api\.dify\.|DIFY_[A-Z0-9_]+|authorization\s*[:=]\s*[`'"]?bearer|\/v1\/chat-messages|\bwx\.request\s*\(/i.test(text)) throw new Error(`Client boundary: external API request in ${relative}`);
         const loaders = { '.ts': 'ts', '.js': 'js', '.json': 'json' };
         const loader = loaders[path.extname(file)];
         if (!loader) throw new Error(`Client boundary: unsupported module ${relative}`);
