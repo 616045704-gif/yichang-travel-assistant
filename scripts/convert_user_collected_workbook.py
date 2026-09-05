@@ -122,7 +122,7 @@ def convert_workbook(source_path, output_dir=None, imported_at=None):
         workbook.close()
     timestamp = imported_at or datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     converted = convert_workbook_rows(rows, timestamp)
-    for filename, records in [('places.jsonl', converted['places']), ('place_contents.jsonl', converted['contents'])]:
+    for filename, records in [('places.json', converted['places']), ('place_contents.json', converted['contents'])]:
         (output / filename).write_text(''.join(json.dumps(record, ensure_ascii=False, separators=(',', ':')) + '\n' for record in records), encoding='utf-8')
     return converted
 

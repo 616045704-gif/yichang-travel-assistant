@@ -250,7 +250,7 @@ describe('deployable build boundary', () => {
     for (const text of ['--source', '.local/import/', 'JSON Lines', 'Upsert', 'place_contents', 'places', '向半斗整理收集', '不要在本说明']) {
       expect(runbook).toContain(text);
     }
-    expect(runbook.indexOf('导入 `place_contents.jsonl`')).toBeLessThan(runbook.indexOf('导入 `places.jsonl`'));
+    expect(runbook.indexOf('导入 `place_contents.json`')).toBeLessThan(runbook.indexOf('导入 `places.json`'));
     expect(findSecretLikeRunbookValues(runbook)).toEqual([]);
   });
   it.each([

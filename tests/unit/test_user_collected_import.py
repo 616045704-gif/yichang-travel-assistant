@@ -54,8 +54,8 @@ class UserCollectedImportTests(unittest.TestCase):
             sheet.append([data[header] for header in CONVERTER.EXPECTED_HEADERS])
             workbook_data.save(workbook)
             converted = CONVERTER.convert_workbook(workbook, output, self.imported_at)
-            places = [json.loads(line) for line in (output / 'places.jsonl').read_text(encoding='utf-8').splitlines()]
-            contents = [json.loads(line) for line in (output / 'place_contents.jsonl').read_text(encoding='utf-8').splitlines()]
+            places = [json.loads(line) for line in (output / 'places.json').read_text(encoding='utf-8').splitlines()]
+            contents = [json.loads(line) for line in (output / 'place_contents.json').read_text(encoding='utf-8').splitlines()]
             self.assertEqual(converted['report']['accepted'], 1)
             self.assertEqual(len(places), 1)
             self.assertEqual(places[0]['_id'], contents[0]['_id'])

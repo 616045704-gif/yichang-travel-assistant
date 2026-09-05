@@ -26,7 +26,7 @@
 
 **Consumes:** an `.xlsx` workbook with the 17 user-provided columns.
 
-**Produces:** `convert_workbook_rows(rows, imported_at)` returning `{ places, contents, report }`, and CLI output at `.local/import/places.jsonl` and `.local/import/place_contents.jsonl`.
+**Produces:** `convert_workbook_rows(rows, imported_at)` returning `{ places, contents, report }`, and CLI output at `.local/import/places.json` and `.local/import/place_contents.json` (JSON Lines content with CloudBase-compatible `.json` extensions).
 
 - [ ] **Step 1: Add failing mapping tests**
 
@@ -133,7 +133,7 @@ Expected: FAIL because the runbook has no workbook import route.
 
 - [ ] **Step 3: Add the runbook**
 
-Document the exact sequence: run the converter locally; inspect the count-only report; export each existing target collection through CloudBase Console; import `place_contents.jsonl` first and then `places.jsonl` as JSON with **Upsert**; keep both collections `ADMINONLY`; inspect one record from every category; and roll back by re-importing the console exports or setting the batch to `draft`. CloudBase Console performs two independent imports, not a cross-collection transaction: if either fails, stop, do not claim a complete import, and restore the successful collection before retrying. State that generated files and workbook values never enter Git, chat, logs or the mini-program package.
+Document the exact sequence: run the converter locally; inspect the count-only report; export each existing target collection through CloudBase Console; import `place_contents.json` first and then `places.json` as JSON with **Upsert**; keep both collections `ADMINONLY`; inspect one record from every category; and roll back by re-importing the console exports or setting the batch to `draft`. CloudBase Console performs two independent imports, not a cross-collection transaction: if either fails, stop, do not claim a complete import, and restore the successful collection before retrying. State that generated files and workbook values never enter Git, chat, logs or the mini-program package.
 
 - [ ] **Step 4: Run documentation checks and commit**
 
@@ -173,7 +173,7 @@ Expected: two JSON Lines files below `.local/import/`, 387 accepted rows, four c
 
 - [ ] **Step 2: Back up and import through the CloudBase Console**
 
-Export `places` and `place_contents` as JSON before write. Upload the generated `place_contents.jsonl`, then `places.jsonl`, selecting JSON format and **Upsert** each time. If either import fails, stop and restore the already changed collection from its backup before retrying; do not claim the two imports are atomic. Do not alter environment variables, Dify keys, collection permissions, user collections, or existing indexes.
+Export `places` and `place_contents` as JSON before write. Upload the generated `place_contents.json`, then `places.json`, selecting JSON format and **Upsert** each time. If either import fails, stop and restore the already changed collection from its backup before retrying; do not claim the two imports are atomic. Do not alter environment variables, Dify keys, collection permissions, user collections, or existing indexes.
 
 - [ ] **Step 3: Run real smoke checks**
 
