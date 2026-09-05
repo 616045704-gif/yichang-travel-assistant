@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type Instance = { data: Record<string, unknown>; triggerEvent: ReturnType<typeof vi.fn>; setData(value: Record<string, unknown>): void };
@@ -13,6 +14,13 @@ function instance(data: Record<string, unknown>): Instance {
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 describe('reusable travel components', () => {
+  it('uses reference labels rather than claiming every local fact is verified', async () => {
+    await expect(readFile('miniprogram/components/source-card/index.wxml', 'utf8')).resolves.toContain('本地资料参考');
+    const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
+    expect(detail).toContain('资料说明');
+    expect(detail).toContain('local_reference');
+    expect(detail).toContain('价格、营业时间、交通和预约请以官方公告为准。');
+  });
   it('emits a valid category selection and rejects unknown values', async () => {
     const definition = await component('category-filter');
     const ctx = instance({ value: '' });

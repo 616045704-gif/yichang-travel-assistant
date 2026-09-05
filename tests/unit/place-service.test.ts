@@ -29,6 +29,13 @@ describe('place repository', () => {
     await expect(repository.detail('missing')).resolves.toBeNull();
     await expect(repository.detail('draft-place')).resolves.toBeNull();
   });
+  it('labels user-collected sources as local reference in a detail response', async () => {
+    const places = [{ ...scenicPlace, _id: scenicPlace.placeId, status: 'published', sourceLevel: 'user_collected', aliases: [], sources: [{ title: '向半斗整理收集', url: null }] }];
+    const db = { collection(name: string) { return { where() { return { skip() { return { limit() { return { async get() { return { data: places }; } }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? places.find(item => item._id === id) : { sections: [] }; if (!data) throw new Error('not found'); return { data }; } }; } }; } };
+    await expect(createPlaceRepository(db).detail(scenicPlace.placeId)).resolves.toMatchObject({
+      sources: [expect.objectContaining({ kind: 'local_reference', title: '向半斗整理收集' })],
+    });
+  });
   it('reads beyond the database batch and rejects a tampered cursor', async () => {
     const many = Array.from({ length: 101 }, (_, index) => ({ ...scenicPlace, _id: `synthetic-${index}`, name: `地点${index.toString().padStart(3, '0')}`, status: 'published', aliases: [], sources: [] }));
     const db = { collection() { return { where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: many.slice(offset, offset + count) }; } }; } }; } }; }, doc() { return { async get() { throw new Error('not found'); } }; } }; } };

@@ -356,6 +356,27 @@ describe('private live AI service', () => {
     expect(calls).toEqual(Array.from({ length: 4 }, () => ({ name: 'places', query: { status: 'published' } })));
   });
 
+  it('labels user-collected facts as reference and searches beyond the first 100 records', async () => {
+    const places = Array.from({ length: 101 }, (_, index) => ({
+      _id: `place-${index}`, status: 'published', name: index === 100 ? '三峡后页景点' : `其他地点${index}`,
+      category: index === 100 ? 'scenic' : 'other', intro: '地点简介', sourceLevel: index === 100 ? 'user_collected' : undefined,
+    }));
+    const database = {
+      collection(name: string) {
+        return {
+          where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: places.slice(offset, offset + count) }; } }; } }; }, limit(count: number) { return { async get() { return { data: places.slice(0, count) }; } }; } }; },
+          doc() { return { async get() { if (name !== 'place_contents') throw new Error('not found'); return { data: {} }; } }; },
+        };
+      },
+    };
+    await expect(createLocalFactRetriever(database)({ requestId: 'late', kind: 'chat', question: '三峡后页景点' })).resolves.toEqual([
+      expect.stringContaining('【本地整理参考】三峡后页景点'),
+    ]);
+    await expect(createLocalFactRetriever(database)({ requestId: 'late-verified', kind: 'chat', question: '其他地点1' })).resolves.toEqual(expect.arrayContaining([
+      expect.stringContaining('【本地已核验资料】其他地点1'),
+    ]));
+  });
+
   it('treats missing optional content as empty but propagates other content database errors', async () => {
     function retrievalDatabase(contentError: unknown) {
       const place = { _id: 'published-place', status: 'published', name: '三峡大坝', category: 'scenic', intro: '已核验简介' };

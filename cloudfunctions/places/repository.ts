@@ -95,7 +95,7 @@ export function createPlaceRepository(database: Database): PlaceRepository {
             if (!source || typeof source !== 'object') return [];
             const item = source as Record<string, unknown>;
             if (typeof item.title !== 'string' || !item.title.trim()) return [];
-            return [{ kind: 'local_verified' as const, title: item.title, url: typeof item.url === 'string' ? item.url : null, verifiedAt: typeof item.verifiedAt === 'string' ? item.verifiedAt : null, placeId }];
+            return [{ kind: place.sourceLevel === 'user_collected' ? 'local_reference' as const : 'local_verified' as const, title: item.title, url: typeof item.url === 'string' ? item.url : null, verifiedAt: typeof item.verifiedAt === 'string' ? item.verifiedAt : null, placeId }];
           }),
         };
       } catch { return null; }

@@ -26,7 +26,7 @@ export interface PlaceSummary {
 }
 
 export interface Source {
-  kind: 'local_verified' | 'knowledge_reference';
+  kind: 'local_verified' | 'local_reference' | 'knowledge_reference';
   title: string;
   url: string | null;
   verifiedAt: string | null;

@@ -2,7 +2,8 @@ import type { AiRequest } from '../../shared/contracts';
 import { isMissingDocument } from './database-errors';
 
 type Document = Record<string, unknown>;
-type Database = { collection(name: string): { where(query: Document): { limit(count: number): { get(): Promise<{ data: Document[] }> } }; doc(id: string): { get(): Promise<{ data: Document }> } } };
+type Query = { limit(count: number): { get(): Promise<{ data: Document[] }> }; skip?(count: number): { limit(count: number): { get(): Promise<{ data: Document[] }> } } };
+type Database = { collection(name: string): { where(query: Document): Query; doc(id: string): { get(): Promise<{ data: Document }> } } };
 
 export type LocalFactRetriever = (request: AiRequest) => Promise<string[]>;
 
@@ -51,12 +52,19 @@ function fact(place: Document, content: Document) {
   const details = [asText(place.intro, 280), asText(place.openNotice, 180), asText(content.visitAdvice, 180), asText(content.diningInfo, 180)]
     .filter(Boolean);
   if (!title || !details.length) return null;
+  if (place.sourceLevel === 'user_collected') return `【本地整理参考】${title}：${details.join('；')}；价格、营业时间、交通和预约请以官方公告为准。`.slice(0, 800);
   return `【本地已核验资料】${title}：${details.join('；')}`.slice(0, 800);
 }
 
 export function createLocalFactRetriever(database: Database): LocalFactRetriever {
   return async request => {
-    const published = (await database.collection('places').where({ status: 'published' }).limit(50).get()).data;
+    const query = database.collection('places').where({ status: 'published' });
+    const published: Document[] = [];
+    for (let skip = 0; ; skip += 100) {
+      const batch = query.skip ? (await query.skip(skip).limit(100).get()).data : skip === 0 ? (await query.limit(100).get()).data : [];
+      published.push(...batch);
+      if (batch.length < 100) break;
+    }
     const term = terms(request);
     const matched = published.filter(place => matches(place, term)).slice(0, 5);
     const facts = (await Promise.all(matched.map(async place => fact(place, await contentFor(database, String(place._id)))))).filter((item): item is string => !!item);
