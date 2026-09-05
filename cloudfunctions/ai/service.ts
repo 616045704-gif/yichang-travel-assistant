@@ -9,12 +9,15 @@ type ErrorCode = 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'AI_UNAVAILABLE' | 'AI_TI
 function ok(data: unknown) { return { code: 'OK' as const, data, message: '', traceId: 'ai-service' }; }
 function fail(code: ErrorCode, message: string) { return { code, data: null, message, traceId: 'ai-service' }; }
 function validQuestion(value: unknown): value is string { return typeof value === 'string' && !!value.trim() && value.trim().length <= 1_000; }
+function validBudget(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 100_000 && Math.abs(value * 100 - Math.round(value * 100)) < 1e-8;
+}
 function validTrip(value: unknown): value is TripInput {
   if (!value || typeof value !== 'object') return false;
   const trip = value as Record<string, unknown>;
   return typeof trip.destination === 'string' && !!trip.destination.trim() && trip.destination.trim().length <= 80
     && Number.isInteger(trip.people) && (trip.people as number) >= 1 && (trip.people as number) <= 20
-    && Number.isInteger(trip.totalBudgetCny) && (trip.totalBudgetCny as number) >= 1 && (trip.totalBudgetCny as number) <= 100_000
+    && validBudget(trip.totalBudgetCny)
     && Number.isInteger(trip.days) && (trip.days as number) >= 1 && (trip.days as number) <= 7
     && Array.isArray(trip.preferences) && trip.preferences.length <= 6 && trip.preferences.every(item => typeof item === 'string' && !!item.trim() && item.length <= 20);
 }

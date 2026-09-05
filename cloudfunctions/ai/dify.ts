@@ -45,7 +45,7 @@ function responseData(value: unknown) {
   const result = value as Record<string, unknown>;
   const answer = typeof result.answer === 'string' ? result.answer.trim() : '';
   const conversationId = typeof result.conversation_id === 'string' ? result.conversation_id.trim() : '';
-  if (!answer || answer.length > 8_000 || !conversationId) throw new DifyServiceError('AI_UNAVAILABLE');
+  if (!answer || answer.length > 4_000 || !conversationId) throw new DifyServiceError('AI_UNAVAILABLE');
   return { answer, conversationId };
 }
 

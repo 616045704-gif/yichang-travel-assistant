@@ -78,6 +78,17 @@ describe('private live AI service', () => {
     expect(JSON.stringify(result)).not.toContain('chat-secret');
   });
 
+  it('accepts a budget with at most two decimals and rejects a more precise budget', async () => {
+    const repository = createAiConversationRepository(database());
+    const dify: DifyClient = { send: vi.fn(async () => ({ answer: '行程回答', conversationId: 'trip-c1' })) };
+    const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, dify, retrieve: vi.fn(async () => []) };
+    const valid = await handleAiRequest({ action: 'submit', request: { requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000.50, days: 2, preferences: ['自然风景'] } } }, dependencies);
+    const invalid = await handleAiRequest({ action: 'submit', request: { requestId: 't2', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000.555, days: 2, preferences: ['自然风景'] } } }, dependencies);
+    expect(valid).toMatchObject({ code: 'OK', data: { status: 'succeeded' } });
+    expect(invalid).toMatchObject({ code: 'INVALID_INPUT', data: null });
+    expect(dify.send).toHaveBeenCalledTimes(1);
+  });
+
   it('reads only published local place facts before a Dify request and marks missing facts as uncertain', async () => {
     const calls: Record<string, unknown>[] = [];
     const places = [{ _id: 'published-place', status: 'published', name: '三峡大坝', intro: '已核验简介', openNotice: '开放以公告为准' }];

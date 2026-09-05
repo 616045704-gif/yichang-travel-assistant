@@ -61,7 +61,7 @@ describe('server-only Dify adapter', () => {
   });
 
   it('rejects an oversized upstream answer instead of passing it to the client', async () => {
-    const client = createDifyClient(environment, vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: 'a'.repeat(8_001), conversation_id: 'chat-c1' }), { status: 200 })));
+    const client = createDifyClient(environment, vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: 'a'.repeat(4_001), conversation_id: 'chat-c1' }), { status: 200 })));
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'AI 服务暂不可用，请稍后重试。' });
   });
 });
