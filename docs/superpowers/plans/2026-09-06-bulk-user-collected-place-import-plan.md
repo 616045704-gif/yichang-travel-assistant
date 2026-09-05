@@ -49,7 +49,7 @@ export function convertWorkbookRows(rows, importedAt) { /* returns places, conte
 export async function convertWorkbook({ sourcePath, outputDir, importedAt = new Date() }) { /* reads first sheet and writes JSON Lines */ }
 ```
 
-Map categories exactly as specified in the design. Build `placeId` from a normalized Chinese name plus a short SHA-256 suffix so repeated runs are stable and collisions cannot overwrite another row. Use `coverFileId: null`, `coordinateSystem: 'GCJ-02'`, `status: 'published'`, `sourceLevel: 'user_collected'`, and one source record with title `向半斗整理收集`, `url: null`, a collection note, and the imported timestamp. Put original volatile columns in detail reference text prefixed by `资料参考，出行前请以官方公告为准：`.
+Map categories exactly as specified in the design. Build `placeId` from a normalized Chinese name plus a short SHA-256 suffix so repeated runs are stable and collisions cannot overwrite another row. Use `coverFileId: null`, `coordinateSystem: 'GCJ-02'`, `status: 'published'`, `sourceLevel: 'user_collected'`, and one source record with title `向半斗整理收集`, `url: null`, a collection note, and the imported timestamp. Set `openNotice` to the fixed `资料参考，出行前请以官方公告为准。`; put price, opening-hour, facilities and parking cells only in a bounded text `sections` reference block, never in `intro`, `openNotice`, `visitAdvice`, or `diningInfo`, because the latter fields are sent to Dify. Strip control characters and cap every mapped field before output.
 
 - [ ] **Step 4: Add CLI validation and JSON Lines writer**
 
@@ -78,17 +78,21 @@ git commit -m "feat: convert user-collected place workbook"
 
 **Files:**
 - Modify: `cloudfunctions/ai/retrieval.ts`
+- Modify: `cloudfunctions/places/repository.ts`
+- Modify: `shared/contracts.ts`
 - Modify: `miniprogram/components/source-card/index.wxml`
+- Modify: `miniprogram/pages/place-detail/index.wxml`
 - Modify: `tests/unit/ai-service.test.ts`
 - Modify: `tests/unit/components.test.ts`
+- Modify: `tests/unit/place-service.test.ts`
 
 **Consumes:** `places.sourceLevel` from Task 1.
 
-**Produces:** source cards and Dify context that clearly distinguish user-collected reference from verified local facts.
+**Produces:** source cards and Dify context that clearly distinguish user-collected reference from verified local facts, while matching imported records beyond the first database page.
 
 - [ ] **Step 1: Add failing trust-label tests**
 
-Add a `sourceLevel: 'user_collected'` published place fixture. Assert retrieval returns `【本地整理参考】` and includes the official-announcement warning. Preserve the existing `【本地已核验资料】` expectation for records without that field. Assert the source-card heading uses `本地资料参考`.
+Add a `sourceLevel: 'user_collected'` published place fixture. Assert retrieval returns `【本地整理参考】` and includes the official-announcement warning. Preserve the existing `【本地已核验资料】` expectation for records without that field. Assert the source-card heading uses `本地资料参考`. Assert the detail projection emits `kind: 'local_reference'` rather than `local_verified`, and the detail page uses `资料说明` plus the exact collection label and official-announcement warning. Add 51 published records where only the final record matches the question; assert it is found, so a bulk import cannot be silently truncated at 50 records.
 
 - [ ] **Step 2: Run focused tests to confirm failure**
 
@@ -98,7 +102,7 @@ Expected: FAIL because the application always calls local facts verified.
 
 - [ ] **Step 3: Implement the source-level branch**
 
-In `retrieval.ts`, select the prefix based on `place.sourceLevel === 'user_collected'`. For user-collected records, append `价格、营业时间、交通和预约请以官方公告为准。`; do not alter matching, database-before-Dify ordering, or the existing no-match uncertainty text. Rename the component heading from `本地已核验资料` to `本地资料参考`.
+In `shared/contracts.ts`, add the explicit `local_reference` source kind. In `repository.ts`, project `sourceLevel: 'user_collected'` as `local_reference`; preserve `local_verified` for existing curated records. In `retrieval.ts`, select the prefix based on `place.sourceLevel === 'user_collected'`. For user-collected records, append `价格、营业时间、交通和预约请以官方公告为准。`; do not alter matching, database-before-Dify ordering, or the existing no-match uncertainty text. Read published places in fixed 100-record pages until the final short page before applying the existing five-result cap; do not replace this with a larger arbitrary `limit`. Rename the source-card heading from `本地已核验资料` to `本地资料参考`; in the detail page render `资料说明` and the collection label for `local_reference`, while curated data retains its existing label.
 
 - [ ] **Step 4: Run focused tests and commit**
 
@@ -131,7 +135,7 @@ Expected: FAIL because the runbook has no workbook import route.
 
 - [ ] **Step 3: Add the runbook**
 
-Document the exact sequence: run the converter locally; inspect the count-only report; export each existing target collection through CloudBase Console; import `places.jsonl` and then `place_contents.jsonl` as JSON with **Upsert**; keep both collections `ADMINONLY`; inspect one record from every category; and roll back by re-importing the console exports or setting the batch to `draft`. State that generated files and workbook values never enter Git, chat, logs or the mini-program package.
+Document the exact sequence: run the converter locally; inspect the count-only report; export each existing target collection through CloudBase Console; import `place_contents.jsonl` first and then `places.jsonl` as JSON with **Upsert**; keep both collections `ADMINONLY`; inspect one record from every category; and roll back by re-importing the console exports or setting the batch to `draft`. CloudBase Console performs two independent imports, not a cross-collection transaction: if either fails, stop, do not claim a complete import, and restore the successful collection before retrying. State that generated files and workbook values never enter Git, chat, logs or the mini-program package.
 
 - [ ] **Step 4: Run documentation checks and commit**
 
@@ -171,7 +175,7 @@ Expected: two JSON Lines files below `.local/import/`, 387 accepted rows, four c
 
 - [ ] **Step 2: Back up and import through the CloudBase Console**
 
-Export `places` and `place_contents` as JSON before write. Upload the generated `places.jsonl`, then `place_contents.jsonl`, selecting JSON format and **Upsert** each time. Do not alter environment variables, Dify keys, collection permissions, user collections, or existing indexes.
+Export `places` and `place_contents` as JSON before write. Upload the generated `place_contents.jsonl`, then `places.jsonl`, selecting JSON format and **Upsert** each time. If either import fails, stop and restore the already changed collection from its backup before retrying; do not claim the two imports are atomic. Do not alter environment variables, Dify keys, collection permissions, user collections, or existing indexes.
 
 - [ ] **Step 3: Run real smoke checks**
 
