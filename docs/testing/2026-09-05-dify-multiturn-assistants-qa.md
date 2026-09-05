@@ -57,8 +57,8 @@
 
 - 执行角色：部署实施者与自动化验证执行者；本节不是独立测试团队复验，不替代后续双用户和真机验收。
 - 被测 Git：`f57b054 test: stabilize WeChat async state smoke checks`，包含 `6b418e0..f57b054` 的双 Chatflow 实现、部署修复和模拟器验收修复。
-- 微信主体：AppID `wx266dd8f36d10f4c9`；腾讯云账号 `100052554087`；CloudBase 环境 `yichang-dev-d3glky2csb41de48e`。
-- 云函数：`aiService`（`lam-3kiqf3yf`），Node.js 20.19，状态“正常”，执行超时 120 秒。
+- 目标小程序、腾讯云账户与 CloudBase 环境均已由自动化运行时与本地忽略配置核对；验收记录不保留具体标识。
+- 云函数：`aiService`，Node.js 20.19，状态“正常”，执行超时 120 秒；不记录函数操作标识。
 - 云端资源：`places`、`place_contents`、`ai_sessions` 均已创建并设置为 `ADMINONLY`；函数环境已配置 `DIFY_BASE_URL`、两套各自的 API Base URL 和两套各自的 API Key。本文档、Git 变更和测试输出均未记录密钥值。
 
 ### 实际执行与结果

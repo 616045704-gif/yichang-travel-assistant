@@ -14,8 +14,10 @@ function findSecretLikeRunbookValues(text: string) {
     /["']?\bDIFY_[A-Z0-9_]+\b["']?\s*(?:=|:)\s*["']?\S+/g,
     /\bapp-(?=[A-Za-z0-9_-]{24,}\b)(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]+\b/g,
     /\bBearer\s+\S+/gi,
-    /\bwx[a-z0-9]{16}\b/gi,
+    /\b(?:wx[a-z0-9]{16}|lam-[a-z0-9]+)\b/gi,
     /["']?\b(?:account(?:Id)?|loginUin|envId|conversation(?:Id|_id)?|attempt(?:Token|_token))\b["']?\s*(?:=|:)\s*["']?[A-Za-z0-9_-]{4,}/gi,
+    /(?:\u817e\u8baf\u4e91\u8d26\u53f7|\u8d26\u6237(?:ID)?|\u8d26\u53f7(?:ID)?)\s*[:\uff1a]?\s*`?\d{6,}`?/gi,
+    /CloudBase\s*\u73af\u5883\s*`?[A-Za-z0-9-]{20,}`?/gi,
   ];
   return patterns.flatMap(pattern => text.match(pattern) ?? []);
 }
@@ -235,6 +237,13 @@ describe('deployable build boundary', () => {
     expect(runbook).not.toContain('DIFY_CHAT_API_BASE_URL');
     expect(runbook).not.toContain('DIFY_TRIP_API_BASE_URL');
     expect(findSecretLikeRunbookValues(runbook)).toEqual([]);
+  });
+  it('keeps every testing record free of private infrastructure identifiers', async () => {
+    const directory = path.join(process.cwd(), 'docs/testing');
+    for (const file of (await readdir(directory)).filter(name => name.endsWith('.md'))) {
+      const text = await readFile(path.join(directory, file), 'utf8');
+      expect(findSecretLikeRunbookValues(text), file).toEqual([]);
+    }
   });
   it.each([
     ['Dify equals assignment', `DIFY_CHAT_API_KEY=${'x'.repeat(32)}`],
