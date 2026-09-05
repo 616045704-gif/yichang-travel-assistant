@@ -1,78 +1,144 @@
 import { describe, expect, it } from 'vitest';
 import type { AiRequest, AiResult } from '../../shared/contracts';
-import { AiRecordConflictError, createAiRecordRepository } from '../../cloudfunctions/ai/records';
-
-function database() {
-  const documents = new Map<string, Record<string, unknown>>();
-  return {
-    collection(name: string) {
-      return {
-        doc(id: string) {
-          const key = `${name}:${id}`;
-          return {
-            async get() { const data = documents.get(key); if (!data) throw new Error('not found'); return { data }; },
-            async set(input: { data: Record<string, unknown> }) { documents.set(key, { ...input.data }); },
-          };
-        },
-        where(query: Record<string, unknown>) {
-          return { limit() { return { async get() {
-            const data = [...documents.entries()]
-              .filter(([key]) => key.startsWith(`${name}:`))
-              .map(([, value]) => value)
-              .filter(value => Object.entries(query).every(([field, expected]) => value[field] === expected));
-            return { data };
-          } }; } };
-        },
-      };
-    },
-  };
-}
+import {
+  AiRateLimitError,
+  AiRecordConflictError,
+  AiRequestInProgressError,
+  AiRetryLimitError,
+  createAiRecordRepository,
+} from '../../cloudfunctions/ai/records';
+import { quotaWindows } from '../../cloudfunctions/ai/quota';
+import { createAiDatabaseFixture } from '../helpers/ai-database';
 
 function result(requestId: string, answer: string): AiResult {
   return { requestId, status: 'succeeded', answer, mode: 'dify', error: null, localFacts: [], references: [] };
 }
 
 describe('private AI records', () => {
-  it('treats the wx-server-sdk missing-document error as an empty record', async () => {
-    const message = 'document.get:fail document with _id missing-record does not exist';
-    const missing = {
-      collection() {
-        return {
-          doc() {
-            return {
-              async get() { throw Object.assign(new Error(message), { errCode: -1, errMsg: message }); },
-              async set() {},
-            };
-          },
-          where() { return { limit() { return { async get() { return { data: [] }; } }; } }; },
-        };
-      },
-    };
-    const repository = createAiRecordRepository(missing);
+  const chatRequest: AiRequest = { requestId: 'chat-request', kind: 'chat', question: '三峡大坝怎么去？' };
 
-    await expect(repository.find('owner-a', { requestId: 'missing', kind: 'chat', question: '问题' })).resolves.toBeNull();
+  it('allows only one concurrent claimant for the same logical request', async () => {
+    const records = createAiRecordRepository(createAiDatabaseFixture());
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const claims = await Promise.all(Array.from({ length: 4 }, () => records.claim('owner-a', chatRequest, now)));
+    expect(claims.filter(claim => claim.state === 'claimed')).toHaveLength(1);
+    expect(claims.filter(claim => claim.state === 'running')).toHaveLength(3);
+  });
+
+  it('rejects changed input under the same request ID', async () => {
+    const records = createAiRecordRepository(createAiDatabaseFixture());
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    await records.claim('owner-a', chatRequest, now);
+    await expect(records.claim('owner-a', { ...chatRequest, question: '不同问题' }, now)).rejects.toBeInstanceOf(AiRecordConflictError);
+  });
+
+  it('allows one cooled-down failed or stale retry without charging quota twice', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const started = new Date('2026-09-06T00:00:00.000Z');
+    expect(await records.claim('owner-a', chatRequest, started)).toMatchObject({ state: 'claimed' });
+    await records.fail('owner-a', chatRequest, 'failed', new Date('2026-09-06T00:00:10.000Z'));
+    expect(await records.claim('owner-a', chatRequest, new Date('2026-09-06T00:00:20.000Z'))).toMatchObject({ state: 'claimed' });
+    expect(await records.claim('owner-b', chatRequest, started)).toMatchObject({ state: 'claimed' });
+    expect(await records.claim('owner-b', chatRequest, new Date('2026-09-06T00:01:30.000Z'))).toMatchObject({ state: 'claimed' });
+    const counters = [...fixture.documents.entries()].filter(([key]) => key.startsWith('usage_counters:'));
+    expect(counters.filter(([, value]) => value.ownerId === 'owner-a' && value.windowType === 'day')[0][1].count).toBe(1);
+    expect(counters.filter(([, value]) => value.ownerId === 'owner-b' && value.windowType === 'day')[0][1].count).toBe(1);
+  });
+
+  it('rejects a third logical invocation and an immediate retry', async () => {
+    const records = createAiRecordRepository(createAiDatabaseFixture());
+    const started = new Date('2026-09-06T00:00:00.000Z');
+    await records.claim('owner-a', chatRequest, started);
+    await records.fail('owner-a', chatRequest, 'failed', started);
+    await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 500))).rejects.toBeInstanceOf(AiRequestInProgressError);
+    await records.claim('owner-a', chatRequest, new Date(started.getTime() + 1_000));
+    await records.fail('owner-a', chatRequest, 'timed_out', new Date(started.getTime() + 1_100));
+    await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 2_100))).rejects.toBeInstanceOf(AiRetryLimitError);
+  });
+
+  it('enforces 3 per fixed minute and 20 per Shanghai day with owner and day isolation', async () => {
+    const records = createAiRecordRepository(createAiDatabaseFixture());
+    const base = new Date('2026-09-06T00:00:00.000Z');
+    for (let index = 0; index < 3; index += 1) {
+      await records.claim('owner-a', { ...chatRequest, requestId: `minute-${index}` }, base);
+    }
+    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'minute-4' }, base)).rejects.toBeInstanceOf(AiRateLimitError);
+    await expect(records.claim('owner-b', { ...chatRequest, requestId: 'minute-owner-b' }, base)).resolves.toMatchObject({ state: 'claimed' });
+    for (let index = 3; index < 20; index += 1) {
+      await records.claim('owner-a', { ...chatRequest, requestId: `day-${index}` }, new Date(base.getTime() + index * 60_000));
+    }
+    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'day-21' }, new Date(base.getTime() + 21 * 60_000))).rejects.toBeInstanceOf(AiRateLimitError);
+    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'next-day' }, new Date('2026-09-06T16:00:00.000Z'))).resolves.toMatchObject({ state: 'claimed' });
+  });
+
+  it('stores only a sanitized public result and never returns the private conversation ID', async () => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    await repository.claim('owner-a', chatRequest, now);
+    const unsafeResult = {
+      ...result(chatRequest.requestId, '聊天回答'),
+      privateToken: 'must-not-leak',
+      references: [{
+        kind: 'local_verified', title: '本地资料', url: null, verifiedAt: '2026-09-06', placeId: 'place-1', hidden: 'must-not-leak',
+      }],
+    } as unknown as AiResult;
+    await repository.complete('owner-a', chatRequest, unsafeResult, 'private-conversation', now);
+
+    const cached = await repository.claim('owner-a', chatRequest, now);
+    expect(cached).toEqual({ state: 'cached', result: {
+      requestId: chatRequest.requestId, status: 'succeeded', answer: '聊天回答', mode: 'dify', error: null,
+      localFacts: [], references: [{ kind: 'local_verified', title: '本地资料', url: null, verifiedAt: '2026-09-06', placeId: 'place-1' }],
+    } });
+    expect(JSON.stringify(cached)).not.toContain('private-conversation');
+    expect(JSON.stringify(cached)).not.toContain('must-not-leak');
+  });
+
+  it('stores only whitelisted trip input fields', async () => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const request = {
+      requestId: 'trip-safe', kind: 'trip', question: '请安排行程', attacker: 'discard-me',
+      trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'], secret: 'discard-me' },
+    } as unknown as AiRequest;
+    await repository.claim('owner-a', request, new Date('2026-09-06T00:00:00.000Z'));
+    const stored = [...fixture.documents.entries()].find(([key]) => key.startsWith('trip_requests:'))?.[1];
+    expect(stored?.request).toEqual({
+      requestId: 'trip-safe', kind: 'trip', question: '请安排行程',
+      trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'] },
+    });
+  });
+
+  it('fails closed without writes when a stored quota counter is malformed', async () => {
+    const fixture = createAiDatabaseFixture();
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const minute = quotaWindows('owner-a', now)[0];
+    fixture.documents.set(`usage_counters:${minute.id}`, {
+      _id: minute.id, ownerId: 'owner-a', windowType: 'minute', windowStart: minute.windowStart, count: '2',
+    });
+    const before = [...fixture.documents.entries()];
+    await expect(createAiRecordRepository(fixture).claim('owner-a', chatRequest, now)).rejects.toThrow('invalid AI quota counter');
+    expect([...fixture.documents.entries()]).toEqual(before);
   });
 
   it('stores chat and trip records separately and lists only the owner records', async () => {
-    const repository = createAiRecordRepository(database());
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
     const chat: AiRequest = { requestId: 'chat-1', kind: 'chat', question: '问题' };
     const trip: AiRequest = { requestId: 'trip-1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] } };
-    await repository.save('owner-a', chat, result(chat.requestId, '聊天回答'));
-    await repository.save('owner-a', trip, result(trip.requestId, '行程回答'));
-    await repository.save('owner-b', { ...chat, requestId: 'chat-2' }, result('chat-2', '其他用户回答'));
+    const other = { ...chat, requestId: 'chat-2' };
+    for (const [ownerId, request, answer] of [
+      ['owner-a', chat, '聊天回答'], ['owner-a', trip, '行程回答'], ['owner-b', other, '其他用户回答'],
+    ] as const) {
+      await repository.claim(ownerId, request, new Date());
+      await repository.complete(ownerId, request, result(request.requestId, answer), 'private-conversation', new Date());
+    }
 
-    await expect(repository.find('owner-a', chat)).resolves.toMatchObject({ answer: '聊天回答' });
     const records = await repository.list('owner-a');
     expect(records).toHaveLength(2);
     expect(records.map(item => item.kind).sort()).toEqual(['chat', 'trip']);
     expect(JSON.stringify(records)).not.toContain('其他用户回答');
-  });
-
-  it('rejects reuse of a requestId with different input', async () => {
-    const repository = createAiRecordRepository(database());
-    const original: AiRequest = { requestId: 'same-id', kind: 'chat', question: '原问题' };
-    await repository.save('owner-a', original, result(original.requestId, '回答'));
-
-    await expect(repository.find('owner-a', { ...original, question: '新问题' })).rejects.toBeInstanceOf(AiRecordConflictError);
+    expect(JSON.stringify(records)).not.toContain('private-conversation');
   });
 });

@@ -10,7 +10,7 @@ export interface AiConversationRepository {
   reset(ownerId: string, kind: AiKind): Promise<void>;
 }
 
-function sessionId(ownerId: string, kind: AiKind) {
+export function aiSessionDocumentId(ownerId: string, kind: AiKind) {
   return createHash('sha256').update(`ai-session\u0000${ownerId}\u0000${kind}`).digest('hex');
 }
 
@@ -26,7 +26,7 @@ function isNotFound(error: unknown) {
 }
 
 export function createAiConversationRepository(database: Database): AiConversationRepository {
-  const document = (ownerId: string, kind: AiKind) => database.collection('ai_sessions').doc(sessionId(ownerId, kind));
+  const document = (ownerId: string, kind: AiKind) => database.collection('ai_sessions').doc(aiSessionDocumentId(ownerId, kind));
   return {
     async get(ownerId, kind) {
       try {
