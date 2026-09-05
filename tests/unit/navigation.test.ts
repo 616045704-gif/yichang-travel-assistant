@@ -104,6 +104,14 @@ describe('four-tab application', () => {
     expect(map).not.toContain('page-title');
     expect(map).not.toContain('async-state');
   });
+  it('drives async smoke states through the page-owned status binding', async () => {
+    const smoke = await readFile('scripts/wechat-smoke.mjs', 'utf8');
+    expect(smoke).toContain('await page.setData({ status });');
+    expect(smoke).not.toContain('await state.setData({ status });');
+    expect(smoke).toContain("state = await page.$('#content-state');");
+    expect(smoke).toContain('Boolean(title), status !== \'ready\'');
+    expect(smoke).toContain('Boolean(retry), status === \'error\'');
+  });
   it('lets category buttons fit their labels instead of the native fixed width', async () => {
     const css = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
     expect(css).toMatch(/\.filter\s*\{[^}]*width:\s*auto/);

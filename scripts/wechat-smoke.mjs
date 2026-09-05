@@ -59,14 +59,15 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     state = await page.$('#content-state');
     assert.ok(state);
     for (const status of ['loading', 'error', 'empty', 'ready']) {
-      await state.setData({ status });
+      await page.setData({ status });
       await page.waitFor(100);
+      state = await page.$('#content-state');
       const title = await state.$('.state-title');
-      if (status === 'ready') assert.equal(title, null);
-      else assert.ok(await title.text());
+      assert.equal(Boolean(title), status !== 'ready', `${status} title visibility must match its branch`);
+      if (title) assert.ok(await title.text());
       const retry = await state.$('.retry');
-      if (status === 'error') { assert.ok(retry); await retry.tap(); }
-      else assert.equal(retry, null);
+      assert.equal(Boolean(retry), status === 'error', `${status} retry visibility must match its branch`);
+      if (retry) await retry.tap();
       console.log(`PASS: ${status}`);
     }
     console.log('PASS: category layout and selection');
