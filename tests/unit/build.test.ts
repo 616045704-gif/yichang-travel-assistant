@@ -245,6 +245,14 @@ describe('deployable build boundary', () => {
       expect(findSecretLikeRunbookValues(text), file).toEqual([]);
     }
   });
+  it('documents the non-secret user-collected workbook import and recovery route', async () => {
+    const runbook = await readFile(path.join(process.cwd(), 'docs/runbooks/content-import.md'), 'utf8');
+    for (const text of ['--source', '.local/import/', 'JSON Lines', 'Upsert', 'place_contents', 'places', '向半斗整理收集', '不要在本说明']) {
+      expect(runbook).toContain(text);
+    }
+    expect(runbook.indexOf('导入 `place_contents.jsonl`')).toBeLessThan(runbook.indexOf('导入 `places.jsonl`'));
+    expect(findSecretLikeRunbookValues(runbook)).toEqual([]);
+  });
   it.each([
     ['Dify equals assignment', `DIFY_CHAT_API_KEY=${'x'.repeat(32)}`],
     ['Dify colon assignment', 'DIFY_BASE_URL: https://service.example.test/v1'],

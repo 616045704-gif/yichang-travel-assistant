@@ -9,6 +9,25 @@
 
 ## 导入与复核
 
+### 向半斗整理收集工作簿（公开体验资料）
+
+此路径只处理用户提供的 `.xlsx` 地点表。它不把工作簿、生成的 JSON Lines、密钥或云环境信息放进 Git、聊天记录或小程序包。
+
+1. 在项目根目录运行：
+
+   ```powershell
+   python scripts/convert_user_collected_workbook.py --source "<工作簿路径>"
+   ```
+
+   只查看终端的数量报告：已接收数量、拒绝数量、四类数量和拒绝行号。两份生成文件固定在已忽略的 `.local/import/`：`places.jsonl` 与 `place_contents.jsonl`。
+2. 进入 CloudBase 控制台的数据库页面，先分别导出当前 `places` 与 `place_contents` 集合，作为回退备份；不要导出或改动用户集合、环境变量或权限。
+3. 导入 `place_contents.jsonl`，选择 **JSON Lines** 格式和 **Upsert**。成功后再以相同选项导入 `places.jsonl`。先写详情、后公开地点，避免公开地点先出现而没有详情。
+4. 两次控制台导入互相独立，不是跨集合事务。任一次失败都应停止：若详情已成功、地点失败，重新导入详情备份；若地点已成功但复核发现问题，先把对应地点改为 `draft`，再用两个备份恢复。修复后重新转换并导入，不能宣称本批次完整成功。
+5. 保持两个集合为 `ADMINONLY`；不创建前端导入入口。分别抽查景区、餐馆、文化馆/博物馆、露营地各一条：应为 `published`、有对应详情、来源为“向半斗整理收集”。列表、地图和详情应可正常打开；缺少图片时显示既有占位提示。
+6. 资料属于本地整理参考，不是官方核验资料。价格、营业时间、交通和预约只作参考，必须显示“请以官方公告为准”。AI 提问命中导入地点时，回答上下文应带“本地整理参考”，而不是“本地已核验资料”。
+
+不要在本说明、命令行输出、截图、Git 提交或任何前端文件中填写 API Key、访问令牌、用户标识、完整环境标识或工作簿原始行内容。
+
 ```powershell
 npm run import:content -- --target development --dry-run
 npm run import:content -- --target development --apply
