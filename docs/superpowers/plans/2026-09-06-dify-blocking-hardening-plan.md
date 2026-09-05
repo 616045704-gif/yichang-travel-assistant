@@ -11,13 +11,13 @@
 ## Global Constraints
 
 - The two existing Dify Chatflows remain `chat` for free questions and `trip` for itinerary generation and follow-up adjustments.
-- Required CloudBase function environment variables remain exactly `DIFY_BASE_URL`, `DIFY_CHAT_API_KEY`, and `DIFY_TRIP_API_KEY`; real values are entered only in the CloudBase console and never placed in source, tests, documentation, logs, screenshots, chat, or Git. Unit tests use unmistakably non-secret sentinel strings.
+- Required CloudBase function environment variables remain exactly `DIFY_BASE_URL`, `DIFY_CHAT_API_KEY`, and `DIFY_TRIP_API_KEY`; real values are entered only in the CloudBase console and never placed in source, tests, documentation, logs, screenshots, chat, or Git. Unit tests use unmistakably non-secret sentinel strings. Remove support for legacy per-kind base URL overrides.
 - The mini-program never calls Dify directly and never sends `ownerId`, OpenID, Dify user, or Dify conversation ID.
-- Every new upstream request queries published `places` and matching `place_contents` first and sends only server-produced `local_verified_facts` to Dify.
+- Every new upstream request first completes its atomic claim/quota/session-lease check, then queries published `places` and matching `place_contents`, and only then sends server-produced `local_verified_facts` to Dify. Rate-limited or session-conflicting requests do not consume place-database reads.
 - The first `trip` request maps `destination`, `people`, `totalBudgetCny`, `days`, `preferences`, and optional `local_verified_facts`; the built-in `query` remains the current user message.
-- `chat` and `trip` keep independent owner-scoped `ai_sessions` records, and resetting one kind cannot reset the other.
+- `chat` and `trip` keep independent owner-scoped `ai_sessions` records with generation and lease fields. Resetting one kind increments only that generation, clears only that pointer/lease, and prevents an older in-flight completion from restoring it.
 - Dify remains blocking with a 45-second upstream deadline, at most three attempts, 150 ms then 400 ms backoff, and retries only for network failures or HTTP 429/500/502/503/504.
-- A request claim becomes stale after 90 seconds. A same-ID cached replay and retry of the same failed logical request do not consume quota again.
+- A request/session claim becomes stale after 90 seconds. A same-ID cached replay and the single retry of the same failed logical request do not consume quota again. Logical retries have a one-second cooldown and a maximum of two total upstream invocations, including the first.
 - Quotas are 3 new requests per owner per fixed one-minute UTC-aligned window and 20 new requests per owner per `Asia/Shanghai` calendar day.
 - `usage_counters`, `ai_sessions`, `ai_messages`, and `trip_requests` remain `ADMINONLY`; users access their own records only through cloud functions.
 - Dify cannot guarantee exactly-once execution after an ambiguous network disconnect. The implementation prevents concurrent duplicate CloudBase calls but does not claim upstream exactly-once semantics.
@@ -37,8 +37,8 @@
 | --- | --- |
 | `cloudfunctions/ai/quota.ts` | Pure quota-window calculation, limits, expiry, and deterministic counter IDs. |
 | `cloudfunctions/ai/database-errors.ts` | Recognize only the CloudBase missing-document variants that may be treated as absent data. |
-| `cloudfunctions/ai/records.ts` | Transactional request claim/finalize/fail operations, quota charging, cached recovery data, and ordered owner history. |
-| `cloudfunctions/ai/repository.ts` | Provide the deterministic session document ID, read/reset isolated chat and trip sessions, and repair a missing session from a successful record. |
+| `cloudfunctions/ai/records.ts` | Transactional request/session claim, bounded retry, finalize/fail operations, strict quota charging, narrow cached recovery, and ordered owner history. |
+| `cloudfunctions/ai/repository.ts` | Provide the deterministic session document ID, read isolated sessions, and transactionally reset by incrementing generation. |
 | `cloudfunctions/ai/retrieval.ts` | Query published local place data and propagate all database failures except an absent optional content document. |
 | `cloudfunctions/ai/service.ts` | Validate requests, retrieve local facts, coordinate claim/session/Dify/finalization, and map safe public errors. |
 | `cloudfunctions/ai/dify.ts` | Preserve distinct Chatflow routing, common base URL, server-only keys, blocking timeout, retry allowlist, and sanitized errors. |
@@ -69,7 +69,7 @@
 
 **Interfaces:**
 - Consumes: normalized `AiRequest`, trusted `ownerId`, and server `Date`.
-- Produces: `AiRecordRepository.claim`, `complete`, `fail`, and `list`; `AiRecordClaim`; `AiRecordConflictError`; `AiRateLimitError`; `aiSessionDocumentId`.
+- Produces: `AiRecordRepository.claim`, `complete`, `fail`, and `list`; `AiRecordClaim`; `AiRecordConflictError`; `AiRateLimitError`; `AiRequestInProgressError`; `AiRetryLimitError`; `aiSessionDocumentId`.
 
 - [ ] **Step 1: Create a transaction-capable test database fixture**
 
@@ -168,7 +168,7 @@ it('rejects changed input under the same request ID', async () => {
   await expect(records.claim('owner-a', { ...chatRequest, question: '不同问题' }, now)).rejects.toBeInstanceOf(AiRecordConflictError);
 });
 
-it('reclaims failed and 90-second stale requests without charging quota twice', async () => {
+it('allows one cooled-down failed or stale retry without charging quota twice', async () => {
   const fixture = createAiDatabaseFixture();
   const records = createAiRecordRepository(fixture);
   const started = new Date('2026-09-06T00:00:00.000Z');
@@ -180,6 +180,17 @@ it('reclaims failed and 90-second stale requests without charging quota twice', 
   const counters = [...fixture.documents.entries()].filter(([key]) => key.startsWith('usage_counters:'));
   expect(counters.filter(([, value]) => value.ownerId === 'owner-a' && value.windowType === 'day')[0][1].count).toBe(1);
   expect(counters.filter(([, value]) => value.ownerId === 'owner-b' && value.windowType === 'day')[0][1].count).toBe(1);
+});
+
+it('rejects a third logical invocation and an immediate retry', async () => {
+  const records = createAiRecordRepository(createAiDatabaseFixture());
+  const started = new Date('2026-09-06T00:00:00.000Z');
+  await records.claim('owner-a', chatRequest, started);
+  await records.fail('owner-a', chatRequest, 'failed', started);
+  await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 500))).rejects.toBeInstanceOf(AiRequestInProgressError);
+  await records.claim('owner-a', chatRequest, new Date(started.getTime() + 1_000));
+  await records.fail('owner-a', chatRequest, 'timed_out', new Date(started.getTime() + 1_100));
+  await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 2_100))).rejects.toBeInstanceOf(AiRetryLimitError);
 });
 
 it('enforces 3 per fixed minute and 20 per Shanghai day with owner and day isolation', async () => {
@@ -214,6 +225,8 @@ import { createHash } from 'node:crypto';
 export const MINUTE_LIMIT = 3;
 export const DAY_LIMIT = 20;
 export const CLAIM_STALE_MS = 90_000;
+export const RETRY_COOLDOWN_MS = 1_000;
+export const MAX_LOGICAL_ATTEMPTS = 2;
 
 function digest(value: string) { return createHash('sha256').update(value).digest('hex'); }
 
@@ -243,7 +256,7 @@ In `cloudfunctions/ai/records.ts`, retain deterministic record IDs and request h
 export type AiRecordClaim =
   | { state: 'claimed' }
   | { state: 'running' }
-  | { state: 'cached'; result: AiResult; difyConversationId: string | null };
+  | { state: 'cached'; result: AiResult };
 
 export interface AiRecordRepository {
   claim(ownerId: string, request: AiRequest, now: Date): Promise<AiRecordClaim>;
@@ -254,6 +267,8 @@ export interface AiRecordRepository {
 
 export class AiRecordConflictError extends Error {}
 export class AiRateLimitError extends Error {}
+export class AiRequestInProgressError extends Error {}
+export class AiRetryLimitError extends Error {}
 ```
 
 Implement `claim` with `database.runTransaction(callback, 3)` so transaction conflicts receive at most three platform retries. For a new record, read both deterministic `usage_counters` documents, reject before writing when either count reaches its limit, increment both counters, and set the request record with `status: 'running'`, normalized `request`, `inputHash`, `attemptCount: 1`, `claimedAt`, `quotaChargedAt`, `createdAt`, and `updatedAt`. For an existing record:
@@ -265,10 +280,7 @@ if (record.ownerId !== ownerId || record.kind !== request.kind || record.inputHa
 if (record.status === 'succeeded') {
   const result = safeResult(record.result);
   if (!result) throw new Error('invalid successful AI record');
-  return {
-    state: 'cached', result,
-    difyConversationId: typeof record.difyConversationId === 'string' && record.difyConversationId ? record.difyConversationId : null,
-  };
+  return { state: 'cached', result };
 }
 if (record.status === 'running' && Date.parse(String(record.claimedAt)) + CLAIM_STALE_MS > now.getTime()) {
   return { state: 'running' };
@@ -280,9 +292,11 @@ await document.set({ data: {
 return { state: 'claimed' };
 ```
 
-Do not increment counters when reclaiming a failed, timed-out, malformed legacy running, or stale running record that already has `quotaChargedAt`. `complete` must transactionally preserve the original request fields, set `status: 'succeeded'`, `result`, private `difyConversationId`, and `updatedAt`, and upsert the matching `ai_sessions` document. `fail` must preserve `quotaChargedAt` and set only the safe terminal status and timestamps.
+Do not increment counters when reclaiming a failed, timed-out, malformed legacy running, or stale running record that already has `quotaChargedAt`. Require `RETRY_COOLDOWN_MS` since the latest attempt and reject when `attemptCount >= MAX_LOGICAL_ATTEMPTS`. Validate existing quota documents against the expected owner, window type, window start, and a non-negative safe-integer count; malformed counters throw a generic internal error and no write occurs. `complete` must transactionally preserve the original request fields, set `status: 'succeeded'`, a strictly sanitized `result`, private `difyConversationId`, and `updatedAt`. `fail` must preserve `quotaChargedAt` and set only the safe terminal status and timestamps.
 
-Rename the current private `sessionId` helper in `cloudfunctions/ai/repository.ts` to the exported `aiSessionDocumentId(ownerId, kind)` and use that same helper from `records.complete`. This keeps session ID generation identical in transaction finalization, normal reads, resets, and cached repair.
+Build `safeResult` field by field. Accept only `requestId`, recognized status/mode, a bounded answer/error, bounded string `localFacts`, and valid public reference fields. Never spread a stored result into a public DTO. Strictly rebuild stored trip requests from `destination`, `people`, `totalBudgetCny`, `days`, and `preferences`; discard all unknown nested fields.
+
+Rename the current private `sessionId` helper in `cloudfunctions/ai/repository.ts` to the exported `aiSessionDocumentId(ownerId, kind)` and keep repository reads/resets on that helper. Task 2 imports the same helper into `records.complete`, keeping session ID generation identical in transaction finalization, normal reads, resets, and narrow cached repair.
 
 - [ ] **Step 6: Run focused tests and commit**
 
@@ -302,7 +316,7 @@ git diff --cached --check
 git commit -m "feat: add atomic AI request claims"
 ```
 
-### Task 2: Coordinate local-first calls, session repair, and safe errors
+### Task 2: Add session generations and coordinate safe local-first calls
 
 **Files:**
 - Create: `cloudfunctions/ai/database-errors.ts`
@@ -314,13 +328,13 @@ git commit -m "feat: add atomic AI request claims"
 
 **Interfaces:**
 - Consumes: Task 1 `AiRecordRepository`, existing `DifyClient.send`, existing `AiConversationRepository`, and `LocalFactRetriever`.
-- Produces: local-first blocking orchestration; `CONFLICT` for running/reused IDs; `RATE_LIMITED` for local quota; recoverable session writes; propagated local database failures.
+- Produces: owner-and-kind session generation/lease, claim-before-retrieval blocking orchestration, `CONFLICT` for running/reused/retry-exhausted IDs, `RATE_LIMITED` for local quota, reset-safe completion, and propagated local database failures.
 
 - [ ] **Step 1: Write failing orchestration and recovery tests**
 
 Update the service dependency fixtures to expose `claim`, `complete`, `fail`, and `list`, then add:
 
-Update the imports to include `AiServiceDependencies` from `cloudfunctions/ai/service`, `AiRateLimitError` from `cloudfunctions/ai/records`, and the existing `AiRequest`/`AiResult` contracts.
+Update the imports to include `AiServiceDependencies` from `cloudfunctions/ai/service`, `AiRateLimitError` and `AiRetryLimitError` from `cloudfunctions/ai/records`, `createAiDatabaseFixture` from `tests/helpers/ai-database`, and the existing `AiRequest`/`AiResult` contracts.
 
 ```ts
 function result(requestId: string, answer: string): AiResult {
@@ -330,9 +344,9 @@ function result(requestId: string, answer: string): AiResult {
 function serviceDependencies(overrides: Partial<AiServiceDependencies> = {}): AiServiceDependencies {
   return {
     ownerId: 'trusted-owner', user: 'derived-user',
-    repository: { get: vi.fn(async () => null), save: vi.fn(async () => undefined), reset: vi.fn(async () => undefined) },
+    repository: { get: vi.fn(async () => null), reset: vi.fn(async () => undefined) },
     records: {
-      claim: vi.fn(async () => ({ state: 'claimed' as const })), complete: vi.fn(async () => undefined),
+      claim: vi.fn(async () => ({ state: 'claimed' as const, conversationId: null, sessionGeneration: 0 })), complete: vi.fn(async () => undefined),
       fail: vi.fn(async () => undefined), list: vi.fn(async () => []),
     },
     retrieve: vi.fn(async () => ['本地已核验资料']),
@@ -342,10 +356,10 @@ function serviceDependencies(overrides: Partial<AiServiceDependencies> = {}): Ai
   };
 }
 
-it('queries verified local facts before claiming and calling the selected Chatflow', async () => {
+it('claims the session before local retrieval and still retrieves before Dify', async () => {
   const order: string[] = [];
   const records = {
-    claim: vi.fn(async () => { order.push('claim'); return { state: 'claimed' as const }; }),
+    claim: vi.fn(async () => { order.push('claim'); return { state: 'claimed' as const, conversationId: null, sessionGeneration: 0 }; }),
     complete: vi.fn(async () => { order.push('complete'); }),
     fail: vi.fn(async () => undefined), list: vi.fn(async () => []),
   };
@@ -357,26 +371,60 @@ it('queries verified local facts before claiming and calling the selected Chatfl
     now: () => new Date('2026-09-06T00:00:00.000Z'),
   };
   await expect(handleAiRequest({ action: 'submit', request }, dependencies)).resolves.toMatchObject({ code: 'OK' });
-  expect(order).toEqual(['retrieve', 'claim', 'dify', 'complete']);
+  expect(order).toEqual(['claim', 'retrieve', 'dify', 'complete']);
   expect(dependencies.dify.send).toHaveBeenCalledWith('chat', request, null, 'derived-user', ['本地已核验资料']);
 });
 
-it('returns a cached result and repairs only its matching session', async () => {
+it('returns a cached result without directly rewriting the session', async () => {
   const cached = result('request-1', '缓存回答');
-  const repository = { get: vi.fn(async () => null), save: vi.fn(async () => undefined), reset: vi.fn(async () => undefined) };
+  const repository = { get: vi.fn(async () => null), reset: vi.fn(async () => undefined) };
   const dependencies = {
     ownerId: 'trusted-owner', user: 'derived-user', repository,
-    records: { claim: vi.fn(async () => ({ state: 'cached' as const, result: cached, difyConversationId: 'private-chat-id' })), complete: vi.fn(), fail: vi.fn(), list: vi.fn() },
+    records: { claim: vi.fn(async () => ({ state: 'cached' as const, result: cached })), complete: vi.fn(), fail: vi.fn(), list: vi.fn() },
     retrieve: vi.fn(async () => ['本地已核验资料']), dify: { send: vi.fn() }, now: () => new Date('2026-09-06T00:00:00.000Z'),
   };
   await expect(handleAiRequest({ action: 'submit', request }, dependencies)).resolves.toMatchObject({ code: 'OK', data: { answer: '缓存回答' } });
-  expect(repository.save).toHaveBeenCalledWith('trusted-owner', 'chat', 'private-chat-id');
   expect(dependencies.dify.send).not.toHaveBeenCalled();
+});
+
+it('serializes different request IDs for the same owner and kind but not across kinds', async () => {
+  const fixture = createAiDatabaseFixture();
+  const records = createAiRecordRepository(fixture);
+  const now = new Date('2026-09-06T00:00:00.000Z');
+  await expect(records.claim('owner-a', { requestId: 'chat-1', kind: 'chat', question: '第一问' }, now)).resolves.toMatchObject({ state: 'claimed' });
+  await expect(records.claim('owner-a', { requestId: 'chat-2', kind: 'chat', question: '第二问' }, now)).resolves.toMatchObject({ state: 'running' });
+  await expect(records.claim('owner-a', { requestId: 'trip-1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] } }, now)).resolves.toMatchObject({ state: 'claimed' });
+});
+
+it('does not let an in-flight completion restore a reset session', async () => {
+  const fixture = createAiDatabaseFixture();
+  const records = createAiRecordRepository(fixture);
+  const repository = createAiConversationRepository(fixture);
+  const now = new Date('2026-09-06T00:00:00.000Z');
+  const claim = await records.claim('owner-a', request, now);
+  expect(claim).toMatchObject({ state: 'claimed', sessionGeneration: 0 });
+  await repository.reset('owner-a', 'chat');
+  await records.complete('owner-a', request, result(request.requestId, '旧请求回答'), 'old-private-id', new Date(now.getTime() + 1_000));
+  await expect(repository.get('owner-a', 'chat')).resolves.toBeNull();
+});
+
+it('never rolls the active session back when an older cached request is replayed', async () => {
+  const fixture = createAiDatabaseFixture();
+  const records = createAiRecordRepository(fixture);
+  const now = new Date('2026-09-06T00:00:00.000Z');
+  await records.claim('owner-a', request, now);
+  await records.complete('owner-a', request, result(request.requestId, '第一答'), 'private-first', now);
+  const second = { ...request, requestId: 'request-2', question: '第二问' };
+  await records.claim('owner-a', second, new Date(now.getTime() + 1_000));
+  await records.complete('owner-a', second, result(second.requestId, '第二答'), 'private-second', new Date(now.getTime() + 1_000));
+  await expect(records.claim('owner-a', request, new Date(now.getTime() + 2_000))).resolves.toMatchObject({ state: 'cached' });
+  await expect(createAiConversationRepository(fixture).get('owner-a', 'chat')).resolves.toBe('private-second');
 });
 
 it.each([
   [{ state: 'running' as const }, 'CONFLICT'],
   [new AiRateLimitError('minute'), 'RATE_LIMITED'],
+  [new AiRetryLimitError('retry limit'), 'CONFLICT'],
 ])('returns a safe public error without calling Dify', async (claimOutcome, expectedCode) => {
   const claim = claimOutcome instanceof Error ? vi.fn(async () => { throw claimOutcome; }) : vi.fn(async () => claimOutcome);
   const dependencies = serviceDependencies({ records: { claim, complete: vi.fn(), fail: vi.fn(), list: vi.fn() } });
@@ -437,6 +485,16 @@ it('uses one common base URL and distinct server-only credentials for chat and t
   expect(fetch.mock.calls.map(call => (call[1]?.headers as Record<string, string>).Authorization)).toEqual(['Bearer unit-chat-credential', 'Bearer unit-trip-credential']);
   expect(JSON.stringify(fetch.mock.calls)).not.toContain('DIFY_CHAT_API_KEY');
 });
+
+it('ignores legacy per-kind base URL overrides', async () => {
+  const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'private-id' }), { status: 200 }));
+  const client = createDifyClient({
+    DIFY_BASE_URL: 'https://unit.example/v1', DIFY_CHAT_API_BASE_URL: 'https://stale.example',
+    DIFY_CHAT_API_KEY: 'unit-chat-credential', DIFY_TRIP_API_KEY: 'unit-trip-credential',
+  }, fetch);
+  await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'derived-user', []);
+  expect(fetch.mock.calls[0][0]).toBe('https://unit.example/v1/chat-messages');
+});
 ```
 
 These are non-secret test sentinels, not deployable credentials.
@@ -445,7 +503,7 @@ These are non-secret test sentinels, not deployable credentials.
 
 Run: `npm run test -- tests/unit/ai-service.test.ts tests/unit/dify-adapter.test.ts`
 
-Expected: FAIL because the service still calls `find/save`, cannot map running or local quota outcomes, cannot repair a cached session, and `contentFor` suppresses all errors.
+Expected: FAIL because the service still calls `find/save`, cannot map running/local-quota/retry-limit outcomes, has no owner-and-kind session lease or reset generation, and `contentFor` suppresses all errors.
 
 - [ ] **Step 4: Centralize exact missing-document recognition**
 
@@ -467,27 +525,51 @@ export function isMissingDocument(error: unknown) {
 
 Change `contentFor` so only `isMissingDocument(error)` returns `{}`; every other error is rethrown.
 
-- [ ] **Step 5: Update service orchestration and public errors**
+- [ ] **Step 5: Add the owner-and-kind generation lease**
+
+Extend `AiRecordClaim` to return the conversation snapshot captured by the transaction:
+
+```ts
+export type AiRecordClaim =
+  | { state: 'claimed'; conversationId: string | null; sessionGeneration: number }
+  | { state: 'running' }
+  | { state: 'missing_session' }
+  | { state: 'cached'; result: AiResult };
+```
+
+During `records.claim`, read the deterministic `ai_sessions` document in the same transaction. Treat a missing session as generation `0`. Before quota charging, return `running` when `activeRequestId` belongs to another request and `leaseUntil` is newer than `now`. Return `missing_session` for a trip follow-up without a Dify pointer. Otherwise store `activeRequestId`, the current generation, and `leaseUntil = now + 90 seconds`; store the same `sessionGeneration` on the request record. `chat` and `trip` use different session document IDs, so they do not block each other.
+
+For a cached success, return the sanitized result without normally changing the session. The transaction may repair a missing Dify pointer only when all of these are true: the record has a numeric `sessionGeneration`; it equals the current session generation; `lastCompletedRequestId` equals this request ID; and the session pointer is empty. Legacy records or older cached requests never repair a session.
+
+During `records.complete`, always finalize the claimed request record, but update the session pointer and `lastCompletedRequestId` and clear the lease only when both `generation === record.sessionGeneration` and `activeRequestId === request.requestId`. During `records.fail`, clear the lease only under the same check. An intervening reset or newer lease therefore cannot be overwritten.
+
+Change `repository.reset` to `database.runTransaction(callback, 3)`: read the current session, write `generation + 1`, set `difyConversationId`, `activeRequestId`, `leaseUntil`, and `lastCompletedRequestId` to `null`, preserve the trusted owner/kind, and update `updatedAt`. Remove the now-unused public `save` method from `AiConversationRepository`.
+
+- [ ] **Step 6: Update service orchestration and public errors**
 
 Add `now?: () => Date` to `AiServiceDependencies`, default it to `() => new Date()`, and change the submit path to this order:
 
 ```ts
-const conversationId = await dependencies.repository.get(ownerId, request.kind);
-if (request.kind === 'trip' && !request.trip && !conversationId) {
-  return fail('INVALID_INPUT', '请先提交行程信息，再继续调整。');
-}
-const localFacts = await dependencies.retrieve(request);
 const claim = await dependencies.records.claim(ownerId, request, now());
 if (claim.state === 'running') {
   return fail('CONFLICT', '该请求仍在处理中，请稍后重试。');
 }
+if (claim.state === 'missing_session') {
+  return fail('INVALID_INPUT', '请先提交行程信息，再继续调整。');
+}
 if (claim.state === 'cached') {
-  if (claim.difyConversationId) await dependencies.repository.save(ownerId, request.kind, claim.difyConversationId);
   return ok(claim.result);
+}
+let localFacts: string[];
+try {
+  localFacts = await dependencies.retrieve(request);
+} catch {
+  await dependencies.records.fail(ownerId, request, 'failed', now());
+  return fail('INTERNAL_ERROR', '本地地点资料暂时无法读取，请稍后重试。');
 }
 let response: { answer: string; conversationId: string };
 try {
-  response = await dependencies.dify.send(request.kind, request, conversationId, dependencies.user, localFacts);
+  response = await dependencies.dify.send(request.kind, request, claim.conversationId, dependencies.user, localFacts);
 } catch (error) {
   const isTimeout = error && typeof error === 'object' && (error as { code?: unknown }).code === 'AI_TIMEOUT';
   try {
@@ -509,15 +591,17 @@ try {
 }
 ```
 
-Map `AiRateLimitError` to `RATE_LIMITED` with `请求较频繁，请稍后再试。`; map `AiRecordConflictError` and `running` to `CONFLICT`; retain the existing safe `AI_TIMEOUT`, `AI_UNAVAILABLE`, and `INTERNAL_ERROR` messages. If persisting a failed state also fails, return `INTERNAL_ERROR` and do not expose either database or upstream details. If Dify succeeds but the atomic result/session transaction fails, leave the request claim recoverable by the 90-second stale rule and return the safe save-failure message; do not incorrectly mark the upstream call as failed.
+Map `AiRateLimitError` to `RATE_LIMITED` with `请求较频繁，请稍后再试。`; map `AiRecordConflictError`, `AiRequestInProgressError`, `AiRetryLimitError`, and `running` to distinct safe `CONFLICT` messages; retain the existing safe `AI_TIMEOUT`, `AI_UNAVAILABLE`, and `INTERNAL_ERROR` messages. If persisting a failed state also fails, return `INTERNAL_ERROR` and do not expose either database or upstream details. If Dify succeeds but the atomic result/session transaction fails, leave the request claim recoverable by the 90-second stale rule and return the safe save-failure message; do not incorrectly mark the upstream call as failed.
 
-The Dify adapter itself keeps the existing route selection, `DIFY_BASE_URL` fallback, first-trip six custom inputs, built-in `query`, 45-second deadline, three-attempt ceiling, retry status allowlist, and safe response parser.
+In `requestInput`, never spread the client trip object. Rebuild exactly `{ destination, people, totalBudgetCny, days, preferences }` from validated values and discard every other top-level or nested field.
 
-- [ ] **Step 6: Run focused and boundary tests, then commit**
+The Dify adapter keeps the existing route selection, first-trip six custom inputs, built-in `query`, 45-second deadline, three-attempt ceiling, retry status allowlist, and safe response parser. Change configuration lookup to use only `DIFY_BASE_URL`; remove per-kind base URL selection from code and tests.
+
+- [ ] **Step 7: Run focused and boundary tests, then commit**
 
 Run: `npm run test -- tests/unit/ai-service.test.ts tests/unit/dify-adapter.test.ts tests/unit/ai-records.test.ts`
 
-Expected: PASS; chat and trip route to separate credentials, local retrieval precedes Dify, running/limited calls never reach Dify, and cached success repairs only its kind.
+Expected: PASS; chat and trip route to separate credentials, the claim precedes local retrieval and local retrieval precedes Dify, running/limited/exhausted calls never reach Dify, reset wins against in-flight completion, and old cached success cannot roll back a session.
 
 Run: `npm run typecheck && npm run lint && npm run build && npm run check:package`
 
@@ -659,7 +743,7 @@ Update the live-history fixture in `tests/unit/ai-service.test.ts` to include `p
 
 - [ ] **Step 6: Align schema and indexes with the combined-record implementation**
 
-Update `database/schema.md` so `ai_messages` and `trip_requests` document deterministic `_id=hash(ownerId,requestId)`, `ownerId`, `requestId`, `kind`, `inputHash`, sanitized `request`, public `result`, private optional `difyConversationId`, `status`, `attemptCount`, `claimedAt`, `quotaChargedAt`, `createdAt`, and `updatedAt`. Document backward-compatible reads and no destructive migration.
+Update `database/schema.md` so `ai_messages` and `trip_requests` document deterministic `_id=hash(ownerId,requestId)`, `ownerId`, `requestId`, `kind`, `inputHash`, sanitized `request`, public `result`, private optional `difyConversationId`, `status`, `attemptCount`, `lastAttemptAt`, `sessionGeneration`, `claimedAt`, `quotaChargedAt`, `createdAt`, and `updatedAt`. Document `ai_sessions.generation`, `activeRequestId`, `leaseUntil`, and `lastCompletedRequestId`, plus backward-compatible reads and no destructive migration.
 
 Replace the `ai_messages` index and retain the equivalent trip index:
 
@@ -710,6 +794,8 @@ it('documents only the required Dify variable names and hardening deployment res
   }
   expect(runbook).toContain('destination');
   expect(runbook).toContain('local_verified_facts');
+  expect(runbook).not.toContain('DIFY_CHAT_API_BASE_URL');
+  expect(runbook).not.toContain('DIFY_TRIP_API_BASE_URL');
   expect(runbook).not.toMatch(/Bearer\s+[A-Za-z0-9_-]{12,}/);
 });
 ```
@@ -728,12 +814,13 @@ Update `docs/runbooks/dify-chatflow.md` with these operational steps:
 2. Open **Cloud Functions → aiService → Function configuration → Environment variables**.
 3. Add the names `DIFY_BASE_URL`, `DIFY_CHAT_API_KEY`, and `DIFY_TRIP_API_KEY`. Paste each value only into its masked console field; do not put it in chat, a local file, a screenshot, a command, or Git.
 4. Save the configuration and verify only that all three names exist. Do not reveal or copy their values during verification.
-5. Keep the function timeout at 120 seconds. The code-level Dify deadline stays 45 seconds.
-6. Confirm the first trip Chatflow has `destination`, `people`, `totalBudgetCny`, `days`, `preferences`, and optional `local_verified_facts`; both flows continue using built-in `query`.
-7. Create or verify `ai_sessions`, `ai_messages`, `trip_requests`, and `usage_counters`, each with `ADMINONLY` direct access.
-8. Create `ownerId ASC + createdAt DESC + _id ASC` indexes on `ai_messages` and `trip_requests`.
-9. Build and deploy `aiService` without replacing its environment variables.
-10. Verify a chat question, initial trip, trip follow-up, chat reset, trip reset, cached retry, understandable timeout/unavailable message, and 3-per-minute rejection without recording private IDs.
+5. Remove legacy `DIFY_CHAT_API_BASE_URL` and `DIFY_TRIP_API_BASE_URL` entries if present; both applications must use the verified common HTTPS base URL.
+6. Keep the function timeout at 120 seconds. The code-level Dify deadline stays 45 seconds.
+7. Confirm the first trip Chatflow has `destination`, `people`, `totalBudgetCny`, `days`, `preferences`, and optional `local_verified_facts`; both flows continue using built-in `query`.
+8. Create or verify `ai_sessions`, `ai_messages`, `trip_requests`, and `usage_counters`, each with `ADMINONLY` direct access.
+9. Create `ownerId ASC + createdAt DESC + _id ASC` indexes on `ai_messages` and `trip_requests`; configure lifecycle cleanup for expired usage counters according to the target CloudBase environment's supported TTL policy.
+10. Build and deploy `aiService` without replacing its environment variables.
+11. Verify a chat question, initial trip, trip follow-up, chat reset, trip reset, cached retry, understandable timeout/unavailable message, and 3-per-minute rejection without recording private IDs.
 
 State explicitly that the mini-program calls only `wx.cloud.callFunction({ name: 'aiService' })`, local published data is retrieved before Dify, and chat/trip sessions remain isolated. Retain the no-secret rollback procedure.
 
@@ -802,6 +889,10 @@ Use non-sensitive prompts and record only observable outcomes:
 - Verify chat content does not appear in trip context and vice versa; reset each kind separately.
 - Ask about a known published place and verify the response includes the observable local verified-facts source card before accepting Dify supplementation.
 - Replay one completed request ID with identical input and verify the returned result is identical without creating another visible history entry.
+- While one chat request is in flight, submit a different chat request and verify it receives the processing conflict without reaching Dify; verify a trip request can still proceed independently.
+- Reset a conversation while a controlled request is in flight and verify the older completion cannot restore the reset context.
+- Replay an older successful request after a newer turn and verify the current conversation does not move backward.
+- Fail the same logical request twice and verify a third logical invocation is rejected until the client creates a new request ID.
 - Submit four unique requests inside one fixed minute and verify the fourth returns the understandable rate-limit message without a fabricated answer.
 - Verify the history page shows the original user question/trip summary before each answer and returns newest-first owner-only records.
 - Observe timeout/unavailable handling through a controlled non-production failure path; do not remove or replace live credentials merely to force an error.
@@ -810,7 +901,7 @@ The 20-per-day limit, two-real-user isolation, ambiguous upstream disconnect, an
 
 - [ ] **Step 6: Perform independent code review and QA**
 
-The reviewer inspects the final application commit for transaction correctness, owner scoping, quota charging exactly once, session repair, database error propagation, Dify routing, and client/server leakage. A separate tester reruns the complete gate from Step 1 and checks the real smoke evidence from Step 5.
+The reviewer inspects the final application commit for transaction correctness, owner scoping, quota charging exactly once, bounded logical retries, session generation/lease races, safe cached replay, strict request/result whitelists, database error propagation, common-base Dify routing, and client/server leakage. A separate tester reruns the complete gate from Step 1 and checks the real smoke evidence from Step 5.
 
 Create `docs/testing/2026-09-06-dify-blocking-hardening-qa.md` with:
 
@@ -838,7 +929,7 @@ git commit -m "test: record Dify hardening acceptance"
 
 ## Plan self-review
 
-- **Spec coverage:** Task 1 covers deterministic request claims, concurrent deduplication, stale recovery, and 3/minute plus 20/day atomic quotas. Task 2 covers database-first orchestration, both Chatflow routes, session isolation/repair, blocking timeout/retries, and safe errors. Task 3 covers canonical persistence, indexes, owner-scoped newest-first history, and original-input display. Task 4 covers the three required environment-variable names and exact CloudBase console/deployment procedure without values. Task 5 covers complete checks, Git discipline, deployment, real smoke tests, and independent acceptance.
+- **Spec coverage:** Task 1 covers deterministic request claims, concurrent deduplication, bounded logical retries, strict stored-result/counter validation, stale recovery, and 3/minute plus 20/day atomic quotas. Task 2 covers claim-before-retrieval/database-before-Dify orchestration, both Chatflow routes, owner-kind session generations and leases, reset-safe completion, safe cached replay, blocking timeout/retries, strict request whitelisting, and safe errors. Task 3 covers canonical persistence, indexes, owner-scoped newest-first history, and original-input display. Task 4 covers the three required environment-variable names, removal of legacy base overrides, and exact CloudBase console/deployment procedure without values. Task 5 covers complete checks, Git discipline, deployment, real smoke tests, and independent acceptance.
 - **Placeholder scan:** The plan contains no unfinished implementation marker; every code change names concrete files, interfaces, assertions, commands, expected results, and commit boundaries.
-- **Type consistency:** `AiRecordRepository.claim/complete/fail/list`, `AiRecordClaim.state`, `AiHistoryItem.prompt`, `formatAiRequestSummary`, `AiRateLimitError`, and existing `DifyClient.send` use the same names and shapes in all tasks. Public contracts contain no Dify conversation field.
+- **Type consistency:** `AiRecordRepository.claim/complete/fail/list`, `AiRecordClaim.state`, `AiHistoryItem.prompt`, `formatAiRequestSummary`, `AiRateLimitError`, `AiRequestInProgressError`, `AiRetryLimitError`, `aiSessionDocumentId`, and existing `DifyClient.send` use the same names and shapes in all tasks. Public contracts contain no Dify conversation field.
 - **Scope control:** The plan does not add streaming, asynchronous workers, payments, booking, login, real-time data, destructive migration, or new client access to private collections.

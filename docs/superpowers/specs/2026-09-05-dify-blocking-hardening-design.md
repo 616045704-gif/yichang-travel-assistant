@@ -1,7 +1,7 @@
 # Dify Blocking Integration Hardening Design
 
 **Date:** 2026-09-05  
-**Status:** Proposed for implementation  
+**Status:** Approved; amended by security review on 2026-09-06
 **Scope:** Harden the existing `chat` and `trip` Dify Chatflow integration while retaining blocking mode.
 
 ## 1. Goals and non-goals
@@ -15,6 +15,8 @@ Goals:
 - Query verified local place data before Dify and pass it as `local_verified_facts`.
 - Keep `chat` and `trip` conversations independent.
 - Prevent concurrent requests with the same request ID from invoking Dify more than once.
+- Serialize in-flight requests per owner and Chatflow while allowing `chat` and `trip` to run independently.
+- Ensure resetting a conversation cannot be undone by an older in-flight request.
 - Repair conversation state after a partial database write.
 - Show the user's original question or trip conditions in history.
 - Return the newest 50 owner-scoped history items deterministically.
@@ -33,9 +35,9 @@ Both `chat` and `trip` use the same blocking orchestration pattern:
 
 1. Authenticate the caller and derive the trusted owner ID from CloudBase context.
 2. Validate and normalize the request. The client supplies a request ID, but never an owner ID or a Dify conversation ID.
-3. Query the local `places` and `place_contents` collections. Only verified place facts are formatted as `local_verified_facts`.
-4. In a CloudBase transaction, claim the deterministic request record and, for a new request, consume the applicable minute and daily quota.
-5. Invoke the correct Dify Chatflow in blocking mode with bounded network retries and the existing total upstream timeout.
+3. In one CloudBase transaction, claim the deterministic request record, acquire the owner-and-kind session lease, and, for a new request, consume the applicable minute and daily quota.
+4. Query the local `places` and `place_contents` collections. Only verified place facts are formatted as `local_verified_facts`. If retrieval fails, release the session lease and persist a safe failed state.
+5. Invoke the correct Dify Chatflow in blocking mode with bounded network retries and the existing total upstream timeout. Local place retrieval therefore still always precedes Dify.
 6. Persist the public result and internal Dify conversation ID, then update the owner-and-kind session pointer.
 7. Return only the public response DTO to the mini-program.
 
@@ -50,19 +52,23 @@ The `trip` Chatflow receives these custom inputs:
 
 The built-in `query` field remains the current user message. The `chat` flow also uses `query` and receives verified local context through its configured context input.
 
+Both Chatflows use the single server-only `DIFY_BASE_URL` and select their own `DIFY_CHAT_API_KEY` or `DIFY_TRIP_API_KEY`. Legacy per-kind base URL overrides are removed so a stale override cannot send a credential to an unintended host.
+
 ## 3. Idempotency and concurrency
 
 Each request record uses a deterministic document ID derived from `ownerId + requestId`. Its normalized input is hashed separately.
 
 The transaction handles existing records as follows:
 
-- Same request ID and same input, status `succeeded`: return the cached public result. If the record contains an internal Dify conversation ID, repair the session pointer before returning.
+- Same request ID and same input, status `succeeded`: return the cached public result. Never move the active session back to an older cached conversation. A missing pointer may be repaired only when the record generation equals the current session generation and `lastCompletedRequestId` equals this request ID.
 - Same request ID and same input, status `running` and claim not stale: do not call Dify again. Return a safe `CONFLICT` response explaining that the request is still processing and can be retried shortly.
 - Same request ID and different input: return `CONFLICT`; the client must generate a new request ID.
-- Same request ID and status `failed` or `timed_out`: allow an explicit retry by reclaiming the record. The same logical request is not charged quota again.
-- Stale `running` claim: move it to a retryable state before reclaiming it. A claim becomes stale after 90 seconds, which is longer than the 45-second Dify request deadline.
+- Same request ID and status `failed` or `timed_out`: allow one explicit logical retry after a one-second cooldown. The retry is not charged quota again.
+- Stale `running` claim: allow one reclaim after 90 seconds, which is longer than the 45-second Dify request deadline.
+- A logical request has at most two upstream invocations: the initial invocation and one retry/reclaim. Further reuse returns a safe conflict message and requires a new request ID, which is charged as a new request.
+- A non-stale lease on the same owner and kind blocks a different request ID from calling Dify. The other kind is unaffected.
 
-The initial request claim and quota consumption occur in one database transaction. This prevents simultaneous CloudBase invocations from both treating the same request as new.
+The request claim, owner-and-kind session lease, and quota consumption occur in one database transaction. This prevents simultaneous CloudBase invocations from both treating the same request as new or both advancing the same Dify conversation.
 
 Dify does not provide a guaranteed idempotency key for this API. Therefore, exact-once upstream execution cannot be promised after an ambiguous network disconnect where Dify may have completed but CloudBase did not receive the response. The implementation must not claim otherwise. Bounded automatic retries remain limited to transient failures, and ambiguous failures are recorded and surfaced safely instead of inventing a successful result.
 
@@ -84,6 +90,7 @@ Stores `chat` requests and responses with these canonical fields:
 - internal `difyConversationId`, optional and never returned to the client
 - `status`: `running`, `succeeded`, `failed`, or `timed_out`
 - attempt, claim, and one-time quota-charge timestamps
+- `sessionGeneration`, used to reject stale completion after a reset
 - `createdAt`
 - `updatedAt`
 
@@ -93,21 +100,23 @@ Uses the same operational fields with `kind: trip` and sanitized trip inputs: de
 
 ### `ai_sessions`
 
-Keeps one internal session pointer per owner and kind. `chat` and `trip` therefore remain independent. A result record is the recovery source if writing the result succeeds but updating the session fails.
+Keeps one internal session document per owner and kind with `generation`, `difyConversationId`, `activeRequestId`, `leaseUntil`, and `lastCompletedRequestId`. `chat` and `trip` therefore remain independent. Reset increments `generation` and clears the pointer and lease, so an older in-flight request cannot restore a cleared conversation.
 
 ### `usage_counters`
 
-Stores deterministic owner-and-window counters for rate limiting. The collection must use `ADMINONLY` permissions.
+Stores deterministic owner-and-window counters for rate limiting. Existing counter fields are validated strictly and malformed counters fail closed. The collection must use `ADMINONLY` permissions.
 
 Existing combined records remain readable. Missing new status fields or an internal conversation ID are tolerated, and the existing `ai_sessions` pointer remains a fallback. No destructive data migration is required.
 
 ## 5. Atomic finalization and repair
 
-After Dify succeeds, the cloud function stores the result and internal Dify conversation ID and updates the matching session pointer within one transaction where supported by the CloudBase SDK.
+After Dify succeeds, the cloud function stores the result and internal Dify conversation ID and conditionally updates the matching session pointer in one transaction. The session pointer changes only when both `generation` and `activeRequestId` still match the claim. A reset or newer valid claim therefore wins over an older completion.
 
-If the platform cannot guarantee the whole finalization transaction, the durable result record is written first and becomes the recovery source. A repeated request that finds a successful cached record repairs `ai_sessions` from the stored internal conversation ID before returning. Session repair is owner- and kind-scoped and never exposes the identifier to the frontend.
+CloudBase server transactions are required for this hardening. Cached replay normally returns the stored public result without changing the session. A narrow recovery is allowed only when the current session has the same generation, identifies this request as `lastCompletedRequestId`, and lacks a Dify pointer; older or legacy records without generation metadata never repair the active session.
 
 Failed or timed-out attempts update the request record with a safe status and diagnostic category. Raw credentials, authorization headers, full upstream payloads, and sensitive identifiers are not logged.
+
+Request normalization reconstructs only the five allowed trip fields and the optional question. Unknown nested fields such as client-supplied owner or conversation identifiers are discarded. Public results are reconstructed from an explicit field whitelist; extra database fields, private identifiers, and internal errors are never spread into a response.
 
 ## 6. History contract and UI
 
@@ -136,6 +145,8 @@ Only the first upstream attempt for a logical request consumes quota:
 
 The counters are incremented atomically with the request claim. Exceeding either limit returns a safe `RATE_LIMITED` response with a clear retry message; Dify is not called.
 
+The retry of the same failed logical request does not increment the counters, but it is limited to one retry after a one-second cooldown. This prevents a permanently failing request ID from bypassing quotas indefinitely.
+
 ## 8. Local data failure behavior
 
 Missing optional `place_contents` documents are treated as absent content. Other CloudBase errors—permission failures, timeouts, unavailable service, malformed responses, and unexpected SDK errors—are propagated to the normal error handler. The function must not silently call Dify with empty local context when the verified local data service is failing.
@@ -159,6 +170,10 @@ Automated coverage must include:
 - same request ID with different input conflict;
 - concurrent claim allowing only one Dify invocation;
 - partial result/session write followed by cached session repair;
+- concurrent different request IDs for the same owner and kind;
+- reset racing with an in-flight completion;
+- replay of an older cached request without session rollback;
+- logical retry cooldown and maximum attempt limit;
 - failed, timed-out, and stale-claim retry paths;
 - quota boundaries, rollover windows, cached replay, and owner isolation;
 - newest-first history with a deterministic 50-item limit;
@@ -166,6 +181,7 @@ Automated coverage must include:
 - propagation of non-missing local content database errors;
 - blocking timeout, transient retry, and safe error messages;
 - package scans proving no Dify URL, key, authorization header, or internal conversation ID leaks into the mini-program bundle.
+- strict trip-input and public-result field whitelists, malformed quota fail-closed behavior, and repository-wide secret-pattern scans.
 
 Before delivery, run the full unit suite, type checking, linting, both builds, package inspection, documentation verification, and diff checks. After deployment, perform real CloudBase smoke tests for chat, trip, follow-up continuity, cached replay, history, rate-limit rejection, and session recovery. Independent code review and QA records must reference the tested Git commit and clearly identify any environment-only checks not performed.
 
