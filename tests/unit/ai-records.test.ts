@@ -261,6 +261,53 @@ describe('private AI records', () => {
     expect(snapshot(fixture.documents)).toEqual(before);
   });
 
+  it('replays a sanitized legacy success without writing or repairing its missing session pointer', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const token = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, token, result(chatRequest.requestId, '旧版回答'), 'private-legacy', now);
+    const requestEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_messages:'));
+    const sessionEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_sessions:'));
+    if (!requestEntry || !sessionEntry) throw new Error('expected request and session records');
+    const legacy: Record<string, unknown> = {
+      ...requestEntry[1],
+      result: { ...(requestEntry[1].result as Record<string, unknown>), hidden: 'discard-me' },
+    };
+    delete legacy.attemptCount;
+    delete legacy.quotaChargedAt;
+    fixture.documents.set(requestEntry[0], legacy);
+    fixture.documents.set(sessionEntry[0], { ...sessionEntry[1], difyConversationId: null });
+    const before = snapshot(fixture.documents);
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 1_000))).resolves.toEqual({
+      state: 'cached',
+      result: result(chatRequest.requestId, '旧版回答'),
+    });
+    expect(snapshot(fixture.documents)).toEqual(before);
+  });
+
+  it.each([
+    ['only attemptCount absent', { attemptCount: undefined }],
+    ['only quotaChargedAt absent', { quotaChargedAt: undefined }],
+    ['both operational fields null', { attemptCount: null, quotaChargedAt: null }],
+    ['attemptCount malformed', { attemptCount: '1' }],
+    ['quotaChargedAt malformed', { quotaChargedAt: 'not-an-iso-date' }],
+  ])('rejects a successful record with %s and performs no writes', async (_case, patch) => {
+    const fixture = createAiDatabaseFixture();
+    const records = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const token = await claimToken(records, 'owner-a', chatRequest, now);
+    await records.complete('owner-a', chatRequest, token, result(chatRequest.requestId, '回答'), 'private-current', now);
+    const requestEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_messages:'));
+    if (!requestEntry) throw new Error('expected request record');
+    fixture.documents.set(requestEntry[0], { ...requestEntry[1], ...patch });
+    const before = snapshot(fixture.documents);
+
+    await expect(records.claim('owner-a', chatRequest, new Date(now.getTime() + 1_000))).rejects.toThrow();
+    expect(snapshot(fixture.documents)).toEqual(before);
+  });
+
   it.each([
     ['a mismatched result status', { status: 'failed' }],
     ['a mismatched result request ID', { requestId: 'other-request' }],

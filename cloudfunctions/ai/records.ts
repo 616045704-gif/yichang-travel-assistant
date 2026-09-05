@@ -268,12 +268,15 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         let attemptCount = 1;
         if (record) {
           assertMatchingRecord(record, ownerId, request);
-          assertOperationalRecord(record);
           if (record.status === 'succeeded') {
             const result = safeResult(record.result);
             if (!result || result.status !== 'succeeded' || result.requestId !== request.requestId) {
               throw new Error('invalid successful AI record');
             }
+            if (record.attemptCount === undefined && record.quotaChargedAt === undefined) {
+              return { state: 'cached', result };
+            }
+            assertOperationalRecord(record);
             const recordGeneration = Number.isSafeInteger(record.sessionGeneration) && Number(record.sessionGeneration) >= 0
               ? record.sessionGeneration as number
               : null;
@@ -289,6 +292,7 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
             }
             return { state: 'cached', result };
           }
+          assertOperationalRecord(record);
           const claimedAt = Date.parse(String(record.claimedAt ?? ''));
           if (record.status === 'running' && Number.isFinite(claimedAt) && claimedAt + CLAIM_STALE_MS > now.getTime()) {
             return { state: 'running' };
