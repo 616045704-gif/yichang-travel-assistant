@@ -31,6 +31,15 @@ describe('server-only Dify adapter', () => {
     expect(fetch.mock.calls[0][0]).toBe('https://api.dify.ai/v1/chat-messages');
   });
 
+  it('uses the required common DIFY_BASE_URL when per-kind overrides are absent', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
+    const client = createDifyClient({ DIFY_BASE_URL: 'https://common.example/v1', DIFY_CHAT_API_KEY: 'chat-secret', DIFY_TRIP_API_KEY: 'trip-secret' }, fetch);
+
+    await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []);
+
+    expect(fetch.mock.calls[0][0]).toBe('https://common.example/v1/chat-messages');
+  });
+
   it('maps a first trip to its fields but sends empty trip inputs for a follow-up', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '行程建议', conversation_id: 'trip-c1' }), { status: 200 }));
     const client = createDifyClient(environment, fetch);
@@ -51,6 +60,30 @@ describe('server-only Dify adapter', () => {
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'AI 服务暂不可用，请稍后重试。' });
     const unavailable = createDifyClient(environment, vi.fn(async () => new Response('not-json', { status: 502 })));
     await expect(unavailable.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'AI 服务暂不可用，请稍后重试。' });
+  });
+
+  it('retries transient statuses and network failures with bounded backoff', async () => {
+    const fetch = vi.fn<RequestCall>()
+      .mockResolvedValueOnce(new Response('', { status: 503 }))
+      .mockRejectedValueOnce(new TypeError('socket closed'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ answer: '恢复后的回答', conversation_id: 'chat-c1' }), { status: 200 }));
+    const pause = vi.fn(async () => undefined);
+    const client = createDifyClient(environment, fetch, pause);
+
+    await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).resolves.toMatchObject({ answer: '恢复后的回答' });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(pause).toHaveBeenNthCalledWith(1, 150);
+    expect(pause).toHaveBeenNthCalledWith(2, 400);
+  });
+
+  it('does not retry permanent upstream errors', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response('', { status: 400 }));
+    const pause = vi.fn(async () => undefined);
+    const client = createDifyClient(environment, fetch, pause);
+
+    await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(pause).not.toHaveBeenCalled();
   });
 
   it('rejects a non-HTTPS service endpoint without making a request', async () => {

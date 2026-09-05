@@ -3,6 +3,7 @@ import type { AiKind, AiRequest } from '../../shared/contracts';
 type DifyEnvironment = Record<string, string | undefined>;
 type FetchResponse = { ok: boolean; status: number; json(): Promise<unknown> };
 type Fetch = (url: string, init: { method: 'POST'; headers: Record<string, string>; body: string; signal: AbortSignal }) => Promise<FetchResponse>;
+type Wait = (milliseconds: number) => Promise<void>;
 
 export interface DifyClient {
   send(kind: AiKind, request: AiRequest, conversationId: string | null, user: string, localFacts: string[]): Promise<{ answer: string; conversationId: string }>;
@@ -17,7 +18,8 @@ export class DifyServiceError extends Error {
 type DifyPayload = { inputs: Record<string, string | number>; query: string; response_mode: 'blocking'; conversation_id: string; user: string };
 
 function configuration(kind: AiKind, environment: DifyEnvironment) {
-  const baseUrl = environment[kind === 'chat' ? 'DIFY_CHAT_API_BASE_URL' : 'DIFY_TRIP_API_BASE_URL']?.trim();
+  const baseUrl = environment[kind === 'chat' ? 'DIFY_CHAT_API_BASE_URL' : 'DIFY_TRIP_API_BASE_URL']?.trim()
+    || environment.DIFY_BASE_URL?.trim();
   const apiKey = environment[kind === 'chat' ? 'DIFY_CHAT_API_KEY' : 'DIFY_TRIP_API_KEY']?.trim();
   if (!baseUrl || !apiKey) throw new DifyServiceError('AI_UNAVAILABLE');
   try {
@@ -59,18 +61,34 @@ function requestFailed(error: unknown) {
   return new DifyServiceError('AI_UNAVAILABLE');
 }
 
-export function createDifyClient(environment: DifyEnvironment, request: Fetch = fetch as unknown as Fetch): DifyClient {
+function retryableStatus(status: number) { return status === 429 || status === 500 || status === 502 || status === 503 || status === 504; }
+function wait(milliseconds: number) { return new Promise<void>(resolve => setTimeout(resolve, milliseconds)); }
+
+export function createDifyClient(environment: DifyEnvironment, request: Fetch = fetch as unknown as Fetch, pause: Wait = wait): DifyClient {
   return {
     async send(kind, aiRequest, conversationId, user, localFacts) {
       const { baseUrl, apiKey } = configuration(kind, environment);
-      try {
-        const response = await request(chatMessagesEndpoint(baseUrl), {
-          method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload(kind, aiRequest, conversationId, user, localFacts)), signal: AbortSignal.timeout(90_000),
-        });
-        if (!response.ok) throw new DifyServiceError('AI_UNAVAILABLE');
-        return responseData(await response.json());
-      } catch (error) { throw requestFailed(error); }
+      const signal = AbortSignal.timeout(90_000);
+      const init = {
+        method: 'POST' as const, headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload(kind, aiRequest, conversationId, user, localFacts)), signal,
+      };
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await request(chatMessagesEndpoint(baseUrl), init);
+          if (!response.ok) {
+            if (retryableStatus(response.status) && attempt < 2) { await pause(attempt === 0 ? 150 : 400); continue; }
+            throw new DifyServiceError('AI_UNAVAILABLE');
+          }
+          try { return responseData(await response.json()); }
+          catch { throw new DifyServiceError('AI_UNAVAILABLE'); }
+        } catch (error) {
+          const mapped = requestFailed(error);
+          if (mapped.code === 'AI_TIMEOUT' || error instanceof DifyServiceError || attempt === 2) throw mapped;
+          await pause(attempt === 0 ? 150 : 400);
+        }
+      }
+      throw new DifyServiceError('AI_UNAVAILABLE');
     },
   };
 }
