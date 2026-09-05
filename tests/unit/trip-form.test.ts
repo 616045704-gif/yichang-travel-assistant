@@ -7,6 +7,8 @@ type TripPage = {
     form: { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
     error: string;
     result: { answer: string | null } | null;
+    results: Array<{ answer: string | null }>;
+    adjustment: string;
   };
   setData(value: Record<string, unknown>): void;
   onDestination(event: { detail: { value: string } }): void;
@@ -15,11 +17,20 @@ type TripPage = {
   onDays(event: { detail: { value: string } }): void;
   onTogglePreference(event: { currentTarget: { dataset: { value: string } } }): void;
   submit(): Promise<void>;
+  onAdjustment(event: { detail: { value: string } }): void;
+  submitAdjustment(): Promise<void>;
+  restartTrip(): Promise<void>;
   retry(): Promise<void>;
 };
 
-async function loadTripPage() {
+async function loadTripPage(options: { submitAi?: ReturnType<typeof vi.fn>; resetAiConversation?: ReturnType<typeof vi.fn> } = {}) {
   let page: TripPage;
+  if (options.submitAi || options.resetAiConversation) {
+    vi.doMock('../../miniprogram/services/ai', () => ({
+      submitAi: options.submitAi ?? vi.fn(),
+      resetAiConversation: options.resetAiConversation ?? vi.fn(),
+    }));
+  }
   vi.stubGlobal('Page', (value: TripPage) => { page = value; });
   vi.stubGlobal('wx', { showToast: vi.fn() });
   await import('../../miniprogram/pages/trip-form/index');
@@ -58,5 +69,41 @@ describe('trip input validation', () => {
     await expect(page.retry()).resolves.toBeUndefined();
     expect(client.submit).toHaveBeenCalledTimes(2);
     expect(client.submit.mock.calls[1][0]).toEqual(client.submit.mock.calls[0][0]);
+  });
+
+  it('sends a trip adjustment without rebuilding the form payload', async () => {
+    const submitAi = vi.fn()
+      .mockResolvedValueOnce({ requestId: 'trip-first', status: 'succeeded', answer: '首版行程', mode: 'mock', error: null, localFacts: [], references: [] })
+      .mockResolvedValueOnce({ requestId: 'trip-follow-up', status: 'succeeded', answer: '已放慢第二天节奏', mode: 'mock', error: null, localFacts: [], references: [] });
+    const page = await loadTripPage({ submitAi });
+    page.onDestination({ detail: { value: '宜昌' } });
+    page.onPeople({ detail: { value: '2' } });
+    page.onBudget({ detail: { value: '3000' } });
+    page.onDays({ detail: { value: '2' } });
+    page.onTogglePreference({ currentTarget: { dataset: { value: '自然风景' } } });
+    await page.submit();
+    page.onAdjustment({ detail: { value: '第二天太累了' } });
+    await page.submitAdjustment();
+
+    expect(submitAi).toHaveBeenCalledTimes(2);
+    expect(submitAi.mock.calls[1][0]).toMatchObject({ kind: 'trip', question: '第二天太累了' });
+    expect(submitAi.mock.calls[1][0]).not.toHaveProperty('trip');
+    expect(page.data.results).toHaveLength(2);
+  });
+
+  it('restarts only the trip conversation and retains the editable form fields', async () => {
+    const resetAiConversation = vi.fn(async () => undefined);
+    const page = await loadTripPage({ resetAiConversation });
+    page.data.form = { destination: '三峡大坝', people: '3', totalBudgetCny: '5000', days: '3', preferences: ['轻松慢游'] };
+    page.data.result = { answer: '旧行程' };
+    page.data.results = [{ answer: '旧行程' }];
+    page.data.adjustment = '改慢一点';
+
+    await page.restartTrip();
+
+    expect(resetAiConversation).toHaveBeenCalledWith('trip');
+    expect(resetAiConversation).not.toHaveBeenCalledWith('chat');
+    expect(page.data.form).toEqual({ destination: '三峡大坝', people: '3', totalBudgetCny: '5000', days: '3', preferences: ['轻松慢游'] });
+    expect(page.data).toMatchObject({ result: null, results: [], adjustment: '' });
   });
 });

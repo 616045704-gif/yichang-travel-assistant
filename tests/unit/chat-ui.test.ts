@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChatModel } from '../../miniprogram/view-models/chat';
 import { createMockAiClient, createWaitingMockAiClient } from '../fixtures/mock-ai';
 
@@ -39,5 +39,53 @@ describe('mock AI chat model', () => {
     waiting.resolve({ status: 'succeeded', answer: '模拟建议' });
     await Promise.all([first, duplicate]);
     expect(model.state).toMatchObject({ isSubmitting: false, result: { status: 'succeeded', answer: '模拟建议' } });
+  });
+});
+
+type ChatPage = {
+  data: {
+    input: string;
+    messages: Array<{ requestId: string; role: 'user' | 'assistant'; content: string }>;
+    error: string;
+    isSubmitting: boolean;
+    result: unknown;
+  };
+  setData(value: Record<string, unknown>): void;
+  newChat(): Promise<void>;
+};
+
+async function loadChatPage(resetAiConversation: ReturnType<typeof vi.fn>) {
+  let page: ChatPage;
+  vi.resetModules();
+  vi.doMock('../../miniprogram/services/ai', () => ({
+    resetAiConversation,
+    submitAi: vi.fn(),
+  }));
+  vi.stubGlobal('Page', (value: ChatPage) => { page = value; });
+  await import('../../miniprogram/pages/ai-chat/index');
+  page!.setData = function (value) { Object.assign(this.data, value); };
+  return page!;
+}
+
+afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); vi.doUnmock('../../miniprogram/services/ai'); });
+
+describe('chat page conversation controls', () => {
+  it('clears only the chat UI and chat conversation when New Chat is selected', async () => {
+    const resetAiConversation = vi.fn(async () => undefined);
+    const page = await loadChatPage(resetAiConversation);
+    page.data.input = '继续聊三峡大坝';
+    page.data.messages = [
+      { requestId: 'chat-1', role: 'user', content: '第一问' },
+      { requestId: 'chat-1', role: 'assistant', content: '第一答' },
+    ];
+    page.data.error = '旧错误';
+    page.data.isSubmitting = false;
+    page.data.result = { answer: '第一答' };
+
+    await page.newChat();
+
+    expect(resetAiConversation).toHaveBeenCalledWith('chat');
+    expect(page.data).toMatchObject({ input: '', messages: [], error: '', isSubmitting: false, result: null });
+    expect(resetAiConversation).not.toHaveBeenCalledWith('trip');
   });
 });

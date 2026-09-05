@@ -1,7 +1,8 @@
 import type { AiResult } from '../../../shared/contracts';
+import { resetAiConversation } from '../../services/ai';
 import { ChatModel } from '../../view-models/chat';
 
-type Message = { messageId: string; requestId: string; role: 'user' | 'assistant'; content: string; mode: '' | 'mock' };
+type Message = { messageId: string; requestId: string; role: 'user' | 'assistant'; content: string; mode: '' | AiResult['mode'] };
 
 const model = new ChatModel();
 
@@ -51,6 +52,16 @@ Page({
       this.setData({ error: error instanceof Error ? error.message : '当前没有可重试的问题' });
     }
   },
+  async newChat() {
+    if (this.data.isSubmitting) return;
+    try {
+      await resetAiConversation('chat');
+      model.state = { input: '', request: null, result: null, isSubmitting: false, isVisible: true };
+      this.setData({ input: '', messages: [], error: '', result: null, isSubmitting: false });
+    } catch {
+      this.setData({ error: '新对话暂时无法开始，请重试' });
+    }
+  },
   sync() {
     this.setData({ input: model.state.input, isSubmitting: model.state.isSubmitting, result: model.state.result });
   },
@@ -59,7 +70,7 @@ Page({
       this.setData({ error: toError(result), result: null, isSubmitting: false });
       return;
     }
-    const assistantMessage: Message = { messageId: `${result.requestId}-assistant`, requestId: result.requestId, role: 'assistant', content: result.answer, mode: 'mock' };
+    const assistantMessage: Message = { messageId: `${result.requestId}-assistant`, requestId: result.requestId, role: 'assistant', content: result.answer, mode: result.mode };
     const messages = this.data.messages.some(message => message.requestId === result.requestId && message.role === 'assistant')
       ? this.data.messages
       : [...this.data.messages, assistantMessage];

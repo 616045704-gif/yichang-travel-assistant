@@ -1,5 +1,5 @@
 import type { AiRequest, AiResult, TripInput } from '../../../shared/contracts';
-import { submitAi } from '../../services/ai';
+import { resetAiConversation, submitAi } from '../../services/ai';
 import { validateTrip } from '../../view-models/chat';
 
 const preferenceOptions = ['自然风景', '人文历史', '美食探索', '亲子出行', '轻松慢游', '露营体验'];
@@ -28,6 +28,9 @@ Page({
     errors: [] as string[],
     error: '',
     result: null as AiResult | null,
+    results: [] as AiResult[],
+    adjustment: '',
+    adjustmentError: '',
     isSubmitting: false,
     lastRequest: null as AiRequest | null,
   },
@@ -51,6 +54,27 @@ Page({
     const request: AiRequest = { requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', trip };
     await this.send(request);
   },
+  onAdjustment(event: WechatMiniprogram.Input) {
+    this.setData({ adjustment: event.detail.value, adjustmentError: '', error: '' });
+  },
+  async submitAdjustment() {
+    if (this.data.isSubmitting) return;
+    const question = this.data.adjustment.trim();
+    if (!question || question.length > 1000) {
+      this.setData({ adjustmentError: '请输入 1–1000 字的行程调整建议' });
+      return;
+    }
+    await this.send({ requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', question });
+  },
+  async restartTrip() {
+    if (this.data.isSubmitting) return;
+    try {
+      await resetAiConversation('trip');
+      this.setData({ adjustment: '', adjustmentError: '', error: '', result: null, results: [], lastRequest: null });
+    } catch {
+      this.setData({ error: '重新规划暂时无法开始，请重试' });
+    }
+  },
   async retry() {
     if (this.data.isSubmitting || !this.data.lastRequest) return;
     await this.send(this.data.lastRequest);
@@ -59,10 +83,26 @@ Page({
     this.setData({ form: { ...this.data.form, ...change }, errors: [], error: '' });
   },
   async send(request: AiRequest) {
-    this.setData({ isSubmitting: true, error: '', errors: [], result: null, lastRequest: request });
+    const isFirstPlan = Boolean(request.trip);
+    this.setData({
+      isSubmitting: true,
+      error: '',
+      errors: [],
+      result: isFirstPlan ? null : this.data.result,
+      results: isFirstPlan ? [] : this.data.results,
+      lastRequest: request,
+    });
     try {
       const result = await submitAi(request);
-      if (result.status === 'succeeded' && result.answer) this.setData({ result, error: '' });
+      if (result.status === 'succeeded' && result.answer) {
+        this.setData({
+          result,
+          results: [...this.data.results, result],
+          adjustment: request.question ? '' : this.data.adjustment,
+          adjustmentError: '',
+          error: '',
+        });
+      }
       else this.setData({ result: null, error: networkError(result) });
     } catch {
       this.setData({ result: null, error: '网络连接不稳定，请重试' });
