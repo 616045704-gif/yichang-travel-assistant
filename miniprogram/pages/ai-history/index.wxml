@@ -1,1 +1,17 @@
-<view class="page history-page"><view class="chapter-heading"><text class="chapter-seal">留记</text><view><text class="eyebrow">只对你可见</text><text class="page-title">AI 问答记录</text></view></view><text class="session-note">自由问答与行程定制分别保存</text><text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text><view wx:if="{{status === 'ready'}}" class="history-list"><view wx:for="{{records}}" wx:key="requestId" class="history-item"><text class="history-title">{{item.title}}</text><message-bubble role="assistant" content="{{item.answer}}" mode="{{item.mode}}" label="{{item.mode === 'mock' ? '模拟回答，仅用于交互测试' : ''}}" /><source-card facts="{{item.localFacts}}" references="{{item.references}}" /></view></view><async-state wx:else status="{{status}}" title="还没有 AI 记录" message="{{status === 'empty' ? '完成一次自由问答或行程定制后，会在这里显示。' : message}}" bind:retry="onRetry" /></view>
+<view class="page history-page">
+  <view class="chapter-heading">
+    <text class="chapter-seal">留记</text>
+    <view><text class="eyebrow">只对你可见</text><text class="page-title">AI 问答记录</text></view>
+  </view>
+  <text class="session-note">自由问答与行程定制分别保存</text>
+  <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
+  <view wx:if="{{status === 'ready'}}" class="history-list">
+    <view wx:for="{{records}}" wx:key="requestId" class="history-item">
+      <text class="history-title">{{item.title}}</text>
+      <message-bubble role="user" content="{{item.prompt}}" mode="" label="" />
+      <message-bubble role="assistant" content="{{item.answer}}" mode="{{item.mode}}" label="{{item.mode === 'mock' ? '模拟回答，仅用于交互测试' : ''}}" />
+      <source-card facts="{{item.localFacts}}" references="{{item.references}}" />
+    </view>
+  </view>
+  <async-state wx:else status="{{status}}" title="还没有 AI 记录" message="{{status === 'empty' ? '完成一次自由问答或行程定制后，会在这里显示。' : message}}" bind:retry="onRetry" />
+</view>

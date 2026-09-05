@@ -21,7 +21,7 @@ afterEach(() => {
 describe('development mock AI service', () => {
   it('returns a deterministic mock answer by default in a development build', async () => {
     vi.stubGlobal('__BUILD_MODE__', 'development');
-    const { submitAi } = await import('../../miniprogram/services/ai');
+    const { listAiRecords, submitAi } = await import('../../miniprogram/services/ai');
     await expect(submitAi(request)).resolves.toEqual(expect.objectContaining({
       requestId: request.requestId,
       status: 'succeeded',
@@ -29,6 +29,9 @@ describe('development mock AI service', () => {
       answer: '模拟回答：三峡大坝适合几月去？',
       error: null,
     }));
+    await expect(listAiRecords()).resolves.toEqual([
+      expect.objectContaining({ kind: 'chat', prompt: '三峡大坝适合几月去？' }),
+    ]);
   });
 
   it('sends an unchanged request to aiService outside development mock mode', async () => {
@@ -67,7 +70,7 @@ describe('development mock AI service', () => {
 
   it('loads live history through the owner-scoped aiService action', async () => {
     vi.stubGlobal('__BUILD_MODE__', 'demo');
-    const history = [{ requestId: 'c1', kind: 'chat', createdAt: '2026-09-05T00:00:00.000Z', status: 'succeeded', answer: '回答', mode: 'dify', error: null, localFacts: [], references: [] }];
+    const history = [{ requestId: 'c1', kind: 'chat', prompt: '原始问题', createdAt: '2026-09-05T00:00:00.000Z', status: 'succeeded', answer: '回答', mode: 'dify', error: null, localFacts: [], references: [] }];
     const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: history } }));
     vi.stubGlobal('wx', { cloud: { callFunction } });
     const { listAiRecords } = await import('../../miniprogram/services/ai');

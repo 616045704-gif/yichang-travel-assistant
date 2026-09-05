@@ -10,7 +10,7 @@ Page({
     this.setData({ status: 'loading', message: '' });
     try {
       const records = (await listAiRecords())
-        .filter(result => result.status === 'succeeded' && Boolean(result.answer))
+        .filter(result => result.status === 'succeeded' && Boolean(result.answer) && Boolean(result.prompt))
         .map(result => ({ ...result, title: result.kind === 'trip' ? '行程定制结果' : '自由问答结果' }));
       this.setData({ records, status: records.length ? 'ready' : 'empty' });
     } catch (error) {

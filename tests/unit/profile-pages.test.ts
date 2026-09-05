@@ -25,7 +25,7 @@ describe('personal pages', () => {
     vi.stubGlobal('__BUILD_MODE__', 'demo');
     let page: { data: Record<string, unknown>; setData(value: Record<string, unknown>): void; load(): Promise<void> };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
-    const record = { requestId: 'trip-1', kind: 'trip', createdAt: '2026-09-05T00:00:00.000Z', status: 'succeeded', answer: '行程回答', mode: 'dify', error: null, localFacts: [], references: [] };
+    const record = { requestId: 'trip-1', kind: 'trip', prompt: '宜昌｜2人｜2天｜总预算3000元｜偏好：自然风景', createdAt: '2026-09-05T00:00:00.000Z', status: 'succeeded', answer: '行程回答', mode: 'dify', error: null, localFacts: [], references: [] };
     const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: [record] } }));
     vi.stubGlobal('wx', { cloud: { callFunction } });
     await import('../../miniprogram/pages/ai-history/index');
@@ -34,7 +34,9 @@ describe('personal pages', () => {
     await page!.load();
 
     expect(callFunction).toHaveBeenCalledWith({ name: 'aiService', data: { action: 'listRecords' } });
-    expect(page!.data).toMatchObject({ status: 'ready', records: [expect.objectContaining({ kind: 'trip', title: '行程定制结果' })] });
+    expect(page!.data).toMatchObject({ status: 'ready', records: [expect.objectContaining({
+      kind: 'trip', title: '行程定制结果', prompt: '宜昌｜2人｜2天｜总预算3000元｜偏好：自然风景',
+    })] });
   });
   it('does not send an identity field from the user client', async () => {
     const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: { placeId: 'place-1', favorite: true } } }));

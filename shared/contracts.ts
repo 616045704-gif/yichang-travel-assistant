@@ -63,6 +63,7 @@ export interface AiResult {
 
 export interface AiHistoryItem extends AiResult {
   kind: AiKind;
+  prompt: string;
   createdAt: string;
 }
 

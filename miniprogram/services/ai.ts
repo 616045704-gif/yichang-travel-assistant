@@ -1,4 +1,5 @@
 import type { AiClient, AiHistoryItem, AiKind, AiRequest, AiResult } from '../../shared/contracts';
+import { formatAiRequestSummary } from '../../shared/ai-history';
 
 declare const __BUILD_MODE__: string;
 
@@ -48,7 +49,7 @@ function clearMockConversation(kind: AiKind) {
 export async function submitAi(request: AiRequest): Promise<AiResult> {
   if (!client) return callAi<AiResult>('submit', { request });
   const result = await client.submit(request);
-  records.push({ ...result, kind: request.kind, createdAt: new Date().toISOString() });
+  records.push({ ...result, kind: request.kind, prompt: formatAiRequestSummary(request, request.kind), createdAt: new Date().toISOString() });
   return result;
 }
 

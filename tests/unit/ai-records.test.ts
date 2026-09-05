@@ -31,6 +31,42 @@ function snapshot(documents: Map<string, Record<string, unknown>>) {
   return [...documents.entries()].map(([key, value]) => [key, structuredClone(value)] as const);
 }
 
+function withHistoryQueryLog(fixture: ReturnType<typeof createAiDatabaseFixture>) {
+  const queries: Array<{
+    collection: string;
+    query: Record<string, unknown>;
+    orders: Array<[string, 'asc' | 'desc']>;
+    limit: number | null;
+  }> = [];
+  const database = {
+    ...fixture,
+    collection(name: string) {
+      const collection = fixture.collection(name);
+      return {
+        ...collection,
+        where(query: Record<string, unknown>) {
+          const source = collection.where(query);
+          const entry = { collection: name, query, orders: [] as Array<[string, 'asc' | 'desc']>, limit: null as number | null };
+          queries.push(entry);
+          const wrapped = {
+            orderBy(field: string, direction: 'asc' | 'desc') {
+              entry.orders.push([field, direction]);
+              source.orderBy(field, direction);
+              return wrapped;
+            },
+            limit(count: number) {
+              entry.limit = count;
+              return source.limit(count);
+            },
+          };
+          return wrapped;
+        },
+      };
+    },
+  };
+  return { database, queries };
+}
+
 describe('private AI records', () => {
   const chatRequest: AiRequest = { requestId: 'chat-request', kind: 'chat', question: '三峡大坝怎么去？' };
 
@@ -431,5 +467,82 @@ describe('private AI records', () => {
     expect(records.map(item => item.kind).sort()).toEqual(['chat', 'trip']);
     expect(JSON.stringify(records)).not.toContain('其他用户回答');
     expect(JSON.stringify(records)).not.toContain('private-conversation');
+  });
+
+  it('queries, merges, and deterministically limits owner history to the newest 50 records', async () => {
+    const fixture = createAiDatabaseFixture();
+    const { database, queries } = withHistoryQueryLog(fixture);
+    const expected: Array<{ requestId: string; createdAt: string }> = [];
+    for (let index = 0; index < 60; index += 1) {
+      const recordId = `record-${String((index * 17) % 60).padStart(2, '0')}`;
+      const kind = index % 2 === 0 ? 'chat' : 'trip';
+      const createdAt = `2026-09-06T00:00:0${index % 5}.000Z`;
+      const request: AiRequest = kind === 'chat'
+        ? { requestId: recordId, kind, question: ` 问题 ${index} ` }
+        : { requestId: recordId, kind, question: ` 调整 ${index} ` };
+      fixture.documents.set(`${kind === 'chat' ? 'ai_messages' : 'trip_requests'}:${recordId}`, {
+        _id: recordId,
+        ownerId: 'owner-a',
+        kind,
+        request,
+        result: result(recordId, `回答 ${index}`),
+        status: 'succeeded',
+        createdAt,
+      });
+      expected.push({ requestId: recordId, createdAt });
+    }
+    for (let index = 0; index < 4; index += 1) {
+      fixture.documents.set(`ai_messages:other-${index}`, {
+        _id: `other-${index}`, ownerId: 'owner-b', kind: 'chat',
+        request: { requestId: `other-${index}`, kind: 'chat', question: '其他用户问题' },
+        result: result(`other-${index}`, '其他用户回答'), status: 'succeeded', createdAt: '2026-09-07T00:00:00.000Z',
+      });
+    }
+
+    const records = await createAiRecordRepository(database).list('owner-a');
+    const ordered = expected
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || left.requestId.localeCompare(right.requestId))
+      .slice(0, 50);
+    expect(records).toHaveLength(50);
+    expect(records.map(item => ({ requestId: item.requestId, createdAt: item.createdAt }))).toEqual(ordered);
+    expect(records.every(item => item.prompt === item.prompt.trim() && !('recordId' in item) && !('_id' in item))).toBe(true);
+    expect(JSON.stringify(records)).not.toMatch(/其他用户|owner-[ab]/);
+    expect(queries).toEqual([
+      { collection: 'ai_messages', query: { ownerId: 'owner-a' }, orders: [['createdAt', 'desc'], ['_id', 'asc']], limit: 50 },
+      { collection: 'trip_requests', query: { ownerId: 'owner-a' }, orders: [['createdAt', 'desc'], ['_id', 'asc']], limit: 50 },
+    ]);
+  });
+
+  it('uses safe prompts for chat, initial trip, follow-up, and invalid legacy records', async () => {
+    const fixture = createAiDatabaseFixture();
+    const records = [
+      { id: 'chat-safe', kind: 'chat', request: { requestId: 'chat-safe', kind: 'chat', question: '  原始问题  ' } },
+      { id: 'trip-safe', kind: 'trip', request: { requestId: 'trip-safe', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'] } } },
+      { id: 'trip-followup', kind: 'trip', request: { requestId: 'trip-followup', kind: 'trip', question: '  第二天轻松一点  ' } },
+      { id: 'legacy-trip', kind: 'trip', request: { answer: '不能作为问题回显' } },
+    ] as const;
+    for (const [index, item] of records.entries()) {
+      fixture.documents.set(`${item.kind === 'chat' ? 'ai_messages' : 'trip_requests'}:${item.id}`, {
+        _id: item.id, ownerId: 'owner-a', kind: item.kind, request: item.request,
+        result: result(item.id, `回答 ${index}`), status: 'succeeded', createdAt: `2026-09-06T00:00:0${index}.000Z`,
+      });
+    }
+    fixture.documents.set('ai_messages:wrong-kind', {
+      _id: 'wrong-kind', ownerId: 'owner-a', kind: 'trip', request: records[0].request,
+      result: result('wrong-kind', '不应返回'), status: 'succeeded', createdAt: '2026-09-06T00:00:10.000Z',
+    });
+    fixture.documents.set('trip_requests:invalid-result', {
+      _id: 'invalid-result', ownerId: 'owner-a', kind: 'trip', request: records[1].request,
+      result: { ...result('invalid-result', '不应返回'), status: 'failed' }, status: 'succeeded', createdAt: '2026-09-06T00:00:11.000Z',
+    });
+
+    const history = await createAiRecordRepository(fixture).list('owner-a');
+    expect(Object.fromEntries(history.map(item => [item.requestId, item.prompt]))).toEqual({
+      'chat-safe': '原始问题',
+      'trip-safe': '宜昌｜2人｜2天｜总预算3000元｜偏好：自然风景',
+      'trip-followup': '第二天轻松一点',
+      'legacy-trip': '历史行程定制',
+    });
+    expect(JSON.stringify(history)).not.toContain('不能作为问题回显');
   });
 });

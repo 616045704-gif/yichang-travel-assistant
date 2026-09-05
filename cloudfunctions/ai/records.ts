@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AiHistoryItem, AiKind, AiRequest, AiResult, Source } from '../../shared/contracts';
+import { formatAiRequestSummary } from '../../shared/ai-history';
 import { isMissingDocument } from './database-errors';
 import { CLAIM_STALE_MS, MAX_LOGICAL_ATTEMPTS, quotaWindows, RETRY_COOLDOWN_MS } from './quota';
 import { aiSessionDocumentId } from './repository';
@@ -10,7 +11,7 @@ type DocumentReference = {
   set(input: { data: Document }): Promise<unknown>;
 };
 type Query = {
-  orderBy?(field: string, direction: 'asc' | 'desc'): Query;
+  orderBy(field: string, direction: 'asc' | 'desc'): Query;
   limit(count: number): { get(): Promise<{ data: Document[] }> };
 };
 type Collection = {
@@ -217,6 +218,12 @@ function recordSessionGeneration(record: Document) {
   return record.sessionGeneration as number;
 }
 
+function historyRequest(value: unknown, kind: AiKind, requestId: string) {
+  if (!value || typeof value !== 'object') return null;
+  const request = value as Document;
+  return request.kind === kind && request.requestId === requestId ? request : null;
+}
+
 function transactionRunner(database: Database) {
   if (!database.runTransaction) throw new Error('database transactions are unavailable');
   return database.runTransaction.bind(database);
@@ -324,6 +331,7 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
           status: 'running',
           attemptToken,
           claimedAt: timestamp,
+          lastAttemptAt: timestamp,
           quotaChargedAt: record?.quotaChargedAt ?? timestamp,
           sessionGeneration: session.generation,
           createdAt: typeof record?.createdAt === 'string' ? record.createdAt : timestamp,
@@ -422,14 +430,40 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
 
     async list(ownerId) {
       const documents = (await Promise.all((['chat', 'trip'] as const).map(async kind => {
-        const data = (await database.collection(collectionName(kind)).where({ ownerId }).limit(50).get()).data;
+        const data = (await database.collection(collectionName(kind))
+          .where({ ownerId })
+          .orderBy('createdAt', 'desc')
+          .orderBy('_id', 'asc')
+          .limit(50)
+          .get()).data;
         return data.map(item => ({ item, kind }));
       }))).flat();
-      return documents.flatMap(({ item, kind }) => {
+      const history = documents.flatMap(({ item, kind }) => {
         const result = safeResult(item.result);
-        if (!result || item.ownerId !== ownerId || item.kind !== kind || typeof item.createdAt !== 'string') return [];
-        return [{ ...result, kind, createdAt: item.createdAt }];
-      }).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, 50);
+        const recordId = boundedString(item._id, 128);
+        if (!result || result.status !== 'succeeded' || item.status !== 'succeeded' || item.ownerId !== ownerId || item.kind !== kind
+          || !recordId || !validIsoTimestamp(item.createdAt)) return [];
+        const request = historyRequest(item.request, kind, result.requestId);
+        return [{
+          ...result,
+          recordId,
+          kind,
+          prompt: formatAiRequestSummary(request, kind),
+          createdAt: item.createdAt,
+        }];
+      }).sort((left, right) => right.createdAt.localeCompare(left.createdAt) || left.recordId.localeCompare(right.recordId)).slice(0, 50);
+      return history.map((item): AiHistoryItem => ({
+        requestId: item.requestId,
+        status: item.status,
+        answer: item.answer,
+        mode: item.mode,
+        error: item.error,
+        localFacts: item.localFacts,
+        references: item.references,
+        kind: item.kind,
+        prompt: item.prompt,
+        createdAt: item.createdAt,
+      }));
     },
   };
 }
