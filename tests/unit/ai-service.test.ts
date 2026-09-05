@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AiRequest } from '../../shared/contracts';
+import type { AiRequest, AiResult } from '../../shared/contracts';
 import { createAiConversationRepository } from '../../cloudfunctions/ai/repository';
 import { createLocalFactRetriever } from '../../cloudfunctions/ai/retrieval';
 import { handleAiRequest } from '../../cloudfunctions/ai/service';
@@ -25,10 +25,38 @@ describe('development mock AI service', () => {
     }));
   });
 
-  it('does not activate the mock adapter in a demo build', async () => {
+  it('sends an unchanged request to aiService outside development mock mode', async () => {
     vi.stubGlobal('__BUILD_MODE__', 'demo');
+    const liveResult: AiResult = {
+      requestId: request.requestId, status: 'succeeded', answer: '真实回答', mode: 'dify', error: null, localFacts: [], references: [],
+    };
+    const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: liveResult } }));
+    vi.stubGlobal('wx', { cloud: { callFunction } });
     const { submitAi } = await import('../../miniprogram/services/ai');
-    await expect(submitAi(request)).rejects.toThrow('模拟服务暂不可用，请稍后重试');
+    await expect(submitAi(request)).resolves.toEqual(liveResult);
+    expect(callFunction).toHaveBeenCalledWith({ name: 'aiService', data: { action: 'submit', request } });
+  });
+
+  it('keeps development mock and resets only the requested live conversation', async () => {
+    vi.stubGlobal('__BUILD_MODE__', 'development');
+    const { resetAiConversation, submitAi } = await import('../../miniprogram/services/ai');
+    await expect(submitAi(request)).resolves.toMatchObject({ mode: 'mock' });
+    await expect(resetAiConversation('trip')).resolves.toBeUndefined();
+
+    vi.resetModules();
+    vi.stubGlobal('__BUILD_MODE__', 'demo');
+    const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: { kind: 'trip' } } }));
+    vi.stubGlobal('wx', { cloud: { callFunction } });
+    const live = await import('../../miniprogram/services/ai');
+    await expect(live.resetAiConversation('trip')).resolves.toBeUndefined();
+    expect(callFunction).toHaveBeenCalledWith({ name: 'aiService', data: { action: 'resetConversation', kind: 'trip' } });
+  });
+
+  it('keeps a live cloud failure as an error instead of falling back to mock', async () => {
+    vi.stubGlobal('__BUILD_MODE__', 'demo');
+    vi.stubGlobal('wx', { cloud: { callFunction: vi.fn(async () => ({ result: { code: 'AI_UNAVAILABLE', data: null, message: 'AI 服务暂不可用，请稍后重试。' } })) } });
+    const { submitAi } = await import('../../miniprogram/services/ai');
+    await expect(submitAi(request)).rejects.toThrow('AI 服务暂不可用，请稍后重试。');
   });
 });
 

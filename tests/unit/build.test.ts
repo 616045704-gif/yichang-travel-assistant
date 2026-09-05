@@ -104,6 +104,14 @@ describe('deployable build boundary', () => {
     await put(root, 'miniprogram/app.ts', 'wx.request({url: "https://example.test"});');
     await expect(buildProject({ root })).rejects.toThrow(/Client boundary/);
   });
+  it('allows the AI cloud-function boundary but rejects Dify configuration in a demo client', async () => {
+    const root = await fixture();
+    await put(root, 'miniprogram/services/ai.ts', 'export async function submitAi() { return wx.cloud.callFunction({ name: "aiService" }); }');
+    await buildProject({ root, mode: 'demo' });
+    expect(await readFile(path.join(root, 'dist/miniprogram/services/ai.js'), 'utf8')).toContain('aiService');
+    await put(root, 'miniprogram/services/ai.ts', 'const endpoint = "https://api.dify.ai"; export { endpoint };');
+    await expect(buildProject({ root, mode: 'demo' })).rejects.toThrow(/Client boundary/);
+  });
   it('validates component resources, styles, sitemap and tab icons', async () => {
     const root = await fixture();
     await put(root, 'miniprogram/app.json', JSON.stringify({ pages: ['pages/home/index'], sitemapLocation: 'sitemap.json', tabBar: { list: [{ pagePath: 'pages/home/index', iconPath: 'icons/home.png' }] } }));
