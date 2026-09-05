@@ -83,6 +83,9 @@ describe('server-only Dify adapter', () => {
 
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).resolves.toMatchObject({ answer: '恢复后的回答' });
     expect(fetch).toHaveBeenCalledTimes(3);
+    const signals = fetch.mock.calls.map(call => call[1]?.signal);
+    expect(signals[0]).toBeDefined();
+    expect(signals.every(signal => signal === signals[0])).toBe(true);
     expect(pause).toHaveBeenNthCalledWith(1, 150);
     expect(pause).toHaveBeenNthCalledWith(2, 400);
   });
