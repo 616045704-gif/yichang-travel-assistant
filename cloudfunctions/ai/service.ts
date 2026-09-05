@@ -48,8 +48,9 @@ export interface AiServiceDependencies {
   retrieve: LocalFactRetriever;
 }
 
-export async function handleAiRequest(event: Event, dependencies: AiServiceDependencies) {
+export async function handleAiRequest(event: Event | null | undefined, dependencies: AiServiceDependencies) {
   if (!dependencies.ownerId) return fail('UNAUTHENTICATED', '请在微信中重新进入后再试。');
+  if (!event || typeof event !== 'object') return fail('INVALID_INPUT', '不支持的 AI 服务请求。');
   const { ownerId } = dependencies;
   if (event.action === 'resetConversation') {
     if (event.kind !== 'chat' && event.kind !== 'trip') return fail('INVALID_INPUT', '会话类型无效。');

@@ -95,11 +95,22 @@ describe('private live AI service', () => {
     expect(client.send).toHaveBeenNthCalledWith(2, 'trip', expect.anything(), null, 'derived-user', ['本地已核验资料']);
   });
 
+  it('does not hide database permission failures as missing conversations', async () => {
+    const denied = {
+      collection() {
+        return { doc() { return { async get() { throw new Error('permission denied'); }, async set() {} }; } };
+      },
+    };
+    const repository = createAiConversationRepository(denied);
+    await expect(repository.get('trusted-owner', 'chat')).rejects.toThrow('permission denied');
+  });
+
   it('returns only safe errors for unauthenticated, malformed and unavailable requests', async () => {
     const repository = createAiConversationRepository(database());
     const dify: DifyClient = { send: vi.fn(async () => { throw Object.assign(new Error('chat-secret'), { code: 'AI_UNAVAILABLE' }); }) };
     const dependencies = { ownerId: 'trusted-owner', user: 'derived-user', repository, dify, retrieve: vi.fn(async () => []) };
     expect((await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat', question: '问什么' } }, { ...dependencies, ownerId: null })).code).toBe('UNAUTHENTICATED');
+    expect((await handleAiRequest(null, dependencies)).code).toBe('INVALID_INPUT');
     expect((await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat' } }, dependencies)).code).toBe('INVALID_INPUT');
     const result = await handleAiRequest({ action: 'submit', request: { requestId: 'c1', kind: 'chat', question: '问什么' } }, dependencies);
     expect(result).toMatchObject({ code: 'AI_UNAVAILABLE', data: null, message: 'AI 服务暂不可用，请稍后重试。' });
@@ -119,7 +130,7 @@ describe('private live AI service', () => {
 
   it('reads only published local place facts before a Dify request and marks missing facts as uncertain', async () => {
     const calls: Record<string, unknown>[] = [];
-    const places = [{ _id: 'published-place', status: 'published', name: '三峡大坝', intro: '已核验简介', openNotice: '开放以公告为准' }];
+    const places = [{ _id: 'published-place', status: 'published', name: '三峡大坝', category: 'scenic', district: '夷陵区', address: '湖北省宜昌市夷陵区', tags: ['工程景观'], intro: '已核验简介', openNotice: '开放以公告为准' }];
     const localDatabase = {
       collection(name: string) {
         return {
@@ -131,6 +142,8 @@ describe('private live AI service', () => {
     const retrieve = createLocalFactRetriever(localDatabase);
     await expect(retrieve({ requestId: 'c1', kind: 'chat', question: '三峡大坝怎么去？' })).resolves.toEqual([expect.stringContaining('三峡大坝')]);
     await expect(retrieve({ requestId: 'c2', kind: 'chat', question: '未知地点' })).resolves.toEqual([expect.stringContaining('不确定')]);
-    expect(calls).toEqual([{ name: 'places', query: { status: 'published' } }, { name: 'places', query: { status: 'published' } }]);
+    await expect(retrieve({ requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] } })).resolves.toEqual([expect.stringContaining('三峡大坝')]);
+    await expect(retrieve({ requestId: 'c3', kind: 'chat', question: '宜昌有哪些景区？' })).resolves.toEqual([expect.stringContaining('三峡大坝')]);
+    expect(calls).toEqual(Array.from({ length: 4 }, () => ({ name: 'places', query: { status: 'published' } })));
   });
 });

@@ -12,11 +12,29 @@ function terms(request: AiRequest) {
 
 function asText(value: unknown, limit: number) { return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, limit) : ''; }
 
+const categoryTerms: Record<string, string[]> = {
+  scenic: ['景区', '景点', '自然风光'],
+  restaurant: ['餐馆', '餐厅', '美食'],
+  culture: ['文化馆', '博物馆', '人文'],
+  camping: ['露营地', '露营'],
+};
+
+function normalized(value: string) { return value.toLocaleLowerCase().replace(/[\s，。！？、；：,.!?;:()（）\-_/]+/g, ''); }
+
 function matches(place: Document, term: string) {
   if (!term) return false;
-  const values = [place.name, place.district, place.address, ...(Array.isArray(place.aliases) ? place.aliases : [])]
+  const values = [
+    place.name, place.district, place.address,
+    ...(Array.isArray(place.aliases) ? place.aliases : []),
+    ...(Array.isArray(place.tags) ? place.tags : []),
+    ...(typeof place.category === 'string' ? categoryTerms[place.category] || [] : []),
+  ]
     .filter((value): value is string => typeof value === 'string' && !!value.trim());
-  return values.some(value => term.includes(value.toLocaleLowerCase()));
+  const query = normalized(term);
+  return values.some(value => {
+    const candidate = normalized(value);
+    return candidate.length >= 2 && (query.includes(candidate) || candidate.includes(query));
+  });
 }
 
 async function contentFor(database: Database, placeId: string) {
