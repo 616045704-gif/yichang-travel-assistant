@@ -8,6 +8,18 @@ import { checkPackage, validateResources } from '../../scripts/check-package.mjs
 import { verifyDocs } from '../../scripts/verify-docs.mjs';
 
 const roots: string[] = [];
+
+function findSecretLikeRunbookValues(text: string) {
+  const patterns = [
+    /["']?\bDIFY_[A-Z0-9_]+\b["']?\s*(?:=|:)\s*["']?\S+/g,
+    /\bapp-(?=[A-Za-z0-9_-]{24,}\b)(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]+\b/g,
+    /\bBearer\s+\S+/gi,
+    /\bwx[a-z0-9]{16}\b/gi,
+    /["']?\b(?:account(?:Id)?|loginUin|envId|conversation(?:Id|_id)?|attempt(?:Token|_token))\b["']?\s*(?:=|:)\s*["']?[A-Za-z0-9_-]{4,}/gi,
+  ];
+  return patterns.flatMap(pattern => text.match(pattern) ?? []);
+}
+
 async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'yichang-build-'));
   roots.push(root);
@@ -206,12 +218,49 @@ describe('deployable build boundary', () => {
       '独立会话',
       '不要打印',
       '回滚',
+      'Dify 公共 HTTPS API Endpoint',
+      '可以带或不带 `/v1`',
+      '不得带 `/chat-messages`',
+      '已发布的 `chat` 应用 API 凭据',
+      '已发布的 `trip` 应用 API 凭据',
+      '不要交换',
+      '`chat` 和 `trip` 两个 Chatflow 都配置可选文本变量 `local_verified_facts`',
+      '`expiresAt`',
+      '仅删除已过期',
+      '记录为待办',
+      '不要误删',
     ]) {
       expect(runbook).toContain(name);
     }
     expect(runbook).not.toContain('DIFY_CHAT_API_BASE_URL');
     expect(runbook).not.toContain('DIFY_TRIP_API_BASE_URL');
-    expect(runbook).not.toMatch(/\bBearer\s+\S+/);
-    expect(runbook).not.toMatch(/\bwx[a-z0-9]{16}\b/i);
+    expect(findSecretLikeRunbookValues(runbook)).toEqual([]);
+  });
+  it.each([
+    ['Dify equals assignment', `DIFY_CHAT_API_KEY=${'x'.repeat(32)}`],
+    ['Dify colon assignment', 'DIFY_BASE_URL: https://service.example.test/v1'],
+    ['common Dify key', `app-${'x'.repeat(20)}1234567890`],
+    ['quoted Dify key', JSON.stringify({ DIFY_CHAT_API_KEY: `app-${'x'.repeat(20)}1234567890` })],
+    ['Bearer value', `Bearer ${'x'.repeat(24)}`],
+    ['WeChat AppID', `wx${'0'.repeat(16)}`],
+    ['account label', 'account=fixture-account'],
+    ['login label', 'loginUin: fixture-login'],
+    ['environment label', 'envId=fixture-environment'],
+    ['quoted environment label', JSON.stringify({ envId: 'fixture-environment' })],
+    ['conversation label', 'conversationId: fixture-conversation'],
+    ['attempt label', 'attemptToken=fixture-attempt'],
+  ])('detects a secret-like runbook value: %s', (_label, sample) => {
+    expect(findSecretLikeRunbookValues(sample)).not.toEqual([]);
+  });
+  it.each([
+    'DIFY_BASE_URL',
+    '`DIFY_CHAT_API_KEY`',
+    'envId',
+    '"conversationId"',
+    'attemptToken',
+    'app-configuration-guide',
+    '目标环境名称',
+  ])('allows a runbook name or non-secret reference: %s', sample => {
+    expect(findSecretLikeRunbookValues(sample)).toEqual([]);
   });
 });
