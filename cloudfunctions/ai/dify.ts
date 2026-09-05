@@ -24,7 +24,11 @@ function configuration(kind: AiKind, environment: DifyEnvironment) {
     const url = new URL(baseUrl);
     if (url.protocol !== 'https:') throw new Error('unsupported protocol');
   } catch { throw new DifyServiceError('AI_UNAVAILABLE'); }
-  return { baseUrl: baseUrl.replace(/\/$/, ''), apiKey };
+  return { baseUrl: baseUrl.replace(/\/+$/, ''), apiKey };
+}
+
+function chatMessagesEndpoint(baseUrl: string) {
+  return `${baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`}/chat-messages`;
 }
 
 function payload(kind: AiKind, request: AiRequest, conversationId: string | null, user: string, localFacts: string[]): DifyPayload {
@@ -60,7 +64,7 @@ export function createDifyClient(environment: DifyEnvironment, request: Fetch = 
     async send(kind, aiRequest, conversationId, user, localFacts) {
       const { baseUrl, apiKey } = configuration(kind, environment);
       try {
-        const response = await request(`${baseUrl}/v1/chat-messages`, {
+        const response = await request(chatMessagesEndpoint(baseUrl), {
           method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload(kind, aiRequest, conversationId, user, localFacts)), signal: AbortSignal.timeout(90_000),
         });

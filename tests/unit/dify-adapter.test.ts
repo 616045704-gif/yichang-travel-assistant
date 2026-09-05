@@ -22,6 +22,15 @@ describe('server-only Dify adapter', () => {
     });
   });
 
+  it('accepts the Dify API endpoint when it already ends with v1', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
+    const client = createDifyClient({ ...environment, DIFY_CHAT_API_BASE_URL: 'https://api.dify.ai/v1' }, fetch);
+
+    await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []);
+
+    expect(fetch.mock.calls[0][0]).toBe('https://api.dify.ai/v1/chat-messages');
+  });
+
   it('maps a first trip to its fields but sends empty trip inputs for a follow-up', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '行程建议', conversation_id: 'trip-c1' }), { status: 200 }));
     const client = createDifyClient(environment, fetch);
