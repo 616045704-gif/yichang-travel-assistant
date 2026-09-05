@@ -5,7 +5,11 @@ export function createAiDatabaseFixture() {
   let queue: Promise<void> = Promise.resolve();
   let nextTransactionSetFailure: number | null = null;
 
-  function api(store: Map<string, TestDocument>, beforeSet?: () => void) {
+  function api(
+    store: Map<string, TestDocument>,
+    beforeSet?: () => void,
+    operation?: <T>(work: () => T) => Promise<T>,
+  ) {
     return {
       collection(name: string) {
         return {
@@ -13,14 +17,20 @@ export function createAiDatabaseFixture() {
             const key = `${name}:${id}`;
             return {
               async get() {
-                const data = store.get(key);
-                if (!data) throw new Error('not found');
-                return { data: { ...data } };
+                const work = () => {
+                  const data = store.get(key);
+                  if (!data) throw new Error('not found');
+                  return { data: { ...data } };
+                };
+                return operation ? operation(work) : work();
               },
               async set(input: { data: TestDocument }) {
-                beforeSet?.();
-                if (Object.keys(input.data).some(field => field.startsWith('_'))) throw new Error('cannot write immutable system field');
-                store.set(key, { ...input.data, _id: id });
+                const work = () => {
+                  beforeSet?.();
+                  if (Object.keys(input.data).some(field => field.startsWith('_'))) throw new Error('cannot write immutable system field');
+                  store.set(key, { ...input.data, _id: id });
+                };
+                return operation ? operation(work) : work();
               },
             };
           },
@@ -72,10 +82,18 @@ export function createAiDatabaseFixture() {
         const failureAt = nextTransactionSetFailure;
         nextTransactionSetFailure = null;
         let setCount = 0;
+        let operationActive = false;
+        const operation = async <R>(work: () => R) => {
+          if (operationActive) throw new Error('concurrent transaction operation');
+          operationActive = true;
+          await Promise.resolve();
+          try { return work(); }
+          finally { operationActive = false; }
+        };
         const result = await callback(api(staged, () => {
           setCount += 1;
           if (setCount === failureAt) throw new Error(`injected set failure ${setCount}`);
-        }));
+        }, operation));
         documents.clear();
         for (const [key, value] of staged) documents.set(key, value);
         return result;

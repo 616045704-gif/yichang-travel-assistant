@@ -236,7 +236,10 @@ function transactionRunner(database: Database) {
 
 async function chargeQuota(transaction: Transaction, ownerId: string, now: Date) {
   const windows = quotaWindows(ownerId, now);
-  const current = await Promise.all(windows.map(window => getDocument(transaction.collection('usage_counters'), window.id)));
+  const current: Array<Document | null> = [];
+  for (const window of windows) {
+    current.push(await getDocument(transaction.collection('usage_counters'), window.id));
+  }
   for (let index = 0; index < windows.length; index += 1) {
     const window = windows[index];
     const counter = current[index];
@@ -247,9 +250,10 @@ async function chargeQuota(transaction: Transaction, ownerId: string, now: Date)
     if (Number(counter?.count ?? 0) >= window.limit) throw new AiRateLimitError('AI request quota exceeded');
   }
   const timestamp = now.toISOString();
-  await Promise.all(windows.map((window, index) => {
+  for (let index = 0; index < windows.length; index += 1) {
+    const window = windows[index];
     const counter = current[index];
-    return transaction.collection('usage_counters').doc(window.id).set({ data: {
+    await transaction.collection('usage_counters').doc(window.id).set({ data: {
       ownerId,
       windowType: window.windowType,
       windowStart: window.windowStart,
@@ -259,7 +263,7 @@ async function chargeQuota(transaction: Transaction, ownerId: string, now: Date)
       createdAt: typeof counter?.createdAt === 'string' ? counter.createdAt : timestamp,
       updatedAt: timestamp,
     } });
-  }));
+  }
 }
 
 export function createAiRecordRepository(database: Database): AiRecordRepository {
@@ -270,10 +274,8 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
         const sessionId = aiSessionDocumentId(ownerId, request.kind);
-        const [record, storedSession] = await Promise.all([
-          getDocument(collection, id),
-          getDocument(transaction.collection('ai_sessions'), sessionId),
-        ]);
+        const record = await getDocument(collection, id);
+        const storedSession = await getDocument(transaction.collection('ai_sessions'), sessionId);
         const session = sessionState(storedSession, ownerId, request.kind);
         const timestamp = now.toISOString();
 
@@ -364,10 +366,8 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
         const sessionId = aiSessionDocumentId(ownerId, request.kind);
-        const [record, storedSession] = await Promise.all([
-          getDocument(collection, id),
-          getDocument(transaction.collection('ai_sessions'), sessionId),
-        ]);
+        const record = await getDocument(collection, id);
+        const storedSession = await getDocument(transaction.collection('ai_sessions'), sessionId);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
         assertOperationalRecord(record);
@@ -405,10 +405,8 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
         const sessionId = aiSessionDocumentId(ownerId, request.kind);
-        const [record, storedSession] = await Promise.all([
-          getDocument(collection, id),
-          getDocument(transaction.collection('ai_sessions'), sessionId),
-        ]);
+        const record = await getDocument(collection, id);
+        const storedSession = await getDocument(transaction.collection('ai_sessions'), sessionId);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
         assertOperationalRecord(record);
