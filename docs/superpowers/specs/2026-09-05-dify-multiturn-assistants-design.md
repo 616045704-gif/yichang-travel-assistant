@@ -17,6 +17,8 @@
 | `chat` | `DIFY_CHAT_API_BASE_URL`、`DIFY_CHAT_API_KEY` | `chatConversationId` |
 | `trip` | `DIFY_TRIP_API_BASE_URL`、`DIFY_TRIP_API_KEY` | `tripConversationId` |
 
+两条 Dify Chatflow 都配置可选文本输入变量 `local_verified_facts`。云函数在调用前查询本地已发布地点与详情，将整理后的已核验资料写入这一服务端字段；小程序不发送、存储或展示它的原始输入值。
+
 真实密钥、Dify 地址、稳定用户标识和 conversation ID 均不得出现在小程序包、前端日志或 Git。云函数先查询本地地点资料；本地已核验资料优先于 Dify 补充内容。若本地查询、Dify 配置或请求失败，返回可理解错误，不伪造 mock 成功。
 
 ## 请求映射与多轮会话
