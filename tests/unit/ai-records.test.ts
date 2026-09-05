@@ -14,6 +14,22 @@ function result(requestId: string, answer: string): AiResult {
   return { requestId, status: 'succeeded', answer, mode: 'dify', error: null, localFacts: [], references: [] };
 }
 
+async function claimToken(
+  repository: ReturnType<typeof createAiRecordRepository>,
+  ownerId: string,
+  request: AiRequest,
+  now: Date,
+) {
+  const claim = await repository.claim(ownerId, request, now);
+  expect(claim.state).toBe('claimed');
+  if (claim.state !== 'claimed') throw new Error('expected claimed request');
+  return claim.attemptToken;
+}
+
+function snapshot(documents: Map<string, Record<string, unknown>>) {
+  return [...documents.entries()].map(([key, value]) => [key, structuredClone(value)] as const);
+}
+
 describe('private AI records', () => {
   const chatRequest: AiRequest = { requestId: 'chat-request', kind: 'chat', question: '三峡大坝怎么去？' };
 
@@ -23,12 +39,13 @@ describe('private AI records', () => {
     const claims = await Promise.all(Array.from({ length: 4 }, () => records.claim('owner-a', chatRequest, now)));
     expect(claims.filter(claim => claim.state === 'claimed')).toHaveLength(1);
     expect(claims.filter(claim => claim.state === 'running')).toHaveLength(3);
+    expect(claims.find(claim => claim.state === 'claimed')).toMatchObject({ attemptToken: expect.any(String) });
   });
 
   it('rejects changed input under the same request ID', async () => {
     const records = createAiRecordRepository(createAiDatabaseFixture());
     const now = new Date('2026-09-06T00:00:00.000Z');
-    await records.claim('owner-a', chatRequest, now);
+    await claimToken(records, 'owner-a', chatRequest, now);
     await expect(records.claim('owner-a', { ...chatRequest, question: '不同问题' }, now)).rejects.toBeInstanceOf(AiRecordConflictError);
   });
 
@@ -36,10 +53,10 @@ describe('private AI records', () => {
     const fixture = createAiDatabaseFixture();
     const records = createAiRecordRepository(fixture);
     const started = new Date('2026-09-06T00:00:00.000Z');
-    expect(await records.claim('owner-a', chatRequest, started)).toMatchObject({ state: 'claimed' });
-    await records.fail('owner-a', chatRequest, 'failed', new Date('2026-09-06T00:00:10.000Z'));
+    const ownerAToken = await claimToken(records, 'owner-a', chatRequest, started);
+    await records.fail('owner-a', chatRequest, ownerAToken, 'failed', new Date('2026-09-06T00:00:10.000Z'));
     expect(await records.claim('owner-a', chatRequest, new Date('2026-09-06T00:00:20.000Z'))).toMatchObject({ state: 'claimed' });
-    expect(await records.claim('owner-b', chatRequest, started)).toMatchObject({ state: 'claimed' });
+    await claimToken(records, 'owner-b', chatRequest, started);
     expect(await records.claim('owner-b', chatRequest, new Date('2026-09-06T00:01:30.000Z'))).toMatchObject({ state: 'claimed' });
     const counters = [...fixture.documents.entries()].filter(([key]) => key.startsWith('usage_counters:'));
     expect(counters.filter(([, value]) => value.ownerId === 'owner-a' && value.windowType === 'day')[0][1].count).toBe(1);
@@ -49,11 +66,11 @@ describe('private AI records', () => {
   it('rejects a third logical invocation and an immediate retry', async () => {
     const records = createAiRecordRepository(createAiDatabaseFixture());
     const started = new Date('2026-09-06T00:00:00.000Z');
-    await records.claim('owner-a', chatRequest, started);
-    await records.fail('owner-a', chatRequest, 'failed', started);
+    const firstToken = await claimToken(records, 'owner-a', chatRequest, started);
+    await records.fail('owner-a', chatRequest, firstToken, 'failed', started);
     await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 500))).rejects.toBeInstanceOf(AiRequestInProgressError);
-    await records.claim('owner-a', chatRequest, new Date(started.getTime() + 1_000));
-    await records.fail('owner-a', chatRequest, 'timed_out', new Date(started.getTime() + 1_100));
+    const secondToken = await claimToken(records, 'owner-a', chatRequest, new Date(started.getTime() + 1_000));
+    await records.fail('owner-a', chatRequest, secondToken, 'timed_out', new Date(started.getTime() + 1_100));
     await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 2_100))).rejects.toBeInstanceOf(AiRetryLimitError);
   });
 
@@ -76,7 +93,7 @@ describe('private AI records', () => {
     const fixture = createAiDatabaseFixture();
     const repository = createAiRecordRepository(fixture);
     const now = new Date('2026-09-06T00:00:00.000Z');
-    await repository.claim('owner-a', chatRequest, now);
+    const attemptToken = await claimToken(repository, 'owner-a', chatRequest, now);
     const unsafeResult = {
       ...result(chatRequest.requestId, '聊天回答'),
       privateToken: 'must-not-leak',
@@ -84,7 +101,7 @@ describe('private AI records', () => {
         kind: 'local_verified', title: '本地资料', url: null, verifiedAt: '2026-09-06', placeId: 'place-1', hidden: 'must-not-leak',
       }],
     } as unknown as AiResult;
-    await repository.complete('owner-a', chatRequest, unsafeResult, 'private-conversation', now);
+    await repository.complete('owner-a', chatRequest, attemptToken, unsafeResult, 'private-conversation', now);
 
     const cached = await repository.claim('owner-a', chatRequest, now);
     expect(cached).toEqual({ state: 'cached', result: {
@@ -95,6 +112,32 @@ describe('private AI records', () => {
     expect(JSON.stringify(cached)).not.toContain('must-not-leak');
   });
 
+  it('fences stale-attempt completion and failure after a reclaim', async () => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const started = new Date('2026-09-06T00:00:00.000Z');
+    const oldToken = await claimToken(repository, 'owner-a', chatRequest, started);
+    const newToken = await claimToken(repository, 'owner-a', chatRequest, new Date(started.getTime() + 90_000));
+    expect(newToken).not.toBe(oldToken);
+    const before = snapshot(fixture.documents);
+
+    await expect(repository.complete(
+      'owner-a', chatRequest, oldToken, result(chatRequest.requestId, '过期回答'), 'old-conversation', new Date(started.getTime() + 91_000),
+    )).rejects.toBeInstanceOf(AiRecordConflictError);
+    expect(snapshot(fixture.documents)).toEqual(before);
+    await expect(repository.fail(
+      'owner-a', chatRequest, oldToken, 'failed', new Date(started.getTime() + 91_000),
+    )).rejects.toBeInstanceOf(AiRecordConflictError);
+    expect(snapshot(fixture.documents)).toEqual(before);
+
+    await repository.complete(
+      'owner-a', chatRequest, newToken, result(chatRequest.requestId, '新回答'), 'new-conversation', new Date(started.getTime() + 91_000),
+    );
+    await expect(repository.claim('owner-a', chatRequest, new Date(started.getTime() + 92_000))).resolves.toMatchObject({
+      state: 'cached', result: { answer: '新回答' },
+    });
+  });
+
   it('stores only whitelisted trip input fields', async () => {
     const fixture = createAiDatabaseFixture();
     const repository = createAiRecordRepository(fixture);
@@ -102,12 +145,59 @@ describe('private AI records', () => {
       requestId: 'trip-safe', kind: 'trip', question: '请安排行程', attacker: 'discard-me',
       trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'], secret: 'discard-me' },
     } as unknown as AiRequest;
-    await repository.claim('owner-a', request, new Date('2026-09-06T00:00:00.000Z'));
+    await claimToken(repository, 'owner-a', request, new Date('2026-09-06T00:00:00.000Z'));
     const stored = [...fixture.documents.entries()].find(([key]) => key.startsWith('trip_requests:'))?.[1];
     expect(stored?.request).toEqual({
       requestId: 'trip-safe', kind: 'trip', question: '请安排行程',
       trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['自然风景'] },
     });
+  });
+
+  it.each([2, 3])('rolls back every claim write when transaction set %i fails', async setNumber => {
+    const fixture = createAiDatabaseFixture();
+    fixture.failNextTransactionSetAt(setNumber);
+    await expect(createAiRecordRepository(fixture).claim(
+      'owner-a', chatRequest, new Date('2026-09-06T00:00:00.000Z'),
+    )).rejects.toThrow(`injected set failure ${setNumber}`);
+    expect(snapshot(fixture.documents)).toEqual([]);
+  });
+
+  it('rolls back failed complete and fail writes', async () => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    const attemptToken = await claimToken(repository, 'owner-a', chatRequest, now);
+    const before = snapshot(fixture.documents);
+
+    fixture.failNextTransactionSetAt(1);
+    await expect(repository.complete(
+      'owner-a', chatRequest, attemptToken, result(chatRequest.requestId, '回答'), 'conversation', now,
+    )).rejects.toThrow('injected set failure 1');
+    expect(snapshot(fixture.documents)).toEqual(before);
+
+    fixture.failNextTransactionSetAt(1);
+    await expect(repository.fail('owner-a', chatRequest, attemptToken, 'failed', now)).rejects.toThrow('injected set failure 1');
+    expect(snapshot(fixture.documents)).toEqual(before);
+  });
+
+  it.each([
+    ['attemptCount', '1'],
+    ['attemptCount', 0],
+    ['attemptCount', 1.5],
+    ['attemptCount', Number.MAX_SAFE_INTEGER + 1],
+    ['quotaChargedAt', 'not-an-iso-date'],
+  ])('fails closed when operational field %s is malformed', async (field, value) => {
+    const fixture = createAiDatabaseFixture();
+    const repository = createAiRecordRepository(fixture);
+    const now = new Date('2026-09-06T00:00:00.000Z');
+    await claimToken(repository, 'owner-a', chatRequest, now);
+    const recordEntry = [...fixture.documents.entries()].find(([key]) => key.startsWith('ai_messages:'));
+    if (!recordEntry) throw new Error('expected request record');
+    fixture.documents.set(recordEntry[0], { ...recordEntry[1], [field]: value });
+    const before = snapshot(fixture.documents);
+
+    await expect(repository.claim('owner-a', chatRequest, new Date(now.getTime() + 90_000))).rejects.toThrow(`invalid AI ${field}`);
+    expect(snapshot(fixture.documents)).toEqual(before);
   });
 
   it('fails closed without writes when a stored quota counter is malformed', async () => {
@@ -131,8 +221,8 @@ describe('private AI records', () => {
     for (const [ownerId, request, answer] of [
       ['owner-a', chat, '聊天回答'], ['owner-a', trip, '行程回答'], ['owner-b', other, '其他用户回答'],
     ] as const) {
-      await repository.claim(ownerId, request, new Date());
-      await repository.complete(ownerId, request, result(request.requestId, answer), 'private-conversation', new Date());
+      const attemptToken = await claimToken(repository, ownerId, request, new Date());
+      await repository.complete(ownerId, request, attemptToken, result(request.requestId, answer), 'private-conversation', new Date());
     }
 
     const records = await repository.list('owner-a');

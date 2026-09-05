@@ -3,8 +3,9 @@ export type TestDocument = Record<string, unknown>;
 export function createAiDatabaseFixture() {
   const documents = new Map<string, TestDocument>();
   let queue: Promise<void> = Promise.resolve();
+  let nextTransactionSetFailure: number | null = null;
 
-  function api(store: Map<string, TestDocument>) {
+  function api(store: Map<string, TestDocument>, beforeSet?: () => void) {
     return {
       collection(name: string) {
         return {
@@ -17,6 +18,7 @@ export function createAiDatabaseFixture() {
                 return { data: { ...data } };
               },
               async set(input: { data: TestDocument }) {
+                beforeSet?.();
                 store.set(key, { ...input.data, _id: id });
               },
             };
@@ -58,11 +60,21 @@ export function createAiDatabaseFixture() {
   return {
     documents,
     ...api(documents),
+    failNextTransactionSetAt(setNumber: number) {
+      if (!Number.isSafeInteger(setNumber) || setNumber < 1) throw new Error('set failure number must be a positive integer');
+      nextTransactionSetFailure = setNumber;
+    },
     runTransaction<T>(callback: (transaction: ReturnType<typeof api>) => Promise<T>, _times = 3): Promise<T> {
       void _times;
       const run = queue.then(async () => {
         const staged = new Map([...documents].map(([key, value]) => [key, { ...value }]));
-        const result = await callback(api(staged));
+        const failureAt = nextTransactionSetFailure;
+        nextTransactionSetFailure = null;
+        let setCount = 0;
+        const result = await callback(api(staged, () => {
+          setCount += 1;
+          if (setCount === failureAt) throw new Error(`injected set failure ${setCount}`);
+        }));
         documents.clear();
         for (const [key, value] of staged) documents.set(key, value);
         return result;

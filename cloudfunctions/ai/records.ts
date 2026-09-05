@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { AiHistoryItem, AiKind, AiRequest, AiResult, Source } from '../../shared/contracts';
 import { CLAIM_STALE_MS, MAX_LOGICAL_ATTEMPTS, quotaWindows, RETRY_COOLDOWN_MS } from './quota';
 
@@ -21,7 +21,7 @@ type Database = Transaction & {
 };
 
 export type AiRecordClaim =
-  | { state: 'claimed' }
+  | { state: 'claimed'; attemptToken: string }
   | { state: 'running' }
   | { state: 'cached'; result: AiResult };
 
@@ -32,14 +32,14 @@ export interface AiRecordRepository {
   /** Transitional compatibility for the Task 2 service migration. */
   save(ownerId: string, request: AiRequest, result: AiResult): Promise<void>;
   claim?(ownerId: string, request: AiRequest, now: Date): Promise<AiRecordClaim>;
-  complete?(ownerId: string, request: AiRequest, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
-  fail?(ownerId: string, request: AiRequest, status: 'failed' | 'timed_out', now: Date): Promise<void>;
+  complete?(ownerId: string, request: AiRequest, attemptToken: string, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
+  fail?(ownerId: string, request: AiRequest, attemptToken: string, status: 'failed' | 'timed_out', now: Date): Promise<void>;
 }
 
 export interface AtomicAiRecordRepository extends AiRecordRepository {
   claim(ownerId: string, request: AiRequest, now: Date): Promise<AiRecordClaim>;
-  complete(ownerId: string, request: AiRequest, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
-  fail(ownerId: string, request: AiRequest, status: 'failed' | 'timed_out', now: Date): Promise<void>;
+  complete(ownerId: string, request: AiRequest, attemptToken: string, result: AiResult, difyConversationId: string, now: Date): Promise<void>;
+  fail(ownerId: string, request: AiRequest, attemptToken: string, status: 'failed' | 'timed_out', now: Date): Promise<void>;
 }
 
 export class AiRecordConflictError extends Error {}
@@ -53,6 +53,10 @@ function digest(value: string) {
 
 function documentId(ownerId: string, requestId: string) {
   return digest(`ai-record\u0000${ownerId}\u0000${requestId}`);
+}
+
+function newAttemptToken() {
+  return randomBytes(32).toString('hex');
 }
 
 function sanitizedRequest(request: AiRequest): AiRequest {
@@ -149,6 +153,25 @@ function assertMatchingRecord(record: Document, ownerId: string, request: AiRequ
   }
 }
 
+function validIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+}
+
+function assertOperationalRecord(record: Document) {
+  if (!Number.isSafeInteger(record.attemptCount) || Number(record.attemptCount) < 1) {
+    throw new Error('invalid AI attemptCount');
+  }
+  if (!validIsoTimestamp(record.quotaChargedAt)) throw new Error('invalid AI quotaChargedAt');
+}
+
+function assertActiveAttempt(record: Document, attemptToken: string) {
+  if (typeof attemptToken !== 'string' || !attemptToken || record.attemptToken !== attemptToken || record.status !== 'running') {
+    throw new AiRecordConflictError('AI attempt is no longer active');
+  }
+}
+
 function transactionRunner(database: Database) {
   if (!database.runTransaction) throw new Error('database transactions are unavailable');
   return database.runTransaction.bind(database);
@@ -192,6 +215,7 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
         const record = await getDocument(collection, id);
         const timestamp = now.toISOString();
         if (!record) {
+          const attemptToken = newAttemptToken();
           await chargeQuota(transaction, ownerId, now);
           await collection.doc(id).set({ data: {
             ownerId,
@@ -201,15 +225,17 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
             request: sanitizedRequest(request),
             status: 'running',
             attemptCount: 1,
+            attemptToken,
             claimedAt: timestamp,
             quotaChargedAt: timestamp,
             createdAt: timestamp,
             updatedAt: timestamp,
           } });
-          return { state: 'claimed' };
+          return { state: 'claimed', attemptToken };
         }
 
         assertMatchingRecord(record, ownerId, request);
+        assertOperationalRecord(record);
         if (record.status === 'succeeded') {
           const result = safeResult(record.result);
           if (!result) throw new Error('invalid successful AI record');
@@ -225,28 +251,28 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
         if (record.status !== 'running' && record.status !== 'failed' && record.status !== 'timed_out') {
           throw new Error('invalid AI request status');
         }
-        const attemptCount = record.attemptCount === undefined ? 1 : Number(record.attemptCount);
-        if (!Number.isSafeInteger(attemptCount) || attemptCount < 1) throw new Error('invalid AI attempt count');
+        const attemptCount = record.attemptCount as number;
         if (attemptCount >= MAX_LOGICAL_ATTEMPTS) throw new AiRetryLimitError('AI retry limit exceeded');
         const latestAttemptAt = Date.parse(String(record.updatedAt ?? record.claimedAt ?? ''));
         if (!Number.isFinite(latestAttemptAt) || latestAttemptAt + RETRY_COOLDOWN_MS > now.getTime()) {
           throw new AiRequestInProgressError('AI retry cooldown active');
         }
-        if (typeof record.quotaChargedAt !== 'string' || !record.quotaChargedAt) await chargeQuota(transaction, ownerId, now);
+        const attemptToken = newAttemptToken();
         await collection.doc(id).set({ data: {
           ...record,
           request: sanitizedRequest(request),
           status: 'running',
+          attemptToken,
           claimedAt: timestamp,
           quotaChargedAt: typeof record.quotaChargedAt === 'string' && record.quotaChargedAt ? record.quotaChargedAt : timestamp,
           updatedAt: timestamp,
           attemptCount: attemptCount + 1,
         } });
-        return { state: 'claimed' };
+        return { state: 'claimed', attemptToken };
       });
     },
 
-    async complete(ownerId, request, result, difyConversationId, now) {
+    async complete(ownerId, request, attemptToken, result, difyConversationId, now) {
       if (!difyConversationId || difyConversationId.length > 256) throw new Error('invalid Dify conversation ID');
       await runTransaction(async transaction => {
         const collection = transaction.collection(collectionName(request.kind));
@@ -254,6 +280,8 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
         const record = await getDocument(collection, id);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
+        assertOperationalRecord(record);
+        assertActiveAttempt(record, attemptToken);
         const sanitizedResult = safeResult(result);
         if (!sanitizedResult || sanitizedResult.status !== 'succeeded' || sanitizedResult.requestId !== request.requestId) {
           throw new Error('invalid successful AI result');
@@ -269,13 +297,15 @@ export function createAiRecordRepository(database: Database): AtomicAiRecordRepo
       });
     },
 
-    async fail(ownerId, request, status, now) {
+    async fail(ownerId, request, attemptToken, status, now) {
       await runTransaction(async transaction => {
         const collection = transaction.collection(collectionName(request.kind));
         const id = documentId(ownerId, request.requestId);
         const record = await getDocument(collection, id);
         if (!record) throw new Error('AI request claim not found');
         assertMatchingRecord(record, ownerId, request);
+        assertOperationalRecord(record);
+        assertActiveAttempt(record, attemptToken);
         await collection.doc(id).set({ data: {
           ...record,
           request: sanitizedRequest(request),
