@@ -16,6 +16,7 @@ export class DifyServiceError extends Error {
 }
 
 type DifyPayload = { inputs: Record<string, string | number>; query: string; response_mode: 'blocking'; conversation_id: string; user: string };
+const DIFY_TIMEOUT_MS = 45_000;
 
 function configuration(kind: AiKind, environment: DifyEnvironment) {
   const baseUrl = environment[kind === 'chat' ? 'DIFY_CHAT_API_BASE_URL' : 'DIFY_TRIP_API_BASE_URL']?.trim()
@@ -68,7 +69,7 @@ export function createDifyClient(environment: DifyEnvironment, request: Fetch = 
   return {
     async send(kind, aiRequest, conversationId, user, localFacts) {
       const { baseUrl, apiKey } = configuration(kind, environment);
-      const signal = AbortSignal.timeout(90_000);
+      const signal = AbortSignal.timeout(DIFY_TIMEOUT_MS);
       const init = {
         method: 'POST' as const, headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload(kind, aiRequest, conversationId, user, localFacts)), signal,

@@ -102,6 +102,16 @@ describe('server-only Dify adapter', () => {
     await expect(timeout.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_TIMEOUT', message: 'AI 服务响应超时，请稍后重试。' });
   });
 
+  it('caps a blocking Dify request below the CloudBase direct-call timeout', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    const client = createDifyClient(environment, vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 })));
+
+    await client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', []);
+
+    expect(timeout).toHaveBeenCalledWith(45_000);
+    timeout.mockRestore();
+  });
+
   it('rejects an oversized upstream answer instead of passing it to the client', async () => {
     const client = createDifyClient(environment, vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: 'a'.repeat(4_001), conversation_id: 'chat-c1' }), { status: 200 })));
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'AI 服务暂不可用，请稍后重试。' });
