@@ -174,4 +174,44 @@ describe('deployable build boundary', () => {
     await rm(path.join(root, 'docs/testing/check.md'));
     await expect(verifyDocs(root)).rejects.toThrow();
   });
+  it('documents only the required Dify variable names and hardening deployment resources', async () => {
+    const runbook = await readFile(path.join(process.cwd(), 'docs/runbooks/dify-chatflow.md'), 'utf8');
+    const allowedDifyNames = [
+      'DIFY_BASE_URL',
+      'DIFY_CHAT_API_KEY',
+      'DIFY_TRIP_API_KEY',
+    ];
+    expect([...new Set(runbook.match(/\bDIFY_[A-Z0-9_]+\b/g) ?? [])].sort()).toEqual(allowedDifyNames.sort());
+    for (const name of [
+      ...allowedDifyNames,
+      'ai_sessions',
+      'usage_counters',
+      'ai_messages',
+      'trip_requests',
+      'ADMINONLY',
+      '120 秒',
+      '45 秒',
+      'destination',
+      'people',
+      'totalBudgetCny',
+      'days',
+      'preferences',
+      'local_verified_facts',
+      'query',
+      'ownerId ASC + createdAt DESC + _id ASC',
+      'TTL',
+      '保留现有环境变量',
+      "wx.cloud.callFunction({ name: 'aiService' })",
+      'published',
+      '独立会话',
+      '不要打印',
+      '回滚',
+    ]) {
+      expect(runbook).toContain(name);
+    }
+    expect(runbook).not.toContain('DIFY_CHAT_API_BASE_URL');
+    expect(runbook).not.toContain('DIFY_TRIP_API_BASE_URL');
+    expect(runbook).not.toMatch(/\bBearer\s+\S+/);
+    expect(runbook).not.toMatch(/\bwx[a-z0-9]{16}\b/i);
+  });
 });
