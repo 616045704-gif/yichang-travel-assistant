@@ -14,6 +14,7 @@ import type { DifyClient } from '../../cloudfunctions/ai/dify';
 const request: AiRequest = { requestId: 'request-1', kind: 'chat', question: '三峡大坝适合几月去？' };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.resetModules();
 });
@@ -190,6 +191,50 @@ describe('private live AI service', () => {
     expect(dependencies.dify.send).not.toHaveBeenCalled();
     expect(JSON.stringify(response)).not.toContain('trusted-owner');
   });
+
+  it('logs only an allowlisted diagnostic for an unexpected claim failure', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const privateError = Object.assign(new Error('private database detail for trusted-owner and request-1'), {
+      code: 'DATABASE_TRANSACTION_FAILED',
+    });
+    const dependencies = serviceDependencies({
+      records: {
+        claim: vi.fn(async () => { throw privateError; }),
+        complete: vi.fn(), fail: vi.fn(), list: vi.fn(),
+      },
+    });
+
+    await expect(handleAiRequest({ action: 'submit', request }, dependencies)).resolves.toMatchObject({
+      code: 'INTERNAL_ERROR', data: null,
+    });
+    expect(log).toHaveBeenCalledWith(JSON.stringify({
+      event: 'ai-service-failure', stage: 'claim', code: 'DATABASE_TRANSACTION', name: 'Error',
+    }));
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/private database detail|trusted-owner|request-1/);
+  });
+
+  it.each(['code', 'errCode', 'errorCode', 'errno', 'name'] as const)(
+    'does not log a sensitive value supplied through error.%s',
+    async (field) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const secretLikeValue = 'owner-request-conversation-attempt-secret-12345';
+      const privateError = Object.assign(new Error('private detail'), { [field]: secretLikeValue });
+      const dependencies = serviceDependencies({
+        records: {
+          claim: vi.fn(async () => { throw privateError; }),
+          complete: vi.fn(), fail: vi.fn(), list: vi.fn(),
+        },
+      });
+
+      await handleAiRequest({ action: 'submit', request }, dependencies);
+
+      expect(log).toHaveBeenCalledWith(JSON.stringify({
+        event: 'ai-service-failure', stage: 'claim', code: 'UNKNOWN',
+        name: field === 'name' ? 'UnknownError' : 'Error',
+      }));
+      expect(JSON.stringify(log.mock.calls)).not.toContain(secretLikeValue);
+    },
+  );
 
   it('fences and fails a claimed request when local retrieval fails', async () => {
     const dependencies = serviceDependencies({ retrieve: vi.fn(async () => { throw new Error('private database detail'); }) });

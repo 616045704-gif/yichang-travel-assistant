@@ -12,6 +12,7 @@ import {
 
 type Event = { action?: unknown; request?: unknown; kind?: unknown };
 type ErrorCode = 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'CONFLICT' | 'RATE_LIMITED' | 'AI_UNAVAILABLE' | 'AI_TIMEOUT' | 'INTERNAL_ERROR';
+type FailureStage = 'history' | 'reset' | 'claim' | 'retrieve' | 'fail-state' | 'dify' | 'complete';
 
 function ok(data: unknown) { return { code: 'OK' as const, data, message: '', traceId: 'ai-service' }; }
 function fail(code: ErrorCode, message: string) { return { code, data: null, message, traceId: 'ai-service' }; }
@@ -57,6 +58,36 @@ function safeError(error: unknown) {
   return fail('INTERNAL_ERROR', 'AI 服务暂时无法处理，请稍后重试。');
 }
 
+function safeDiagnosticCode(value: unknown) {
+  if (typeof value === 'number') return 'NUMERIC_ERROR';
+  if (typeof value !== 'string') return 'UNKNOWN';
+  const normalized = value.toUpperCase();
+  if (normalized === 'AI_TIMEOUT' || normalized === 'AI_UNAVAILABLE') return normalized;
+  if (normalized.includes('TRANSACTION')) return 'DATABASE_TRANSACTION';
+  if (normalized.includes('PERMISSION') || normalized.includes('DENIED')) return 'DATABASE_PERMISSION';
+  if (normalized.includes('TIMEOUT') || normalized.includes('TIMED_OUT')) return 'TIMEOUT';
+  if (normalized.includes('NETWORK') || normalized.includes('ECONN') || normalized.includes('ENOTFOUND') || normalized.includes('FETCH')) return 'NETWORK';
+  if (normalized.includes('QUOTA') || normalized.includes('RATE_LIMIT') || normalized.includes('TOO_MANY')) return 'QUOTA';
+  if (normalized.includes('CONFLICT') || normalized.includes('DUPLICATE')) return 'CONFLICT';
+  if (normalized.includes('NOT_FOUND') || normalized.includes('NOTFOUND')) return 'NOT_FOUND';
+  return 'UNKNOWN';
+}
+
+function safeDiagnosticName(value: unknown) {
+  const allowed = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'AggregateError']);
+  return typeof value === 'string' && allowed.has(value) ? value : 'UnknownError';
+}
+
+function reportFailure(stage: FailureStage, error: unknown) {
+  const detail = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  console.error(JSON.stringify({
+    event: 'ai-service-failure',
+    stage,
+    code: safeDiagnosticCode(detail.code ?? detail.errCode ?? detail.errorCode ?? detail.errno),
+    name: safeDiagnosticName(detail.name),
+  }));
+}
+
 export interface AiServiceDependencies {
   ownerId: string | null;
   user: string;
@@ -73,12 +104,12 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   const { ownerId } = dependencies;
   if (event.action === 'listRecords') {
     try { return ok(await dependencies.records.list(ownerId)); }
-    catch { return fail('INTERNAL_ERROR', 'AI 记录暂时无法读取，请稍后重试。'); }
+    catch (error) { reportFailure('history', error); return fail('INTERNAL_ERROR', 'AI 记录暂时无法读取，请稍后重试。'); }
   }
   if (event.action === 'resetConversation') {
     if (event.kind !== 'chat' && event.kind !== 'trip') return fail('INVALID_INPUT', '会话类型无效。');
     try { await dependencies.repository.reset(ownerId, event.kind); return ok({ kind: event.kind }); }
-    catch { return fail('INTERNAL_ERROR', '会话暂时无法重置，请稍后重试。'); }
+    catch (error) { reportFailure('reset', error); return fail('INTERNAL_ERROR', '会话暂时无法重置，请稍后重试。'); }
   }
   if (event.action !== 'submit') return fail('INVALID_INPUT', '不支持的 AI 服务请求。');
   const request = requestInput(event.request);
@@ -88,6 +119,7 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   try {
     claim = await dependencies.records.claim(ownerId, request, now());
   } catch (error) {
+    reportFailure('claim', error);
     return safeError(error);
   }
   if (claim.state === 'running') return fail('CONFLICT', '该请求仍在处理中，请稍后重试。');
@@ -97,10 +129,12 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   let localFacts: string[];
   try {
     localFacts = await dependencies.retrieve(request);
-  } catch {
+  } catch (error) {
+    reportFailure('retrieve', error);
     try {
       await dependencies.records.fail(ownerId, request, claim.attemptToken, 'failed', now());
-    } catch {
+    } catch (failError) {
+      reportFailure('fail-state', failError);
       return fail('INTERNAL_ERROR', 'AI 请求状态暂时无法保存，请稍后重试。');
     }
     return fail('INTERNAL_ERROR', '本地地点资料暂时无法读取，请稍后重试。');
@@ -110,10 +144,12 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   try {
     response = await dependencies.dify.send(request.kind, request, claim.conversationId, dependencies.user, localFacts);
   } catch (error) {
+    reportFailure('dify', error);
     const status = error && typeof error === 'object' && (error as { code?: unknown }).code === 'AI_TIMEOUT' ? 'timed_out' : 'failed';
     try {
       await dependencies.records.fail(ownerId, request, claim.attemptToken, status, now());
-    } catch {
+    } catch (failError) {
+      reportFailure('fail-state', failError);
       return fail('INTERNAL_ERROR', 'AI 请求状态暂时无法保存，请稍后重试。');
     }
     return safeError(error);
@@ -131,7 +167,8 @@ export async function handleAiRequest(event: Event | null | undefined, dependenc
   try {
     await dependencies.records.complete(ownerId, request, claim.attemptToken, result, response.conversationId, now());
     return ok(result);
-  } catch {
+  } catch (error) {
+    reportFailure('complete', error);
     return fail('INTERNAL_ERROR', 'AI 回答暂时无法保存，请稍后重试。');
   }
 }
