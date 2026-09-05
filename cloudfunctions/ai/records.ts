@@ -53,6 +53,11 @@ function newAttemptToken() {
   return randomBytes(32).toString('hex');
 }
 
+function writableRecord(record: Document | null) {
+  if (!record) return {};
+  return Object.fromEntries(Object.entries(record).filter(([field]) => !field.startsWith('_')));
+}
+
 function sanitizedRequest(request: AiRequest): AiRequest {
   const question = typeof request.question === 'string' ? request.question : undefined;
   if (request.kind === 'chat') {
@@ -322,7 +327,7 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         const attemptToken = newAttemptToken();
         if (!record) await chargeQuota(transaction, ownerId, now);
         await collection.doc(id).set({ data: {
-          ...record,
+          ...writableRecord(record),
           ownerId,
           requestId: request.requestId,
           kind: request.kind,
@@ -374,7 +379,7 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
           throw new Error('invalid successful AI result');
         }
         await collection.doc(id).set({ data: {
-          ...record,
+          ...writableRecord(record),
           request: sanitizedRequest(request),
           status: 'succeeded',
           result: sanitizedResult,
@@ -411,7 +416,7 @@ export function createAiRecordRepository(database: Database): AiRecordRepository
         const sessionGeneration = recordSessionGeneration(record);
         const session = sessionState(storedSession, ownerId, request.kind);
         await collection.doc(id).set({ data: {
-          ...record,
+          ...writableRecord(record),
           request: sanitizedRequest(request),
           status,
           updatedAt: now.toISOString(),

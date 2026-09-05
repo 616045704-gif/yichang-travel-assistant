@@ -19,6 +19,7 @@ export function createAiDatabaseFixture() {
               },
               async set(input: { data: TestDocument }) {
                 beforeSet?.();
+                if (Object.keys(input.data).some(field => field.startsWith('_'))) throw new Error('cannot write immutable system field');
                 store.set(key, { ...input.data, _id: id });
               },
             };
