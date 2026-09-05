@@ -33,6 +33,26 @@ function result(requestId: string, answer: string): AiResult {
 }
 
 describe('private AI records', () => {
+  it('treats the wx-server-sdk missing-document error as an empty record', async () => {
+    const message = 'document.get:fail document with _id missing-record does not exist';
+    const missing = {
+      collection() {
+        return {
+          doc() {
+            return {
+              async get() { throw Object.assign(new Error(message), { errCode: -1, errMsg: message }); },
+              async set() {},
+            };
+          },
+          where() { return { limit() { return { async get() { return { data: [] }; } }; } }; },
+        };
+      },
+    };
+    const repository = createAiRecordRepository(missing);
+
+    await expect(repository.find('owner-a', { requestId: 'missing', kind: 'chat', question: '问题' })).resolves.toBeNull();
+  });
+
   it('stores chat and trip records separately and lists only the owner records', async () => {
     const repository = createAiRecordRepository(database());
     const chat: AiRequest = { requestId: 'chat-1', kind: 'chat', question: '问题' };

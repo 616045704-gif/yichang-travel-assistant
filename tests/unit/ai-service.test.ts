@@ -104,6 +104,21 @@ function emptyRecords(): AiRecordRepository {
 }
 
 describe('private live AI service', () => {
+  it('treats the wx-server-sdk missing-document error as an empty conversation', async () => {
+    const message = 'document.get:fail document with _id missing-session does not exist';
+    const missing = {
+      collection() {
+        return { doc() { return {
+          async get() { throw Object.assign(new Error(message), { errCode: -1, errMsg: message }); },
+          async set() {},
+        }; } };
+      },
+    };
+    const repository = createAiConversationRepository(missing);
+
+    await expect(repository.get('trusted-owner', 'chat')).resolves.toBeNull();
+  });
+
   it('stores chat and trip conversations independently and resets only the requested slot', async () => {
     const db = database();
     const repository = createAiConversationRepository(db);

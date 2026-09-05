@@ -22,10 +22,11 @@ function requestHash(request: AiRequest) { return digest(JSON.stringify(request)
 function collectionName(kind: AiKind) { return kind === 'chat' ? 'ai_messages' : 'trip_requests'; }
 function isNotFound(error: unknown) {
   if (!error || typeof error !== 'object') return false;
-  const value = error as { code?: unknown; errCode?: unknown; message?: unknown };
+  const value = error as { code?: unknown; errCode?: unknown; errMsg?: unknown; message?: unknown };
   const code = String(value.code ?? value.errCode ?? '').toUpperCase();
-  const message = String(value.message ?? '').toLowerCase();
-  return code === 'NOT_FOUND' || code.includes('DOCUMENT_NOT_FOUND') || message === 'not found' || message.includes('document does not exist');
+  const message = String(value.message ?? value.errMsg ?? '').toLowerCase();
+  return code === 'NOT_FOUND' || code.includes('DOCUMENT_NOT_FOUND') || message === 'not found' || message.includes('document does not exist')
+    || /^document\.get:fail document with _id \S+ does not exist$/.test(message);
 }
 function safeResult(value: unknown): AiResult | null {
   if (!value || typeof value !== 'object') return null;

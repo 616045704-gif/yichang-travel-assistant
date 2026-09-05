@@ -18,10 +18,11 @@ function now() { return new Date().toISOString(); }
 
 function isNotFound(error: unknown) {
   if (!error || typeof error !== 'object') return false;
-  const value = error as { code?: unknown; errCode?: unknown; message?: unknown };
+  const value = error as { code?: unknown; errCode?: unknown; errMsg?: unknown; message?: unknown };
   const code = String(value.code ?? value.errCode ?? '').toUpperCase();
-  const message = String(value.message ?? '').toLowerCase();
-  return code === 'NOT_FOUND' || code.includes('DOCUMENT_NOT_FOUND') || message === 'not found' || message.includes('document does not exist');
+  const message = String(value.message ?? value.errMsg ?? '').toLowerCase();
+  return code === 'NOT_FOUND' || code.includes('DOCUMENT_NOT_FOUND') || message === 'not found' || message.includes('document does not exist')
+    || /^document\.get:fail document with _id \S+ does not exist$/.test(message);
 }
 
 export function createAiConversationRepository(database: Database): AiConversationRepository {
