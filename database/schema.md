@@ -18,7 +18,7 @@
 | --- | --- |
 | `favorites` | `_id=hash(ownerId,placeId)`；`ownerId`、`placeId`、`createdAt`。`setFavorite` 幂等。 |
 | `browse_history` | `_id=hash(ownerId,placeId)`；`ownerId`、`placeId`、`viewedAt`。详情成功后 upsert，仅保留最近一条。 |
-| `ai_sessions` | `ownerId`、`title`、`kind`、`difyConversationId`（仅服务端）、`activeJobId`、`updatedAt`。 |
+| `ai_sessions` | `_id=hash(ownerId,kind)`；`ownerId`、`kind`（`chat`/`trip`）、`difyConversationId`（仅服务端，可为空）、`updatedAt`。每位用户的两类助手分别维护会话标识，客户端永不读取该字段。 |
 | `ai_messages` | `ownerId`、`sessionId`、`jobId`、`role`、`content`、`localFacts[]`、`references[]`、`status`、`createdAt`；任务+角色使用确定性 ID。 |
 | `trip_requests` | `_id=jobId`；`ownerId`、`sessionId`、`input`、`result`、`status`、`createdAt`。 |
 | `feedback` | `ownerId`、`kind`、`targetId?`、`content`、`status`、`createdAt`；仅管理端处理。 |

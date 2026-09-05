@@ -5,6 +5,7 @@
     { "collection": "places", "name": "published_updated", "fields": [["status", "asc"], ["updatedAt", "desc"]] },
     { "collection": "favorites", "name": "owner_created", "fields": [["ownerId", "asc"], ["createdAt", "desc"], ["_id", "asc"]] },
     { "collection": "browse_history", "name": "owner_viewed", "fields": [["ownerId", "asc"], ["viewedAt", "desc"], ["_id", "asc"]] },
+    { "collection": "ai_sessions", "name": "owner_kind", "fields": [["ownerId", "asc"], ["kind", "asc"], ["_id", "asc"]] },
     { "collection": "ai_sessions", "name": "owner_updated", "fields": [["ownerId", "asc"], ["updatedAt", "desc"], ["_id", "asc"]] },
     { "collection": "ai_messages", "name": "owner_session_created", "fields": [["ownerId", "asc"], ["sessionId", "asc"], ["createdAt", "asc"], ["_id", "asc"]] },
     { "collection": "trip_requests", "name": "owner_created", "fields": [["ownerId", "asc"], ["createdAt", "desc"], ["_id", "asc"]] },

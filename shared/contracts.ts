@@ -55,7 +55,7 @@ export interface AiResult {
   requestId: string;
   status: AiStatus;
   answer: string | null;
-  mode: 'mock';
+  mode: 'mock' | 'dify';
   error: string | null;
   localFacts: string[];
   references: Source[];
