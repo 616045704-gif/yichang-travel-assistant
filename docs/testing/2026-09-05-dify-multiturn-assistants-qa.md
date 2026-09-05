@@ -90,3 +90,36 @@
 - 结论：正确账号下的双 Dify Chatflow、CloudBase 函数入口、blocking 请求、真实微信身份注入和独立会话续接已通过联调，可供后续内容导入与真机验收。
 - 云端 `places`/`place_contents` 当前未导入发布态内容；真实函数已成功访问空集合，但“非空已核验资料传入 Dify”本次只由自动化单元测试覆盖。仓库中的 4 条示例均为 `draft`，且导入工具没有管理端写入适配器，因此未绕过发布流程写入云端。
 - 仍未执行：两个真实微信用户之间的端到端隔离、真实上游超时/非 2xx 故障注入、Android 与 iPhone 真机连续演示、需专用集成环境的云数据库规则测试。以上均不得视为已放行。
+
+## 最终云端复验（2026-09-05）
+
+本节复验 `f57b054..c714e6b`，并取代上一节关于“90 秒上游中断”和仅三张集合的当前状态描述。被测最终应用提交为 `c714e6b fix: bound blocking Dify requests`；正确账号、AppID、环境和 `aiService` 函数标识未变。
+
+### 云端配置复核
+
+- `ai_sessions`、`ai_messages`、`trip_requests`、`places`、`place_contents` 均已创建并设置为 `ADMINONLY`。
+- `aiService` 仍为 Node.js 20.19，函数执行超时 120 秒，公网访问可用；Dify 必需环境变量已配置在函数侧，未写入前端、仓库或验收输出。
+- blocking Dify 请求的云函数内部总等待上限已调整为 45 秒，低于 CloudBase 客户端约 60 秒的直接调用断开边界；429、500、502、503、504 和网络失败仍最多尝试三次并受同一总时限约束。
+
+### 实际执行与结果
+
+| 实际检查 | 结果 |
+| --- | --- |
+| `node node_modules/vitest/vitest.mjs run` | 通过：24 个文件、134 项测试；1 个需要专用云数据库规则环境的集成测试按配置跳过。 |
+| `node node_modules/typescript/bin/tsc --noEmit`、`node node_modules/eslint/bin/eslint.js .` | 均通过。 |
+| `node scripts/build.mjs`、`node scripts/check-package.mjs`、`node scripts/verify-docs.mjs` | 均通过；客户端路由、资源、前后端边界和文档引用有效。 |
+| `node scripts/wechat-smoke.mjs`（本地自动化端口） | 通过：首页、发现、地图、我的；loading/error/empty/ready；分类布局、选择、全屏地图与点位更新全部 PASS。 |
+| 忽略目录中的真实 AI 冒烟脚本 | 通过：`chat` 返回 `OK/dify`（96 字），首次 `trip` 返回 `OK/dify`（1551 字），重置 `chat` 后 `trip` 追问仍返回 `OK/dify`（411 字），重新建立 `chat` 返回 `OK/dify`（69 字）；同 `requestId` 重放结果完全一致；历史列表返回 4 条并同时包含 `chat`、`trip`。脚本没有输出密钥、用户标识或 Dify 会话标识。 |
+| `git diff --check` | 通过。 |
+
+### 复验中发现并关闭的问题
+
+- 新建空记录集合后，`wx-server-sdk 4.0.2` 对不存在文档抛出 `document.get:fail document with _id … does not exist`。原判断未识别该官方错误形态，首次提问会返回内部错误。已新增精确回归测试并由 `fe644f1` 修复；权限错误和其他数据库异常仍继续上抛，不会被误当作“没有历史”。
+- 一次行程追问在约 60 秒处由 CloudBase 客户端以 `ESOCKETTIMEDOUT` 断开，而当时 Dify 上游允许等待 90 秒。已新增边界测试并由 `c714e6b` 将上游总等待限制为 45 秒；重新部署后完整真实冒烟一次通过。
+- `ai_messages` 与 `trip_requests` 的真实写入、按用户查询、`chat`/`trip` 分类、同请求幂等返回均已由最终云端冒烟覆盖。
+
+### 最终阶段结论与未测项
+
+- 阻断缺陷：无。
+- 阶段结论：双 Dify Chatflow、CloudBase 私有会话与记录、blocking 请求、受限重试/超时、前端隔离和模拟器交互已通过当前开发环境验收。
+- 尚未放行：非空发布态地点资料的真实云端传入、两个真实微信用户的端到端隔离、可控的真实 429/5xx 故障注入、Android/iPhone 真机连续演示，以及需要专用环境的数据库安全规则集成测试。
