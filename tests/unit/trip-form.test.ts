@@ -12,7 +12,6 @@ type TripPage = {
     results: Array<{ answer: string | null }>;
     adjustment: string;
     confirmedRequirements: string[];
-    isFinal: boolean;
   };
   setData(value: Record<string, unknown>): void;
   onDestination(event: { detail: { value: string } }): void;
@@ -45,12 +44,14 @@ async function loadTripPage(options: { submitAi?: ReturnType<typeof vi.fn>; rese
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
 describe('trip input validation', () => {
-  it('marks one current trip and lists the requirements used for final generation', () => {
+  it('marks one complete current trip and removes the redundant final-generation action', () => {
     const markup = readFileSync('miniprogram/pages/trip-form/index.wxml', 'utf8');
 
     expect(markup).toContain('当前计划（可继续调整）');
-    expect(markup).toContain('最终行程（当前版本）');
-    expect(markup).toContain('已确认要求（生成最终行程时会全部采用）');
+    expect(markup).toContain('当前完整行程（已应用调整）');
+    expect(markup).toContain('已确认要求（每次都会用于完整重新生成）');
+    expect(markup).toContain('应用调整并重新生成完整行程');
+    expect(markup).not.toContain('生成最终行程');
     expect(markup).not.toContain('wx:for="{{results}}"');
   });
 
@@ -141,7 +142,6 @@ describe('trip input validation', () => {
     expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
     expect(page.data.confirmedRequirements).toEqual(['第一天吃热干面，第二天吃鱼，推荐具体餐馆', '安排去三峡人家']);
     expect(page.data.results.map(item => item.answer)).toEqual(['第 1 天至第 4 天的三峡人家完整行程', '第 1 天至第 4 天的完整餐饮行程', '首版行程']);
-    expect(page.data.isFinal).toBe(false);
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {

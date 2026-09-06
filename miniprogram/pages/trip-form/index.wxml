@@ -27,25 +27,25 @@
   <view wx:if="{{error}}" class="error-panel"><text>{{error}}</text><button class="button-secondary retry-button" bindtap="retry">重试</button></view>
 
   <view wx:if="{{result}}" class="current-plan card">
-    <text class="current-plan-title">{{isFinal ? '最终行程（当前版本）' : '当前计划（可继续调整）'}}</text>
+    <text class="current-plan-title">{{confirmedRequirements.length ? '当前完整行程（已应用调整）' : '当前计划（可继续调整）'}}</text>
     <message-bubble role="assistant" content="{{result.answer}}" mode="{{result.mode}}" label="模拟回答，仅用于交互测试" />
     <source-card facts="{{result.localFacts}}" references="{{result.references}}" />
   </view>
 
   <view wx:if="{{results.length}}" class="confirmed-requirements card">
-    <text class="confirmed-title">已确认要求（生成最终行程时会全部采用）</text>
+    <text class="confirmed-title">已确认要求（每次都会用于完整重新生成）</text>
     <view wx:if="{{confirmedRequirements.length}}" class="confirmed-list">
       <text wx:for="{{confirmedRequirements}}" wx:key="*this" class="confirmed-item">{{index + 1}}. {{item}}</text>
     </view>
-    <text wx:else class="confirmed-empty">暂未补充额外要求，可直接生成最终行程。</text>
+    <text wx:else class="confirmed-empty">暂未补充额外要求；发送调整后会重新生成全程。</text>
   </view>
 
   <view wx:if="{{results.length}}" class="adjustment-card card">
     <label class="adjustment-field"><text>对行程还有什么想调整的？</text><textarea value="{{adjustment}}" maxlength="1000" placeholder="例如：第二天安排轻松一些；推荐具体餐馆，要吃鱼和热干面" bindinput="onAdjustment" /></label>
     <text wx:if="{{adjustmentError}}" class="adjustment-error">{{adjustmentError}}</text>
-    <button class="button-primary adjustment-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submitAdjustment">发送调整</button>
+    <button class="button-primary adjustment-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submitAdjustment">应用调整并重新生成完整行程</button>
     <button class="button-secondary restart-button" disabled="{{isSubmitting}}" bindtap="restartTrip">重新规划</button>
   </view>
 
-  <button class="button-primary submit-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submit">{{results.length ? (isFinal ? '重新生成最终行程' : '生成最终行程') : '生成行程'}}</button>
+  <button wx:if="{{!results.length}}" class="button-primary submit-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submit">生成行程</button>
 </view>

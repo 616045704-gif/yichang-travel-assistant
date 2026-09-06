@@ -7,7 +7,7 @@ let tripSequence = 0;
 
 type FormState = { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
 type PreferenceOption = { value: string; selected: boolean };
-type SendOptions = { confirmedRequirement?: string; isFinal?: boolean };
+type SendOptions = { confirmedRequirement?: string };
 
 function visibleOptions(selected: string[]): PreferenceOption[] {
   return preferenceValues.map(value => ({ value, selected: selected.includes(value) }));
@@ -56,11 +56,9 @@ Page({
     adjustment: '',
     adjustmentError: '',
     confirmedRequirements: [] as string[],
-    isFinal: false,
     isSubmitting: false,
     lastRequest: null as AiRequest | null,
     lastConfirmedRequirement: '',
-    lastRequestIsFinal: false,
   },
   onDestination(event: WechatMiniprogram.Input) { this.updateForm({ destination: event.detail.value }); },
   onPeople(event: WechatMiniprogram.Input) { this.updateForm({ people: event.detail.value }); },
@@ -113,13 +111,11 @@ Page({
         adjustment: '',
         adjustmentError: '',
         confirmedRequirements: [],
-        isFinal: false,
         error: '',
         result: null,
         results: [],
         lastRequest: null,
         lastConfirmedRequirement: '',
-        lastRequestIsFinal: false,
       });
     } catch {
       this.setData({ error: '重新规划暂时无法开始，请重试' });
@@ -129,7 +125,6 @@ Page({
     if (this.data.isSubmitting || !this.data.lastRequest) return;
     await this.send(this.data.lastRequest, {
       confirmedRequirement: this.data.lastConfirmedRequirement || undefined,
-      isFinal: this.data.lastRequestIsFinal,
     });
   },
   updateForm(change: Partial<FormState>) {
@@ -147,7 +142,6 @@ Page({
       results: isFirstPlan ? [] : this.data.results,
       lastRequest: request,
       lastConfirmedRequirement: options.confirmedRequirement ?? '',
-      lastRequestIsFinal: Boolean(options.isFinal),
     });
     try {
       const result = await submitAi(request);
@@ -159,7 +153,6 @@ Page({
           confirmedRequirements: options.confirmedRequirement
             ? [...this.data.confirmedRequirements, options.confirmedRequirement]
             : this.data.confirmedRequirements,
-          isFinal: isFirstPlan ? false : Boolean(options.isFinal),
           adjustmentError: '',
           error: '',
         });

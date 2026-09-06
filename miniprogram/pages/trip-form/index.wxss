@@ -20,4 +20,5 @@
 .adjustment-field textarea { width: 100%; min-height: 144rpx; padding: 20rpx; border: 1rpx solid var(--color-border); border-radius: 16rpx; background: #fffdf7; font-size: 27rpx; line-height: 1.6; }
 .adjustment-error { color: #914032; font-size: 24rpx; }
 .adjustment-button, .submit-button { width: 100%; }
+.adjustment-button { min-height: 80rpx; line-height: 1.4; }
 .restart-button { color: var(--color-primary); font-size: 24rpx; }
