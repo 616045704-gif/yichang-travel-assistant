@@ -7,6 +7,8 @@ type HistoryPage = {
   setData(value: Record<string, unknown>): void;
   load(): Promise<void>;
   onRetry(): void;
+  selectKind(event: { currentTarget: { dataset: { kind: string } } }): void;
+  toggleRecord(event: { currentTarget: { dataset: { index: number } } }): void;
 };
 
 afterEach(() => {
@@ -52,5 +54,61 @@ describe('AI history presentation', () => {
     expect(markup).toContain('内容仅供出行参考');
     expect(markup).toContain('bind:retry="onRetry"');
     expect(markup).not.toMatch(/item\.(?:requestId|recordId)/);
+  });
+
+  it('filters local records by type and expands only the selected record', async () => {
+    const listAiRecords = vi.fn(async () => [
+      {
+        requestId: 'chat-1', kind: 'chat' as const, prompt: '自由问答', createdAt: '2026-09-06T00:00:00.000Z',
+        status: 'succeeded' as const, answer: '自由问答回答', mode: 'dify' as const, error: null, localFacts: [], references: [],
+      },
+      {
+        requestId: 'trip-1', kind: 'trip' as const, prompt: '宜昌｜2人｜2天', createdAt: '2026-09-06T01:00:00.000Z',
+        status: 'succeeded' as const, answer: '行程回答', mode: 'dify' as const, error: null, localFacts: [], references: [],
+      },
+    ]);
+    vi.doMock('../../miniprogram/services/ai', () => ({ listAiRecords }));
+    let page: HistoryPage;
+    vi.stubGlobal('Page', (definition: HistoryPage) => { page = definition; });
+    await import('../../miniprogram/pages/ai-history/index');
+    page!.setData = function (value) { Object.assign(this.data, value); };
+
+    await page!.load();
+    expect(page!.data).toMatchObject({
+      selectedKind: 'chat',
+      expandedRequestId: '',
+      visibleRecords: [{ requestId: 'chat-1', kind: 'chat', expanded: false }],
+    });
+    expect(listAiRecords).toHaveBeenCalledTimes(1);
+
+    page!.selectKind({ currentTarget: { dataset: { kind: 'trip' } } });
+    expect(page!.data).toMatchObject({
+      selectedKind: 'trip',
+      expandedRequestId: '',
+      visibleRecords: [{ requestId: 'trip-1', kind: 'trip', expanded: false }],
+    });
+    expect(listAiRecords).toHaveBeenCalledTimes(1);
+
+    page!.toggleRecord({ currentTarget: { dataset: { index: 0 } } });
+    expect(page!.data).toMatchObject({
+      expandedRequestId: 'trip-1',
+      visibleRecords: [{ requestId: 'trip-1', expanded: true }],
+    });
+    page!.toggleRecord({ currentTarget: { dataset: { index: 0 } } });
+    expect(page!.data).toMatchObject({
+      expandedRequestId: '',
+      visibleRecords: [{ requestId: 'trip-1', expanded: false }],
+    });
+
+    const markup = await readFile('miniprogram/pages/ai-history/index.wxml', 'utf8');
+    expect(markup).toContain('自由问答');
+    expect(markup).toContain('行程定制');
+    expect(markup).toContain('bindtap="selectKind"');
+    expect(markup).toContain('bindtap="toggleRecord"');
+    expect(markup).toContain('wx:if="{{item.expanded}}"');
+    expect(markup).toContain('内容仅供出行参考');
+    expect(markup).toContain('role="user"');
+    expect(markup).toContain('role="assistant"');
+    expect(markup).toContain('<source-card');
   });
 });

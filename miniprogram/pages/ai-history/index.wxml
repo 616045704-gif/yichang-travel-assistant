@@ -3,15 +3,25 @@
     <text class="chapter-seal">留记</text>
     <view><text class="eyebrow">只对你可见</text><text class="page-title">AI 问答记录</text></view>
   </view>
-  <text class="session-note">自由问答与行程定制分别保存</text>
+  <view class="history-tabs">
+    <view class="history-tab {{selectedKind === 'chat' ? 'history-tab-active' : ''}}" data-kind="chat" bindtap="selectKind">自由问答</view>
+    <view class="history-tab {{selectedKind === 'trip' ? 'history-tab-active' : ''}}" data-kind="trip" bindtap="selectKind">行程定制</view>
+  </view>
   <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
-  <view wx:if="{{status === 'ready'}}" class="history-list">
-    <view wx:for="{{records}}" wx:key="requestId" class="history-item">
-      <text class="history-title">{{item.title}}</text>
-      <message-bubble role="user" content="{{item.prompt}}" mode="" label="" />
-      <message-bubble role="assistant" content="{{item.answer}}" mode="{{item.mode}}" label="{{item.mode === 'mock' ? '模拟回答，仅用于交互测试' : ''}}" />
-      <source-card facts="{{item.localFacts}}" references="{{item.references}}" />
+  <view wx:if="{{status === 'ready' && visibleRecords.length}}" class="history-list">
+    <view wx:for="{{visibleRecords}}" wx:key="requestId" class="history-item">
+      <view class="history-summary" data-index="{{index}}" bindtap="toggleRecord">
+        <view class="history-summary-meta"><text class="history-title">{{item.title}}</text><text class="history-time">{{item.displayTime}}</text></view>
+        <text class="history-prompt">{{item.prompt}}</text>
+        <text class="history-toggle">{{item.expanded ? '收起完整内容' : '查看完整内容'}}</text>
+      </view>
+      <view wx:if="{{item.expanded}}" class="history-detail">
+        <message-bubble role="user" content="{{item.prompt}}" mode="" label="" />
+        <message-bubble role="assistant" content="{{item.answer}}" mode="{{item.mode}}" label="{{item.mode === 'mock' ? '模拟回答，仅用于交互测试' : ''}}" />
+        <source-card facts="{{item.localFacts}}" references="{{item.references}}" />
+      </view>
     </view>
   </view>
-  <async-state wx:else status="{{status}}" title="还没有 AI 记录" message="{{status === 'empty' ? '完成一次自由问答或行程定制后，会在这里显示。' : message}}" bind:retry="onRetry" />
+  <async-state wx:elif="{{status === 'ready' || status === 'empty'}}" status="empty" title="{{selectedKind === 'chat' ? '还没有自由问答记录' : '还没有行程定制记录'}}" message="{{selectedKind === 'chat' ? '完成一次自由问答后，会在这里显示。' : '生成一次行程后，会在这里显示。'}}" bind:retry="onRetry" />
+  <async-state wx:else status="{{status}}" title="还没有 AI 记录" message="{{message}}" bind:retry="onRetry" />
 </view>
