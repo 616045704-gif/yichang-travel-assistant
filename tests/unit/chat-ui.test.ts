@@ -25,6 +25,13 @@ describe('mock AI chat model', () => {
     expect(model.state.result?.answer).toBe('模拟建议');
   });
 
+  it('keeps the safe cloud-function rate-limit message', async () => {
+    const client = { submit: vi.fn().mockRejectedValue(new Error('请求较频繁，请稍后再试。')) };
+    const model = new ChatModel(client);
+    const result = await model.submit('宜昌有哪些露营地适合我？');
+    expect(result).toMatchObject({ status: 'failed', error: '请求较频繁，请稍后再试。' });
+  });
+
   it('suppresses duplicate submissions and restores visual waiting after returning to the page', async () => {
     const waiting = createWaitingMockAiClient();
     const model = new ChatModel(waiting.client);

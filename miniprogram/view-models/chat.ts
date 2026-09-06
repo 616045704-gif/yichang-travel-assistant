@@ -3,7 +3,12 @@ import { submitAi } from '../services/ai';
 
 const QUESTION_ERROR = '请输入 1–1000 字的问题';
 const NETWORK_ERROR = '网络连接不稳定，请重试';
+const RATE_LIMIT_ERROR = '请求较频繁，请稍后再试。';
 let requestSequence = 0;
+
+function userFacingError(error: unknown) {
+  return error instanceof Error && error.message === RATE_LIMIT_ERROR ? RATE_LIMIT_ERROR : NETWORK_ERROR;
+}
 
 export interface ChatState {
   input: string;
@@ -70,13 +75,13 @@ export class ChatModel {
         result,
       };
       return result;
-    } catch {
+    } catch (error) {
       const result: AiResult = {
         requestId: request.requestId,
         status: 'failed',
         answer: null,
         mode: 'mock',
-        error: NETWORK_ERROR,
+        error: userFacingError(error),
         localFacts: [],
         references: [],
       };
