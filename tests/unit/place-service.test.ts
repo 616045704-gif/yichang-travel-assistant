@@ -51,6 +51,18 @@ describe('place repository', () => {
     const response = await handlePlaceRequest({ action: 'detail', placeId: scenicPlace.placeId }, { repository, storage, favoritePlaceIds: async ids => new Set(ids) });
     expect(response).toMatchObject({ code: 'OK', data: { placeId: scenicPlace.placeId, isFavorite: true } });
   });
+  it('keeps published places readable when optional favorite state is unavailable', async () => {
+    const repository = createPlaceRepository(database());
+    const storage = { async getTempFileURL() { return { fileList: [] }; } };
+    const response = await handlePlaceRequest(
+      { action: 'list', pageSize: 20 },
+      { repository, storage, favoritePlaceIds: async () => { throw new Error('favorites unavailable'); } },
+    );
+    expect(response.code).toBe('OK');
+    expect((response.data as { items: Array<{ category: string; isFavorite: boolean }> }).items).toContainEqual(
+      expect.objectContaining({ category: 'scenic', isFavorite: false }),
+    );
+  });
   it('keeps a covered published place consistent between list, detail and marker responses', async () => {
     const covered = { ...scenicPlace, _id: scenicPlace.placeId, status: 'published', aliases: [], coverFileId: 'cloud://approved-bucket/covers/synthetic.jpg', sources: [], openNotice: scenicDetail.openNotice };
     const db = { collection(name: string) { return { where() { return { skip() { return { limit() { return { async get() { return { data: [covered] }; } }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? (id === covered._id ? covered : null) : (id === covered._id ? { sections: [] } : null); if (!data) throw new Error('not found'); return { data }; } }; } }; } };

@@ -37,7 +37,9 @@ export function listInput(event: Event) {
 
 export async function handlePlaceRequest(event: Event, dependencies: { repository: PlaceRepository; storage: Storage; favoritePlaceIds?: (placeIds: string[]) => Promise<Set<string>> }) {
   const withFavorites = async <T extends { placeId: string; isFavorite: boolean }>(items: T[]) => {
-    const ids = await dependencies.favoritePlaceIds?.(items.map(item => item.placeId)) ?? new Set<string>();
+    let ids = new Set<string>();
+    try { ids = await dependencies.favoritePlaceIds?.(items.map(item => item.placeId)) ?? ids; }
+    catch { /* Favorites are personalized metadata; public published places remain readable when it is unavailable. */ }
     return items.map(item => ({ ...item, isFavorite: ids.has(item.placeId) }));
   };
   if (event.action === 'list') {
