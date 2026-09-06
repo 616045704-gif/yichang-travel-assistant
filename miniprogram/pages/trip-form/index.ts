@@ -3,8 +3,6 @@ import { resetAiConversation, submitAi } from '../../services/ai';
 import { validateTrip } from '../../view-models/chat';
 
 const preferenceValues = ['自然风景', '人文历史', '美食探索', '亲子出行', '轻松慢游', '露营体验'];
-const finalizationPrefix = '请基于上一版调整后的行程，输出一份完整、可直接执行的最终行程。必须逐条满足以下已确认要求：\n';
-const finalizationSuffix = '\n不要省略、忽略或改写以上要求。';
 let tripSequence = 0;
 
 type FormState = { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
@@ -35,11 +33,15 @@ function thrownErrorMessage(error: unknown) {
     : '网络连接不稳定，请重试';
 }
 
-function finalizationQuestion(requirements: string[]): string | null {
-  const items = requirements.length
-    ? requirements.map((requirement, index) => `${index + 1}. ${requirement}`).join('\n')
-    : '暂无额外调整，请沿用上一版已确认的内容。';
-  const question = `${finalizationPrefix}${items}${finalizationSuffix}`;
+function fullRegenerationQuestion(trip: TripInput, requirements: string[]): string | null {
+  const preferences = trip.preferences.length ? trip.preferences.join('、') : '无';
+  const items = requirements.map((requirement, index) => `${index + 1}. ${requirement}`).join('\n');
+  const question = [
+    `请按以下基础条件重新输出一份完整、可直接执行的 ${trip.days} 天宜昌行程。`,
+    `基础条件：目的地 ${trip.destination}；${trip.people} 人；总预算 ${trip.totalBudgetCny} 元；${trip.days} 天；偏好：${preferences}。`,
+    `已确认要求：\n${items}`,
+    `必须从第 1 天至第 ${trip.days} 天逐天完整输出，每天按上午、下午、晚上安排，最多 3 项。不要只说明修改点，不得省略任何一天；不写思考过程和长篇介绍。价格、营业时间、交通、预约以官方公告为准。`,
+  ].join('\n');
   return question.length <= 1000 ? question : null;
 }
 
@@ -73,16 +75,7 @@ Page({
     this.updateForm({ preferences: [...selected, value] });
   },
   async submit() {
-    if (this.data.isSubmitting) return;
-    if (this.data.results.length) {
-      const question = finalizationQuestion(this.data.confirmedRequirements);
-      if (!question) {
-        this.setData({ adjustmentError: '已确认要求过长，请精简后再生成最终行程。' });
-        return;
-      }
-      await this.send({ requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', question }, { isFinal: true });
-      return;
-    }
+    if (this.data.isSubmitting || this.data.results.length) return;
     const trip = makeTrip(this.data.form);
     const errors = validateTrip(trip);
     if (errors.length) { this.setData({ errors, error: '', result: null }); return; }
@@ -99,7 +92,18 @@ Page({
       this.setData({ adjustmentError: '请输入 1–1000 字的行程调整建议' });
       return;
     }
-    await this.send({ requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', question }, { confirmedRequirement: question });
+    const trip = makeTrip(this.data.form);
+    const errors = validateTrip(trip);
+    if (errors.length) {
+      this.setData({ errors, adjustmentError: '', error: '' });
+      return;
+    }
+    const fullQuestion = fullRegenerationQuestion(trip, [...this.data.confirmedRequirements, question]);
+    if (!fullQuestion) {
+      this.setData({ adjustmentError: '已确认要求过长，请精简后再重新生成完整行程。' });
+      return;
+    }
+    await this.send({ requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', question: fullQuestion }, { confirmedRequirement: question });
   },
   async restartTrip() {
     if (this.data.isSubmitting) return;

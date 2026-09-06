@@ -107,47 +107,41 @@ describe('trip input validation', () => {
     expect(page.data.preferenceOptions.find(item => item.value === '自然风景')).toMatchObject({ selected: false });
   });
 
-  it('uses every confirmed adjustment when generating the final trip', async () => {
+  it('regenerates every requested day after each confirmed adjustment', async () => {
     const submitAi = vi.fn()
       .mockResolvedValueOnce({ requestId: 'trip-first', status: 'succeeded', answer: '首版行程', mode: 'mock', error: null, localFacts: [], references: [] })
-      .mockResolvedValueOnce({ requestId: 'trip-follow-up', status: 'succeeded', answer: '已放慢第二天节奏', mode: 'mock', error: null, localFacts: [], references: [] })
-      .mockResolvedValueOnce({ requestId: 'trip-food', status: 'succeeded', answer: '已补充餐馆建议', mode: 'mock', error: null, localFacts: [], references: [] })
-      .mockResolvedValueOnce({ requestId: 'trip-final', status: 'succeeded', answer: '最终完整行程', mode: 'mock', error: null, localFacts: [], references: [] });
+      .mockResolvedValueOnce({ requestId: 'trip-food', status: 'succeeded', answer: '第 1 天至第 4 天的完整餐饮行程', mode: 'mock', error: null, localFacts: [], references: [] })
+      .mockResolvedValueOnce({ requestId: 'trip-family', status: 'succeeded', answer: '第 1 天至第 4 天的三峡人家完整行程', mode: 'mock', error: null, localFacts: [], references: [] });
     const page = await loadTripPage({ submitAi });
     page.onDestination({ detail: { value: '宜昌' } });
     page.onPeople({ detail: { value: '2' } });
-    page.onBudget({ detail: { value: '3000' } });
-    page.onDays({ detail: { value: '2' } });
+    page.onBudget({ detail: { value: '6000' } });
+    page.onDays({ detail: { value: '4' } });
     page.onTogglePreference({ currentTarget: { dataset: { value: '自然风景' } } });
     await page.submit();
-    page.onAdjustment({ detail: { value: '第二天太累了' } });
+    page.onAdjustment({ detail: { value: '第一天吃热干面，第二天吃鱼，推荐具体餐馆' } });
     await page.submitAdjustment();
 
     expect(submitAi).toHaveBeenCalledTimes(2);
-    expect(submitAi.mock.calls[1][0]).toMatchObject({ kind: 'trip', question: '第二天太累了' });
+    expect(submitAi.mock.calls[1][0]).toMatchObject({ kind: 'trip', question: expect.stringContaining('4 天') });
+    expect(submitAi.mock.calls[1][0].question).toContain('宜昌');
+    expect(submitAi.mock.calls[1][0].question).toContain('第 1 天至第 4 天');
+    expect(submitAi.mock.calls[1][0].question).toContain('第一天吃热干面，第二天吃鱼，推荐具体餐馆');
     expect(submitAi.mock.calls[1][0]).not.toHaveProperty('trip');
     expect(page.data.results).toHaveLength(2);
-    expect(page.data.results.map(item => item.answer)).toEqual(['已放慢第二天节奏', '首版行程']);
-    expect(page.data.confirmedRequirements).toEqual(['第二天太累了']);
+    expect(page.data.results.map(item => item.answer)).toEqual(['第 1 天至第 4 天的完整餐饮行程', '首版行程']);
+    expect(page.data.confirmedRequirements).toEqual(['第一天吃热干面，第二天吃鱼，推荐具体餐馆']);
 
-    page.onAdjustment({ detail: { value: '推荐具体餐馆，要吃鱼和热干面' } });
+    page.onAdjustment({ detail: { value: '安排去三峡人家' } });
     await page.submitAdjustment();
 
-    expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: '推荐具体餐馆，要吃鱼和热干面' });
+    expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: expect.stringContaining('第 1 天至第 4 天') });
+    expect(submitAi.mock.calls[2][0].question).toContain('第一天吃热干面，第二天吃鱼，推荐具体餐馆');
+    expect(submitAi.mock.calls[2][0].question).toContain('安排去三峡人家');
     expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
-    expect(page.data.confirmedRequirements).toEqual(['第二天太累了', '推荐具体餐馆，要吃鱼和热干面']);
-
-    await page.submit();
-
-    expect(submitAi.mock.calls[3][0]).toMatchObject({
-      kind: 'trip',
-      question: expect.stringContaining('上一版调整后的行程'),
-    });
-    expect(submitAi.mock.calls[3][0].question).toContain('第二天太累了');
-    expect(submitAi.mock.calls[3][0].question).toContain('推荐具体餐馆，要吃鱼和热干面');
-    expect(submitAi.mock.calls[3][0]).not.toHaveProperty('trip');
-    expect(page.data.results.map(item => item.answer)).toEqual(['最终完整行程', '已补充餐馆建议', '已放慢第二天节奏', '首版行程']);
-    expect(page.data.isFinal).toBe(true);
+    expect(page.data.confirmedRequirements).toEqual(['第一天吃热干面，第二天吃鱼，推荐具体餐馆', '安排去三峡人家']);
+    expect(page.data.results.map(item => item.answer)).toEqual(['第 1 天至第 4 天的三峡人家完整行程', '第 1 天至第 4 天的完整餐饮行程', '首版行程']);
+    expect(page.data.isFinal).toBe(false);
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {
