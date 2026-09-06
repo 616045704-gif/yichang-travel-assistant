@@ -88,3 +88,12 @@
 - 单元测试 `node node_modules\\vitest\\vitest.mjs run tests\\unit\\trip-form.test.ts`：6/6 通过，断言“首版行程 → 调整后行程”的展示顺序为“调整后行程、首版行程”。
 - TypeScript 无输出检查和该页面/测试的 ESLint 检查通过。
 - 开发自测通过；独立测试及微信开发者工具、Android/iPhone 实测待验。本次仅前端顺序调整，无需改动 Dify、CloudBase 函数、数据库、密钥或环境变量。
+
+## 基于最终调整生成完整行程（待小程序重新编译）
+
+被测代码提交：`ddd9f36`（`fix: generate final trip from adjustments`）
+
+- 第一次点“生成行程”仍携带表单五项创建完整行程；已有行程并完成调整后，按钮显示“生成最终行程”。
+- 后续点击“生成最终行程”只发送“基于上一版调整后的行程输出完整最终版”的追问，不重新携带表单，因此 Dify 使用当前会话中的最后一版调整；新答案仍显示在最上方。
+- 单元测试 `node node_modules\\vitest\\vitest.mjs run tests\\unit\\trip-form.test.ts`：6/6 通过，覆盖首次生成、调整、最终生成三次请求及“最终、调整、首版”的显示顺序。
+- TypeScript、ESLint 和 demo 构建通过。开发自测通过；独立测试及微信开发者工具、Android/iPhone 实测待验。本次为前端请求语义调整，不需重新部署 Dify 或云函数。
