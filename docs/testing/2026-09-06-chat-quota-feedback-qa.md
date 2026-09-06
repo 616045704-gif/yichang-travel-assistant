@@ -1,6 +1,6 @@
 # 自由问答限额与提示验收记录
 
-日期：2026-09-06  
+日期：2026-09-06
 测试范围提交：`d9d9f02`（`fix: expand daily AI request allowance`）、`2af14dd`（`fix: explain chat request rate limits`）
 
 ## 变更范围
