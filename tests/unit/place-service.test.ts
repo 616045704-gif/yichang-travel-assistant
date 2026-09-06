@@ -24,6 +24,23 @@ describe('place repository', () => {
     const second = await repository.list({ cursor: first.nextCursor, pageSize: 1 });
     expect([...first.items, ...second.items].map(item => item.placeId).sort()).toEqual([culturePlace.placeId, scenicPlace.placeId].sort());
   });
+  it('prioritizes published places with covers without hiding later uncovered places', async () => {
+    const uncoveredFirst = { ...scenicPlace, _id: 'uncovered-first', name: 'A uncovered', status: 'published', aliases: [], sources: [], coverFileId: null };
+    const coveredLater = { ...scenicPlace, _id: 'covered-later', name: 'B covered', status: 'published', aliases: [], sources: [], coverFileId: 'cloud://approved-bucket/cover.jpg' };
+    const uncoveredLast = { ...scenicPlace, _id: 'uncovered-last', name: 'C uncovered', status: 'published', aliases: [], sources: [], coverFileId: null };
+    const places = [uncoveredFirst, coveredLater, uncoveredLast];
+    const db = { collection() { return { where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: places.slice(offset, offset + count) }; } }; } }; } }; }, doc() { return { async get() { throw new Error('not found'); } }; } }; } };
+    const repository = createPlaceRepository(db);
+
+    const first = await repository.list({ pageSize: 1 });
+    const second = await repository.list({ cursor: first.nextCursor, pageSize: 1 });
+    const third = await repository.list({ cursor: second.nextCursor, pageSize: 1 });
+
+    expect(first.items.map(item => item.placeId)).toEqual(['covered-later']);
+    expect(second.items.map(item => item.placeId)).toEqual(['uncovered-first']);
+    expect(third.items.map(item => item.placeId)).toEqual(['uncovered-last']);
+    expect(third.nextCursor).toBeNull();
+  });
   it('returns null for an unknown or unpublished detail', async () => {
     const repository = createPlaceRepository(database());
     await expect(repository.detail('missing')).resolves.toBeNull();

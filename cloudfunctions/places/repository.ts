@@ -73,7 +73,10 @@ export function createPlaceRepository(database: Database): PlaceRepository {
       }
       const filtered = records
         .filter(document => matches(document, input))
-        .sort((a, b) => `${a.name}\u0000${a._id}`.localeCompare(`${b.name}\u0000${b._id}`));
+        .sort((a, b) => {
+          const coverOrder = Number(typeof b.coverFileId === 'string' && b.coverFileId.length > 0) - Number(typeof a.coverFileId === 'string' && a.coverFileId.length > 0);
+          return coverOrder || `${a.name}\u0000${a._id}`.localeCompare(`${b.name}\u0000${b._id}`);
+        });
       const cursorIndex = cursor ? filtered.findIndex(item => item.name === cursor[0] && item._id === cursor[1]) : -1;
       if (cursor && cursorIndex < 0) throw new InvalidPlaceInputError('分页游标无效。');
       const start = cursor ? cursorIndex + 1 : 0;
