@@ -106,6 +106,10 @@ describe('deployable build boundary', () => {
     const manifest = JSON.parse(await readFile(path.join(process.cwd(), 'cloudfunctions/aiService/package.json'), 'utf8'));
     expect(manifest.dependencies).toEqual({ 'wx-server-sdk': '4.0.2' });
   });
+  it('declares the CloudBase server SDK required by placeService', async () => {
+    const manifest = JSON.parse(await readFile(path.join(process.cwd(), 'cloudfunctions/placeService/package.json'), 'utf8'));
+    expect(manifest.dependencies).toEqual({ 'wx-server-sdk': '4.0.2' });
+  });
   it('rejects mock code in a demo build', async () => {
     const root = await fixture();
     await put(root, 'miniprogram/mock-ai.ts', 'export const result = "mock";');
