@@ -3,6 +3,7 @@ import { resetAiConversation, submitAi } from '../../services/ai';
 import { validateTrip } from '../../view-models/chat';
 
 const preferenceValues = ['自然风景', '人文历史', '美食探索', '亲子出行', '轻松慢游', '露营体验'];
+const finalizationQuestion = '请基于上一版调整后的行程，输出一份完整、可直接执行的最终行程，并保留已确认的调整。';
 let tripSequence = 0;
 
 type FormState = { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
@@ -59,6 +60,10 @@ Page({
   },
   async submit() {
     if (this.data.isSubmitting) return;
+    if (this.data.results.length) {
+      await this.send({ requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', question: finalizationQuestion });
+      return;
+    }
     const trip = makeTrip(this.data.form);
     const errors = validateTrip(trip);
     if (errors.length) { this.setData({ errors, error: '', result: null }); return; }

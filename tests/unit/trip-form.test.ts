@@ -98,7 +98,8 @@ describe('trip input validation', () => {
   it('sends a trip adjustment without rebuilding the form payload', async () => {
     const submitAi = vi.fn()
       .mockResolvedValueOnce({ requestId: 'trip-first', status: 'succeeded', answer: '首版行程', mode: 'mock', error: null, localFacts: [], references: [] })
-      .mockResolvedValueOnce({ requestId: 'trip-follow-up', status: 'succeeded', answer: '已放慢第二天节奏', mode: 'mock', error: null, localFacts: [], references: [] });
+      .mockResolvedValueOnce({ requestId: 'trip-follow-up', status: 'succeeded', answer: '已放慢第二天节奏', mode: 'mock', error: null, localFacts: [], references: [] })
+      .mockResolvedValueOnce({ requestId: 'trip-final', status: 'succeeded', answer: '最终完整行程', mode: 'mock', error: null, localFacts: [], references: [] });
     const page = await loadTripPage({ submitAi });
     page.onDestination({ detail: { value: '宜昌' } });
     page.onPeople({ detail: { value: '2' } });
@@ -114,6 +115,12 @@ describe('trip input validation', () => {
     expect(submitAi.mock.calls[1][0]).not.toHaveProperty('trip');
     expect(page.data.results).toHaveLength(2);
     expect(page.data.results.map(item => item.answer)).toEqual(['已放慢第二天节奏', '首版行程']);
+
+    await page.submit();
+
+    expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: expect.stringContaining('上一版调整后的行程') });
+    expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
+    expect(page.data.results.map(item => item.answer)).toEqual(['最终完整行程', '已放慢第二天节奏', '首版行程']);
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {
