@@ -111,23 +111,23 @@ describe('private AI records', () => {
     await expect(records.claim('owner-a', chatRequest, new Date(started.getTime() + 2_100))).rejects.toBeInstanceOf(AiRetryLimitError);
   });
 
-  it('enforces 3 per fixed minute and 20 per Shanghai day with owner and day isolation', async () => {
+  it('enforces 6 per fixed minute and 50 per Shanghai day with owner and day isolation', async () => {
     const records = createAiRecordRepository(createAiDatabaseFixture());
     const base = new Date('2026-09-06T00:00:00.000Z');
-    for (let index = 0; index < 3; index += 1) {
+    for (let index = 0; index < 6; index += 1) {
       const limitedRequest = { ...chatRequest, requestId: `minute-${index}` };
       const token = await claimToken(records, 'owner-a', limitedRequest, base);
       await records.fail('owner-a', limitedRequest, token, 'failed', base);
     }
-    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'minute-4' }, base)).rejects.toBeInstanceOf(AiRateLimitError);
+    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'minute-7' }, base)).rejects.toBeInstanceOf(AiRateLimitError);
     await expect(records.claim('owner-b', { ...chatRequest, requestId: 'minute-owner-b' }, base)).resolves.toMatchObject({ state: 'claimed' });
-    for (let index = 3; index < 20; index += 1) {
+    for (let index = 6; index < 50; index += 1) {
       const limitedRequest = { ...chatRequest, requestId: `day-${index}` };
       const now = new Date(base.getTime() + index * 60_000);
       const token = await claimToken(records, 'owner-a', limitedRequest, now);
       await records.fail('owner-a', limitedRequest, token, 'failed', now);
     }
-    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'day-21' }, new Date(base.getTime() + 21 * 60_000))).rejects.toBeInstanceOf(AiRateLimitError);
+    await expect(records.claim('owner-a', { ...chatRequest, requestId: 'day-51' }, new Date(base.getTime() + 51 * 60_000))).rejects.toBeInstanceOf(AiRateLimitError);
     await expect(records.claim('owner-a', { ...chatRequest, requestId: 'next-day' }, new Date('2026-09-06T16:00:00.000Z'))).resolves.toMatchObject({ state: 'claimed' });
   });
 

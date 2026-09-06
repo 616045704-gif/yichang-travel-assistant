@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
-export const MINUTE_LIMIT = 3;
-export const DAY_LIMIT = 20;
+export const MINUTE_LIMIT = 6;
+export const DAY_LIMIT = 50;
 export const CLAIM_STALE_MS = 90_000;
 export const RETRY_COOLDOWN_MS = 1_000;
 export const MAX_LOGICAL_ATTEMPTS = 2;
