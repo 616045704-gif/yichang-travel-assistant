@@ -1,5 +1,16 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 import { validateFeaturedImages } from '../../scripts/validate-featured-images.mjs';
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+type UserProvidedImageEntry = {
+  category: string;
+  objectNames: string[];
+  sourceType: string;
+};
 
 it('requires a Commons file page, attribution, license, cloud file ID and four categories', () => {
   const errors = validateFeaturedImages([{ placeId: 'place-a', category: 'scenic' }]);
@@ -47,4 +58,22 @@ it('requires every category and rejects unclear licenses and impossible verifica
   expect(errors).toContain('categories.restaurant required');
   expect(errors).toContain('place-a.license');
   expect(errors).toContain('place-a.verifiedAt');
+});
+
+it('keeps all 25 authorised user-provided image mappings complete and distinct', async () => {
+  const manifest: UserProvidedImageEntry[] = JSON.parse(await readFile(
+    path.join(repositoryRoot, 'content', 'featured-place-images.json'),
+    'utf8',
+  ));
+
+  expect(manifest).toHaveLength(25);
+  expect(validateFeaturedImages(manifest)).toEqual([]);
+  expect(new Set(manifest.map((entry) => entry.category))).toEqual(
+    new Set(['scenic', 'restaurant', 'culture', 'camping']),
+  );
+  for (const entry of manifest) {
+    expect(entry.sourceType).toBe('user_provided');
+    expect(entry.objectNames).toHaveLength(3);
+    expect(new Set(entry.objectNames)).toHaveLength(3);
+  }
 });
