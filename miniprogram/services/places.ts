@@ -11,7 +11,8 @@ async function call<T>(action: string, payload: Record<string, unknown>): Promis
 }
 
 export async function listPlaces(request: PlaceListRequest): Promise<PageResult<PlaceSummary>> {
-  return call<PageResult<PlaceSummary>>('list', { ...request, tags: request.tag ? [request.tag] : [] });
+  const { category, ...rest } = request;
+  return call<PageResult<PlaceSummary>>('list', { ...rest, ...(category ? { category } : {}), tags: request.tag ? [request.tag] : [] });
 }
 
 export async function getPlaceDetail(placeId: string): Promise<PlaceDetail> {

@@ -80,6 +80,14 @@ describe('place repository', () => {
       expect.objectContaining({ category: 'scenic', isFavorite: false }),
     );
   });
+  it('treats an empty category as the all-categories list and serves home featured places', async () => {
+    const repository = createPlaceRepository(database());
+    const storage = { async getTempFileURL() { return { fileList: [] }; } };
+    const all = await handlePlaceRequest({ action: 'list', category: '', pageSize: 20 }, { repository, storage });
+    const home = await handlePlaceRequest({ action: 'home' }, { repository, storage });
+    expect(all).toMatchObject({ code: 'OK', data: { items: expect.any(Array) } });
+    expect(home).toMatchObject({ code: 'OK', data: { featured: expect.any(Array), recommended: [] } });
+  });
   it('keeps a covered published place consistent between list, detail and marker responses', async () => {
     const covered = { ...scenicPlace, _id: scenicPlace.placeId, status: 'published', aliases: [], coverFileId: 'cloud://approved-bucket/covers/synthetic.jpg', sources: [], openNotice: scenicDetail.openNotice };
     const db = { collection(name: string) { return { where() { return { skip() { return { limit() { return { async get() { return { data: [covered] }; } }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? (id === covered._id ? covered : null) : (id === covered._id ? { sections: [] } : null); if (!data) throw new Error('not found'); return { data }; } }; } }; } };

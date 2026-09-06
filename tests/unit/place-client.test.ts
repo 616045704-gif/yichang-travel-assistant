@@ -9,6 +9,7 @@ describe('place service client', () => {
     const callFunction = vi.fn(async ({ data }: { data: { action: string } }) => ({ result: { code: 'OK', data: data.action === 'detail' ? scenicDetail : data.action === 'home' ? { featured: [scenicPlace], recommended: [] } : { items: [scenicPlace], nextCursor: null } } }));
     vi.stubGlobal('wx', { cloud: { callFunction } });
     await expect(listPlaces({ category: '', keyword: '', tag: '', cursor: null, pageSize: 20 })).resolves.toMatchObject({ items: [scenicPlace] });
+    expect(callFunction).toHaveBeenCalledWith({ name: 'placeService', data: { action: 'list', keyword: '', tag: '', cursor: null, pageSize: 20, tags: [] } });
     await expect(getPlaceDetail(scenicPlace.placeId)).resolves.toEqual(scenicDetail);
     await expect(getHomePlaces()).resolves.toEqual({ featured: [scenicPlace], recommended: [] });
     await expect(getMapMarkers()).resolves.toEqual([scenicPlace]);

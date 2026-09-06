@@ -23,7 +23,7 @@
     </view>
     <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
     <view class="section-heading"><text class="section-title">宜昌 · 值得停留</text><text class="section-note">精选地点</text></view>
-    <view class="card"><async-state status="empty" title="好风景，正在整理" message="地点资料尚未接入。核验并导入后，这里将展示精选推荐。" /></view>
+    <view wx:if="{{featuredStatus === 'ready'}}" class="place-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" /></view><view wx:else class="card"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
     <text class="footer-note">一城山水 · 慢慢发现</text>
   </view>
 </view>

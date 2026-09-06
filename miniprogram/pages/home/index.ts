@@ -1,9 +1,16 @@
 import { CATEGORIES, type Category } from '../../../shared/contracts';
+import type { PlaceSummary } from '../../../shared/contracts';
+import { getHomePlaces } from '../../services/places';
 
 type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
 Page({
-  data: { categories: CATEGORIES },
+  data: { categories: CATEGORIES, featured: [] as PlaceSummary[], featuredStatus: 'loading' as 'loading' | 'ready' | 'empty' | 'error' },
+  onShow() { void this.loadFeatured(); },
+  async loadFeatured() {
+    try { const { featured } = await getHomePlaces(); this.setData({ featured, featuredStatus: featured.length ? 'ready' : 'empty' }); }
+    catch { this.setData({ featuredStatus: 'error' }); }
+  },
   openDiscover() { wx.switchTab({ url: '/pages/discover/index' }); },
   onCategoryTap(event: WechatMiniprogram.TouchEvent) {
     const category: unknown = event.currentTarget.dataset.category;
