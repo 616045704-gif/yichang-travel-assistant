@@ -1,4 +1,4 @@
-# Trip Chatflow 性能验收记录（待独立验收）
+# Trip Chatflow 性能验收记录（待手工回归）
 
 日期：2026-09-06
 被测代码提交：`adbbb4b`（`fix: cap Dify trip local facts input`）、`3e7a064`（`fix: hide Dify reasoning output`）、`d1ac3ea`（`fix: render selected travel preferences`）
@@ -45,6 +45,6 @@
 
 - 已发现并修复：真实行程回答曾把 Dify 返回的 `<think>` 推理文本直接展示；根因是云函数适配器未净化 `answer` 字段。修复提交为 `3e7a064`，尚待部署后的实际回归。
 - 已发现并修复：旅行偏好模板依赖数组方法表达式来决定样式，页面测试未覆盖可见状态；改为显式布尔状态，修复提交为 `d1ac3ea`，尚待开发者工具手工回归。
-- 新的云函数代码尚未部署到 CloudBase；必须在用户确认后仅部署 `aiService` 代码，保留现有环境变量。
+- 新的 `aiService` 云函数代码已于 2026-09-06 由用户确认部署完成；自动化浏览器在读取最终控制台状态时超时，未将控制台页面状态作为独立通过证据。环境变量、密钥和 Dify 配置均未改动。
 - 需在微信开发者工具中重新编译 demo 包后补验：行程偏好和个人偏好的选中/取消；首次行程答案不含 `<think>`；首次及追问耗时。
 - 独立测试角色已复跑自动化检查并通过；其未测范围为开发者工具、Android/iPhone 真机以及真实 Dify/CloudBase 响应。
