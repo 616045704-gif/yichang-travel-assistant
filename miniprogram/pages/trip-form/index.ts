@@ -2,10 +2,15 @@ import type { AiRequest, AiResult, TripInput } from '../../../shared/contracts';
 import { resetAiConversation, submitAi } from '../../services/ai';
 import { validateTrip } from '../../view-models/chat';
 
-const preferenceOptions = ['自然风景', '人文历史', '美食探索', '亲子出行', '轻松慢游', '露营体验'];
+const preferenceValues = ['自然风景', '人文历史', '美食探索', '亲子出行', '轻松慢游', '露营体验'];
 let tripSequence = 0;
 
 type FormState = { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
+type PreferenceOption = { value: string; selected: boolean };
+
+function visibleOptions(selected: string[]): PreferenceOption[] {
+  return preferenceValues.map(value => ({ value, selected: selected.includes(value) }));
+}
 
 function makeTrip(form: FormState): TripInput {
   return {
@@ -23,7 +28,7 @@ function networkError(result: AiResult): string {
 
 Page({
   data: {
-    preferenceOptions,
+    preferenceOptions: visibleOptions([]),
     form: { destination: '', people: '', totalBudgetCny: '', days: '', preferences: [] as string[] },
     errors: [] as string[],
     error: '',
@@ -80,7 +85,8 @@ Page({
     await this.send(this.data.lastRequest);
   },
   updateForm(change: Partial<FormState>) {
-    this.setData({ form: { ...this.data.form, ...change }, errors: [], error: '' });
+    const form = { ...this.data.form, ...change };
+    this.setData({ form, preferenceOptions: visibleOptions(form.preferences), errors: [], error: '' });
   },
   async send(request: AiRequest) {
     const isFirstPlan = Boolean(request.trip);

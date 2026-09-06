@@ -5,6 +5,7 @@ import { createMockAiClient } from '../fixtures/mock-ai';
 type TripPage = {
   data: {
     form: { destination: string; people: string; totalBudgetCny: string; days: string; preferences: string[] };
+    preferenceOptions: Array<{ value: string; selected: boolean }>;
     error: string;
     result: { answer: string | null } | null;
     results: Array<{ answer: string | null }>;
@@ -69,6 +70,16 @@ describe('trip input validation', () => {
     await expect(page.retry()).resolves.toBeUndefined();
     expect(client.submit).toHaveBeenCalledTimes(2);
     expect(client.submit.mock.calls[1][0]).toEqual(client.submit.mock.calls[0][0]);
+  });
+
+  it('updates the visible selected state when a trip preference is toggled', async () => {
+    const page = await loadTripPage();
+
+    page.onTogglePreference({ currentTarget: { dataset: { value: '自然风景' } } });
+    expect(page.data.preferenceOptions.find(item => item.value === '自然风景')).toMatchObject({ selected: true });
+
+    page.onTogglePreference({ currentTarget: { dataset: { value: '自然风景' } } });
+    expect(page.data.preferenceOptions.find(item => item.value === '自然风景')).toMatchObject({ selected: false });
   });
 
   it('sends a trip adjustment without rebuilding the form payload', async () => {
