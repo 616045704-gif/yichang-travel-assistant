@@ -1,5 +1,6 @@
 import type { Category } from '../../../shared/contracts';
 import { listPlaces } from '../../services/places';
+import { setFavorite } from '../../services/user';
 import { PlaceListViewModel } from '../../view-models/place-list';
 
 const viewModel = new PlaceListViewModel(listPlaces);
@@ -17,15 +18,18 @@ Page({
   sync() { this.setData(viewModel.state); },
   async refresh() { await viewModel.reload(); this.sync(); },
   onCategoryChange(event: WechatMiniprogram.CustomEvent<{ category: Category | '' }>) {
-    this.setData({ category: event.detail.category });
-    void viewModel.setFilters({ category: event.detail.category }).then(() => this.sync());
+    this.setData({ category: event.detail.category, keyword: '' });
+    void viewModel.setFilters({ category: event.detail.category, keyword: '' }).then(() => this.sync());
   },
   onKeywordInput(event: WechatMiniprogram.Input) { this.setData({ keyword: event.detail.value }); },
-  onTagInput(event: WechatMiniprogram.Input) { this.setData({ tag: event.detail.value }); },
-  onSearch() { void viewModel.setFilters({ keyword: this.data.keyword, tag: this.data.tag }).then(() => this.sync()); },
+  onSearch() { void viewModel.setFilters({ keyword: this.data.keyword, tag: '' }).then(() => this.sync()); },
   onRetry() { void this.refresh(); },
   onReachBottom() { void viewModel.loadMore().then(() => this.sync()); },
   openPlace(event: WechatMiniprogram.CustomEvent<{ placeId: string }>) {
     wx.navigateTo({ url: `/pages/place-detail/index?placeId=${encodeURIComponent(event.detail.placeId)}` });
+  },
+  async onFavorite(event: WechatMiniprogram.CustomEvent<{ placeId: string; favorite: boolean }>) {
+    try { const result = await setFavorite(event.detail.placeId, event.detail.favorite); this.setData({ [`items[${this.data.items.findIndex((item: { placeId: string }) => item.placeId === result.placeId)}].isFavorite`]: result.favorite }); }
+    catch { wx.showToast({ title: '收藏未保存，请稍后重试', icon: 'none' }); }
   },
 });

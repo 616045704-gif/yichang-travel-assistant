@@ -1,6 +1,7 @@
 import { CATEGORIES, type Category } from '../../../shared/contracts';
 import type { PlaceSummary } from '../../../shared/contracts';
 import { getHomePlaces } from '../../services/places';
+import { setFavorite } from '../../services/user';
 
 type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
@@ -20,6 +21,10 @@ Page({
   },
   openPlace(event: WechatMiniprogram.CustomEvent<{ placeId: string }>) {
     wx.navigateTo({ url: `/pages/place-detail/index?placeId=${encodeURIComponent(event.detail.placeId)}` });
+  },
+  async onFavorite(event: WechatMiniprogram.CustomEvent<{ placeId: string; favorite: boolean }>) {
+    try { const result = await setFavorite(event.detail.placeId, event.detail.favorite); this.setData({ [`featured[${this.data.featured.findIndex(item => item.placeId === result.placeId)}].isFavorite`]: result.favorite }); }
+    catch { wx.showToast({ title: '收藏未保存，请稍后重试', icon: 'none' }); }
   },
   openAiChat() { wx.navigateTo({ url: '/pages/ai-chat/index' }); },
   openTripForm() { wx.navigateTo({ url: '/pages/trip-form/index' }); },

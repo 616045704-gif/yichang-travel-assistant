@@ -4,5 +4,5 @@
     <view wx:else class="cover placeholder">图片暂不可用</view>
     <view class="body"><text class="name">{{place.name}}</text><text class="district">{{place.district}}</text><text class="intro">{{place.intro}}</text><view class="tags"><text wx:for="{{place.tags}}" wx:key="*this" class="tag">{{item}}</text></view></view>
   </view>
-  <button class="favorite" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}">{{place.isFavorite ? '已收藏' : '收藏'}}</button>
+  <view class="favorite-bar"><button class="favorite" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}"><text class="favorite-icon">{{place.isFavorite ? '♥' : '♡'}}</text><text>{{place.isFavorite ? '已收藏' : '收藏'}}</text></button></view>
 </view>

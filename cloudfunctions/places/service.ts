@@ -50,8 +50,9 @@ export async function handlePlaceRequest(event: Event, dependencies: { repositor
   }
   if (event.action === 'home') {
     try {
-      const page = await dependencies.repository.list({ pageSize: 4 });
-      return ok({ featured: await resolveCoverUrls(await withFavorites(page.items), dependencies.storage), recommended: [] });
+      const page = await dependencies.repository.list({ pageSize: 5 });
+      const featured = page.items.filter(item => item.name !== '一刀鲜酒楼').slice(0, 4);
+      return ok({ featured: await resolveCoverUrls(await withFavorites(featured), dependencies.storage), recommended: [] });
     } catch { return fail('INTERNAL_ERROR', '精选地点暂时无法加载。'); }
   }
   if (event.action === 'detail') {
