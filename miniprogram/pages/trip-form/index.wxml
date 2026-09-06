@@ -43,7 +43,7 @@
   <view wx:if="{{results.length}}" class="adjustment-card card">
     <label class="adjustment-field"><text>对行程还有什么想调整的？</text><textarea value="{{adjustment}}" maxlength="1000" placeholder="例如：第二天安排轻松一些；推荐具体餐馆，要吃鱼和热干面" bindinput="onAdjustment" /></label>
     <text wx:if="{{adjustmentError}}" class="adjustment-error">{{adjustmentError}}</text>
-    <button class="button-primary adjustment-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submitAdjustment">应用调整并重新生成完整行程</button>
+    <button class="button-primary adjustment-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submitAdjustment">确认调整</button>
     <button class="button-secondary restart-button" disabled="{{isSubmitting}}" bindtap="restartTrip">重新规划</button>
   </view>
 

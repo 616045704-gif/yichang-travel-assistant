@@ -50,7 +50,8 @@ describe('trip input validation', () => {
     expect(markup).toContain('当前计划（可继续调整）');
     expect(markup).toContain('当前完整行程（已应用调整）');
     expect(markup).toContain('已确认要求（每次都会用于完整重新生成）');
-    expect(markup).toContain('应用调整并重新生成完整行程');
+    expect(markup).toContain('确认调整');
+    expect(markup).not.toContain('应用调整并重新生成完整行程');
     expect(markup).not.toContain('生成最终行程');
     expect(markup).not.toContain('wx:for="{{results}}"');
   });
