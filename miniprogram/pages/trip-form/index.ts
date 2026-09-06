@@ -26,6 +26,12 @@ function networkError(result: AiResult): string {
   return result.error || '网络连接不稳定，请重试';
 }
 
+function thrownErrorMessage(error: unknown) {
+  return error instanceof Error && error.message === '请求较频繁，请稍后再试。'
+    ? error.message
+    : '网络连接不稳定，请重试';
+}
+
 Page({
   data: {
     preferenceOptions: visibleOptions([]),
@@ -110,8 +116,8 @@ Page({
         });
       }
       else this.setData({ result: null, error: networkError(result) });
-    } catch {
-      this.setData({ result: null, error: '网络连接不稳定，请重试' });
+    } catch (error) {
+      this.setData({ result: null, error: thrownErrorMessage(error) });
     } finally {
       this.setData({ isSubmitting: false });
     }

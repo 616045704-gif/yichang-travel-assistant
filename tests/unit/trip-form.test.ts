@@ -72,6 +72,19 @@ describe('trip input validation', () => {
     expect(client.submit.mock.calls[1][0]).toEqual(client.submit.mock.calls[0][0]);
   });
 
+  it('shows the safe cloud-function rate-limit message instead of calling it a network failure', async () => {
+    const submitAi = vi.fn().mockRejectedValue(new Error('请求较频繁，请稍后再试。'));
+    const page = await loadTripPage({ submitAi });
+    page.onDestination({ detail: { value: '宜昌' } });
+    page.onPeople({ detail: { value: '2' } });
+    page.onBudget({ detail: { value: '3000' } });
+    page.onDays({ detail: { value: '2' } });
+
+    await page.submit();
+
+    expect(page.data.error).toBe('请求较频繁，请稍后再试。');
+  });
+
   it('updates the visible selected state when a trip preference is toggled', async () => {
     const page = await loadTripPage();
 
