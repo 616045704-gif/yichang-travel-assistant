@@ -356,6 +356,31 @@ describe('private live AI service', () => {
     expect(calls).toEqual(Array.from({ length: 4 }, () => ({ name: 'places', query: { status: 'published' } })));
   });
 
+  it('limits a district noodle question to restaurant facts in that district', async () => {
+    const places = [
+      { _id: 'noodle', status: 'published', name: '夷陵热干面馆', category: 'restaurant', district: '夷陵区', intro: '本地面食参考。' },
+      { _id: 'fish-scenic', status: 'published', name: '夷陵江景区', category: 'scenic', district: '夷陵区', intro: '鱼类观赏内容。' },
+      { _id: 'other-restaurant', status: 'published', name: '西陵面馆', category: 'restaurant', district: '西陵区', intro: '其他区域面食参考。' },
+      { _id: 'no-restaurant', status: 'published', name: '伍家岗文化点', category: 'culture', district: '伍家岗区', intro: '文化资料。' },
+    ];
+    const database = {
+      collection(name: string) {
+        return {
+          where() { return { limit() { return { async get() { return { data: places }; } }; } }; },
+          doc() { return { async get() { if (name === 'place_contents') throw new Error('not found'); return { data: {} }; } }; },
+        };
+      },
+    };
+    const retrieve = createLocalFactRetriever(database);
+
+    await expect(retrieve({ requestId: 'noodle-question', kind: 'chat', question: '夷陵区有什么吃面的地方？' })).resolves.toEqual([
+      expect.stringContaining('夷陵热干面馆'),
+    ]);
+    const facts = await retrieve({ requestId: 'noodle-no-match', kind: 'chat', question: '伍家岗区有什么吃面的地方？' });
+    expect(facts).toEqual([expect.stringContaining('直接回答用户问题')]);
+    expect(facts.join('\n')).toContain('不要虚构具体商户');
+  });
+
   it('labels user-collected facts as reference and searches beyond the first 100 records', async () => {
     const places = Array.from({ length: 101 }, (_, index) => ({
       _id: `place-${index}`, status: 'published', name: index === 100 ? '三峡后页景点' : `其他地点${index}`,
