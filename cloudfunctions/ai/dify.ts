@@ -48,10 +48,18 @@ function payload(kind: AiKind, request: AiRequest, conversationId: string | null
   return { inputs: { local_verified_facts: localVerifiedFacts }, query: request.question || '', response_mode: 'blocking', conversation_id: conversationId || '', user };
 }
 
+function userFacingAnswer(value: string) {
+  const withoutThinkBlocks = value
+    .replace(/<think\b[^>]*>[\s\S]*?<\/think\s*>/gi, '')
+    .replace(/<!--\s*dify-deepseek-reasoning\s*-->/gi, '')
+    .trim();
+  return /<\/?think\b/i.test(withoutThinkBlocks) ? '' : withoutThinkBlocks;
+}
+
 function responseData(value: unknown) {
   if (!value || typeof value !== 'object') throw new DifyServiceError('AI_UNAVAILABLE');
   const result = value as Record<string, unknown>;
-  const answer = typeof result.answer === 'string' ? result.answer.trim() : '';
+  const answer = typeof result.answer === 'string' ? userFacingAnswer(result.answer) : '';
   const conversationId = typeof result.conversation_id === 'string' ? result.conversation_id.trim() : '';
   if (!answer || answer.length > 4_000 || !conversationId) throw new DifyServiceError('AI_UNAVAILABLE');
   return { answer, conversationId };

@@ -21,6 +21,27 @@ describe('server-only Dify adapter', () => {
     });
   });
 
+  it('strips Dify reasoning blocks before an answer can leave the cloud function', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({
+      answer: '<think><!--dify-deepseek-reasoning-->内部推理</think>\n第1天：上午游览。',
+      conversation_id: 'chat-c1',
+    }), { status: 200 }));
+    const client = createDifyClient(environment, fetch);
+
+    await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []))
+      .resolves.toEqual({ answer: '第1天：上午游览。', conversationId: 'chat-c1' });
+  });
+
+  it('rejects an answer that contains only a Dify reasoning block', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({
+      answer: '<think>内部推理</think>', conversation_id: 'chat-c1',
+    }), { status: 200 }));
+    const client = createDifyClient(environment, fetch);
+
+    await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'wx-user-a', []))
+      .rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
+  });
+
   it('accepts the Dify API endpoint when it already ends with v1', async () => {
     const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '回答', conversation_id: 'chat-c1' }), { status: 200 }));
     const client = createDifyClient({ ...environment, DIFY_BASE_URL: 'https://api.dify.ai/v1' }, fetch);
