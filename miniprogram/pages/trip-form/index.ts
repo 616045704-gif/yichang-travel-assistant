@@ -109,7 +109,7 @@ Page({
       if (result.status === 'succeeded' && result.answer) {
         this.setData({
           result,
-          results: [...this.data.results, result],
+          results: [result, ...this.data.results],
           adjustment: request.question ? '' : this.data.adjustment,
           adjustmentError: '',
           error: '',

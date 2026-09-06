@@ -113,6 +113,7 @@ describe('trip input validation', () => {
     expect(submitAi.mock.calls[1][0]).toMatchObject({ kind: 'trip', question: '第二天太累了' });
     expect(submitAi.mock.calls[1][0]).not.toHaveProperty('trip');
     expect(page.data.results).toHaveLength(2);
+    expect(page.data.results.map(item => item.answer)).toEqual(['已放慢第二天节奏', '首版行程']);
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {
