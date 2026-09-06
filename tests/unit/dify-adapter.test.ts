@@ -66,6 +66,16 @@ describe('server-only Dify adapter', () => {
     expect(fetch.mock.calls[1][0]).toBe('https://common.example/v1/chat-messages');
   });
 
+  it('caps trip local facts to the Dify start-field limit', async () => {
+    const fetch = vi.fn<RequestCall>(async () => new Response(JSON.stringify({ answer: '行程建议', conversation_id: 'trip-c1' }), { status: 200 }));
+    const client = createDifyClient(environment, fetch);
+
+    await client.send('trip', { requestId: 't1', kind: 'trip', trip: { destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: [] } }, null, 'wx-user-a', ['已核验资料'.repeat(100)]);
+
+    const body = JSON.parse(String(fetch.mock.calls[0][1]?.body));
+    expect(body.inputs.local_verified_facts).toHaveLength(256);
+  });
+
   it('maps missing configuration and request failures to safe public errors', async () => {
     const client = createDifyClient({ ...environment, DIFY_CHAT_API_KEY: '' }, vi.fn());
     await expect(client.send('chat', { requestId: 'c1', kind: 'chat', question: '问题' }, null, 'user', [])).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'AI 服务暂不可用，请稍后重试。' });

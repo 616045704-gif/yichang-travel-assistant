@@ -17,6 +17,8 @@ export class DifyServiceError extends Error {
 
 type DifyPayload = { inputs: Record<string, string | number>; query: string; response_mode: 'blocking'; conversation_id: string; user: string };
 const DIFY_TIMEOUT_MS = 45_000;
+const DIFY_LOCAL_FACTS_MAX_CHARS = 4_000;
+const DIFY_TRIP_LOCAL_FACTS_MAX_CHARS = 256;
 
 function configuration(kind: AiKind, environment: DifyEnvironment) {
   const baseUrl = environment.DIFY_BASE_URL?.trim();
@@ -34,7 +36,7 @@ function chatMessagesEndpoint(baseUrl: string) {
 }
 
 function payload(kind: AiKind, request: AiRequest, conversationId: string | null, user: string, localFacts: string[]): DifyPayload {
-  const localVerifiedFacts = localFacts.join('\n').slice(0, 4_000);
+  const localVerifiedFacts = localFacts.join('\n').slice(0, kind === 'trip' ? DIFY_TRIP_LOCAL_FACTS_MAX_CHARS : DIFY_LOCAL_FACTS_MAX_CHARS);
   if (kind === 'chat') return { inputs: { local_verified_facts: localVerifiedFacts }, query: request.question || '', response_mode: 'blocking', conversation_id: conversationId || '', user };
   if (request.trip) {
     const trip = request.trip;
