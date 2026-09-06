@@ -10,6 +10,8 @@ type TripPage = {
     result: { answer: string | null } | null;
     results: Array<{ answer: string | null }>;
     adjustment: string;
+    confirmedRequirements: string[];
+    isFinal: boolean;
   };
   setData(value: Record<string, unknown>): void;
   onDestination(event: { detail: { value: string } }): void;
@@ -95,10 +97,11 @@ describe('trip input validation', () => {
     expect(page.data.preferenceOptions.find(item => item.value === '自然风景')).toMatchObject({ selected: false });
   });
 
-  it('sends a trip adjustment without rebuilding the form payload', async () => {
+  it('uses every confirmed adjustment when generating the final trip', async () => {
     const submitAi = vi.fn()
       .mockResolvedValueOnce({ requestId: 'trip-first', status: 'succeeded', answer: '首版行程', mode: 'mock', error: null, localFacts: [], references: [] })
       .mockResolvedValueOnce({ requestId: 'trip-follow-up', status: 'succeeded', answer: '已放慢第二天节奏', mode: 'mock', error: null, localFacts: [], references: [] })
+      .mockResolvedValueOnce({ requestId: 'trip-food', status: 'succeeded', answer: '已补充餐馆建议', mode: 'mock', error: null, localFacts: [], references: [] })
       .mockResolvedValueOnce({ requestId: 'trip-final', status: 'succeeded', answer: '最终完整行程', mode: 'mock', error: null, localFacts: [], references: [] });
     const page = await loadTripPage({ submitAi });
     page.onDestination({ detail: { value: '宜昌' } });
@@ -115,12 +118,26 @@ describe('trip input validation', () => {
     expect(submitAi.mock.calls[1][0]).not.toHaveProperty('trip');
     expect(page.data.results).toHaveLength(2);
     expect(page.data.results.map(item => item.answer)).toEqual(['已放慢第二天节奏', '首版行程']);
+    expect(page.data.confirmedRequirements).toEqual(['第二天太累了']);
+
+    page.onAdjustment({ detail: { value: '推荐具体餐馆，要吃鱼和热干面' } });
+    await page.submitAdjustment();
+
+    expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: '推荐具体餐馆，要吃鱼和热干面' });
+    expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
+    expect(page.data.confirmedRequirements).toEqual(['第二天太累了', '推荐具体餐馆，要吃鱼和热干面']);
 
     await page.submit();
 
-    expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: expect.stringContaining('上一版调整后的行程') });
-    expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
-    expect(page.data.results.map(item => item.answer)).toEqual(['最终完整行程', '已放慢第二天节奏', '首版行程']);
+    expect(submitAi.mock.calls[3][0]).toMatchObject({
+      kind: 'trip',
+      question: expect.stringContaining('上一版调整后的行程'),
+    });
+    expect(submitAi.mock.calls[3][0].question).toContain('第二天太累了');
+    expect(submitAi.mock.calls[3][0].question).toContain('推荐具体餐馆，要吃鱼和热干面');
+    expect(submitAi.mock.calls[3][0]).not.toHaveProperty('trip');
+    expect(page.data.results.map(item => item.answer)).toEqual(['最终完整行程', '已补充餐馆建议', '已放慢第二天节奏', '首版行程']);
+    expect(page.data.isFinal).toBe(true);
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {
