@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { validateTrip } from '../../miniprogram/view-models/chat';
 import { createMockAiClient } from '../fixtures/mock-ai';
 
@@ -44,6 +45,15 @@ async function loadTripPage(options: { submitAi?: ReturnType<typeof vi.fn>; rese
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
 describe('trip input validation', () => {
+  it('marks one current trip and lists the requirements used for final generation', () => {
+    const markup = readFileSync('miniprogram/pages/trip-form/index.wxml', 'utf8');
+
+    expect(markup).toContain('当前计划（可继续调整）');
+    expect(markup).toContain('最终行程（当前版本）');
+    expect(markup).toContain('已确认要求（生成最终行程时会全部采用）');
+    expect(markup).not.toContain('wx:for="{{results}}"');
+  });
+
   it('accepts only a valid five-field trip input', () => {
     expect(validateTrip({ destination: '宜昌', people: 2, totalBudgetCny: 3000, days: 2, preferences: ['山水'] })).toEqual([]);
     expect(validateTrip({ destination: '', people: 21, totalBudgetCny: 0, days: 8, preferences: Array(7).fill('慢游') })).toEqual(expect.arrayContaining([
