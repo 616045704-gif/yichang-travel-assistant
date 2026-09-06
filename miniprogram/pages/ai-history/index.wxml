@@ -4,8 +4,8 @@
     <view><text class="eyebrow">只对你可见</text><text class="page-title">AI 问答记录</text></view>
   </view>
   <view class="history-tabs">
-    <view class="history-tab {{selectedKind === 'chat' ? 'history-tab-active' : ''}}" data-kind="chat" bindtap="selectKind">自由问答</view>
-    <view class="history-tab {{selectedKind === 'trip' ? 'history-tab-active' : ''}}" data-kind="trip" bindtap="selectKind">行程定制</view>
+    <view class="{{selectedKind === 'chat' ? 'history-tab history-tab-active' : 'history-tab'}}" data-kind="chat" bindtap="selectKind">自由问答</view>
+    <view class="{{selectedKind === 'trip' ? 'history-tab history-tab-active' : 'history-tab'}}" data-kind="trip" bindtap="selectKind">行程定制</view>
   </view>
   <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
   <view wx:if="{{status === 'ready' && visibleRecords.length}}" class="history-list">
@@ -16,7 +16,6 @@
         <text class="history-toggle">{{item.expanded ? '收起完整内容' : '查看完整内容'}}</text>
       </view>
       <view wx:if="{{item.expanded}}" class="history-detail">
-        <message-bubble role="user" content="{{item.prompt}}" mode="" label="" />
         <message-bubble role="assistant" content="{{item.answer}}" mode="{{item.mode}}" label="{{item.mode === 'mock' ? '模拟回答，仅用于交互测试' : ''}}" />
         <source-card facts="{{item.localFacts}}" references="{{item.references}}" />
       </view>

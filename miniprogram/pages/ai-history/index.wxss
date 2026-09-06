@@ -1,7 +1,7 @@
 .history-page { display: flex; flex-direction: column; gap: 22rpx; }
 .history-tabs { display: flex; gap: 12rpx; }
 .history-tab { flex: 1; padding: 16rpx; border: 1rpx solid #dccdab; border-radius: 18rpx; color: #76674f; font-size: 25rpx; text-align: center; }
-.history-tab-active { border-color: var(--color-ink); background: var(--color-ink); color: #fffaf0; font-weight: 600; }
+.history-tab-active { border-color: var(--color-primary); background: var(--color-primary); color: #fffaf0; font-weight: 600; }
 .disclaimer { padding: 18rpx 20rpx; border-left: 6rpx solid var(--color-gold); background: #eee3cc; color: #6d604a; font-size: 23rpx; line-height: 1.7; }
 .history-list { display: flex; flex-direction: column; gap: 20rpx; }
 .history-item { display: flex; flex-direction: column; gap: 16rpx; }

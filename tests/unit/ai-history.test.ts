@@ -32,7 +32,7 @@ describe('AI history presentation', () => {
     expect(formatAiRequestSummary(null, 'trip')).toBe('历史行程定制');
   });
 
-  it('loads the saved prompt and renders it before the assistant response', async () => {
+  it('keeps the saved prompt in the summary and renders the assistant response without duplicating the question', async () => {
     vi.doMock('../../miniprogram/services/ai', () => ({ listAiRecords: vi.fn(async () => [{
       requestId: 'c1', kind: 'chat', prompt: '原始问题', createdAt: '2026-09-06T00:00:00.000Z',
       status: 'succeeded', answer: 'AI 回答', mode: 'dify', error: null, localFacts: [], references: [],
@@ -45,15 +45,17 @@ describe('AI history presentation', () => {
     expect(page!.data).toMatchObject({ status: 'ready', records: [{ prompt: '原始问题', answer: 'AI 回答' }] });
 
     const markup = await readFile('miniprogram/pages/ai-history/index.wxml', 'utf8');
-    const userBubble = markup.indexOf('role="user"');
-    const assistantBubble = markup.indexOf('role="assistant"');
-    expect(userBubble).toBeGreaterThan(-1);
-    expect(assistantBubble).toBeGreaterThan(userBubble);
-    expect(markup).toContain('content="{{item.prompt}}"');
+    expect(markup).toContain("selectedKind === 'chat' ? 'history-tab history-tab-active' : 'history-tab'");
+    expect(markup).toContain("selectedKind === 'trip' ? 'history-tab history-tab-active' : 'history-tab'");
+    expect(markup).toContain('{{item.prompt}}');
+    expect(markup).not.toContain('role="user"');
+    expect(markup).toContain('role="assistant"');
     expect(markup).toContain('<source-card');
     expect(markup).toContain('内容仅供出行参考');
     expect(markup).toContain('bind:retry="onRetry"');
     expect(markup).not.toMatch(/item\.(?:requestId|recordId)/);
+    const styles = await readFile('miniprogram/pages/ai-history/index.wxss', 'utf8');
+    expect(styles).toContain('background: var(--color-primary)');
   });
 
   it('filters local records by type and expands only the selected record', async () => {
@@ -107,7 +109,7 @@ describe('AI history presentation', () => {
     expect(markup).toContain('bindtap="toggleRecord"');
     expect(markup).toContain('wx:if="{{item.expanded}}"');
     expect(markup).toContain('内容仅供出行参考');
-    expect(markup).toContain('role="user"');
+    expect(markup).not.toContain('role="user"');
     expect(markup).toContain('role="assistant"');
     expect(markup).toContain('<source-card');
   });
