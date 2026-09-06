@@ -34,7 +34,7 @@
 ## 云端部署验证（2026-09-07，独立复验）
 
 - 对应代码提交：`0b62ec67af3f8fbe71555a3c10960095f61699f8`（`fix: declare place service cloud dependency`）。
-- 已在 CloudBase 控制台独立查看开发环境 `yichang-dev-d3glky2csb41de48e` 的函数详情：`placeService`（`lam-nv3neuip`）状态为“正常”，运行环境为 Node.js 20.19；控制台显示上次部署时间为 2026-09-07 00:07:48，且提示“与已部署代码一致”。在线代码工作区中可见 `node_modules` 与 `package.json`。
+- 已在 CloudBase 控制台独立查看当前开发环境的 `placeService` 函数详情：状态为“正常”，运行环境为 Node.js 20.19；控制台显示上次部署时间为 2026-09-07 00:07:48，且提示“与已部署代码一致”。在线代码工作区中可见 `node_modules` 与 `package.json`。
 - 在控制台测试面板仅执行一次非写入调用：`{"action":"list","category":"scenic","pageSize":1}`。结果为成功，返回 `code: "OK"`、一条 `scenic` 地点（“185平台”）和 `nextCursor`；响应的 `isFavorite` 为 `false`，未触发用户记录或地点数据写入。请求运行时间 378 ms，内存使用 28.67 MB。
 - 该结果独立确认已部署函数可连接真实 `places` 数据并完成景区分类读取。测试过程中未上传代码、未部署新版本、未更改 Dify、环境变量、密钥、云数据库权限或地点数据。
 
