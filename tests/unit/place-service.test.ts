@@ -51,4 +51,23 @@ describe('place repository', () => {
     const response = await handlePlaceRequest({ action: 'detail', placeId: scenicPlace.placeId }, { repository, storage, favoritePlaceIds: async ids => new Set(ids) });
     expect(response).toMatchObject({ code: 'OK', data: { placeId: scenicPlace.placeId, isFavorite: true } });
   });
+  it('keeps a covered published place consistent between list, detail and marker responses', async () => {
+    const covered = { ...scenicPlace, _id: scenicPlace.placeId, status: 'published', aliases: [], coverFileId: 'cloud://approved-bucket/covers/synthetic.jpg', sources: [], openNotice: scenicDetail.openNotice };
+    const db = { collection(name: string) { return { where() { return { skip() { return { limit() { return { async get() { return { data: [covered] }; } }; } }; } }; }, doc(id: string) { return { async get() { const data = name === 'places' ? (id === covered._id ? covered : null) : (id === covered._id ? { sections: [] } : null); if (!data) throw new Error('not found'); return { data }; } }; } }; } };
+    const storage = { async getTempFileURL({ fileList }: { fileList: string[] }) { return { fileList: fileList.map(fileID => ({ fileID, tempFileURL: `https://temp.example/${fileID.split('/').pop()}` })) }; } };
+    const list = await handlePlaceRequest({ action: 'list' }, { repository: createPlaceRepository(db), storage });
+    const detail = await handlePlaceRequest({ action: 'detail', placeId: scenicPlace.placeId }, { repository: createPlaceRepository(db), storage });
+    const markers = await handlePlaceRequest({ action: 'markers' }, { repository: createPlaceRepository(db), storage });
+
+    expect(list).toMatchObject({ code: 'OK' });
+    expect(detail).toMatchObject({ code: 'OK' });
+    expect(markers).toMatchObject({ code: 'OK' });
+    const listed = (list.data as { items: Array<{ placeId: string; coverFileId: string | null; coverUrl: string | null; latitude: number; longitude: number }> }).items[0];
+    const detailed = detail.data as { placeId: string; coverFileId: string | null; coverUrl: string | null };
+    const marker = (markers.data as { items: Array<{ placeId: string; latitude: number; longitude: number }> }).items.find(item => item.placeId === listed.placeId);
+
+    expect(listed).toMatchObject({ placeId: scenicPlace.placeId, coverFileId: covered.coverFileId, coverUrl: 'https://temp.example/synthetic.jpg' });
+    expect(detailed).toMatchObject({ placeId: listed.placeId, coverFileId: listed.coverFileId, coverUrl: listed.coverUrl });
+    expect(marker).toMatchObject({ placeId: listed.placeId, latitude: listed.latitude, longitude: listed.longitude });
+  });
 });
