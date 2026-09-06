@@ -3,10 +3,17 @@ import { listPlaces } from '../../services/places';
 import { PlaceListViewModel } from '../../view-models/place-list';
 
 const viewModel = new PlaceListViewModel(listPlaces);
+type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
 Page({
   data: viewModel.state,
-  onShow() { void this.refresh(); },
+  onShow() {
+    const app = getApp<TravelApp>();
+    const category = app.globalData.pendingDiscoverCategory;
+    app.globalData.pendingDiscoverCategory = '';
+    if (category) { void viewModel.setFilters({ category }).then(() => this.sync()); return; }
+    void this.refresh();
+  },
   sync() { this.setData(viewModel.state); },
   async refresh() { await viewModel.reload(); this.sync(); },
   onCategoryChange(event: WechatMiniprogram.CustomEvent<{ category: Category | '' }>) {

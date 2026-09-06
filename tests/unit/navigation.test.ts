@@ -21,6 +21,21 @@ describe('four-tab application', () => {
     page!.openDiscover();
     expect(switchTab).toHaveBeenCalledWith({ url: '/pages/discover/index' });
   });
+  it('opens the discover tab with the category selected from a homepage card', async () => {
+    let page: { onCategoryTap(event: unknown): void };
+    vi.stubGlobal('Page', (value: typeof page) => { page = value; });
+    const switchTab = vi.fn();
+    const app = { globalData: { pendingDiscoverCategory: '' } };
+    vi.stubGlobal('getApp', () => app);
+    vi.stubGlobal('wx', { switchTab });
+    await import('../../miniprogram/pages/home/index');
+    page!.onCategoryTap({ currentTarget: { dataset: { category: 'culture' } } });
+    expect(app.globalData.pendingDiscoverCategory).toBe('culture');
+    expect(switchTab).toHaveBeenCalledWith({ url: '/pages/discover/index' });
+    const template = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
+    expect(template).toContain('bindtap="onCategoryTap"');
+    expect(template).toContain('data-category="{{item.value}}"');
+  });
   it('opens each homepage AI card on its own existing route', async () => {
     let page: { openAiChat(): void; openTripForm(): void };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
@@ -91,7 +106,8 @@ describe('four-tab application', () => {
     expect(chat).toContain('模拟回答，仅用于交互测试');
     expect(chat).not.toContain('rich-text');
     const history = await readFile('miniprogram/pages/ai-history/index.wxml', 'utf8');
-    expect(history).toContain('自由问答与行程定制分别保存');
+    expect(history).toContain('data-kind="chat"');
+    expect(history).toContain('data-kind="trip"');
     expect(history).toContain("status === 'ready'");
   });
   it('includes all four async template branches with a retry binding', async () => {

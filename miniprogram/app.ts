@@ -1,7 +1,8 @@
 import { runtime } from './config/runtime';
+import type { Category } from '../shared/contracts';
 
 App({
-  globalData: { cloudStatus: 'unconfigured' },
+  globalData: { cloudStatus: 'unconfigured', pendingDiscoverCategory: '' as Category | '' },
   onLaunch() {
     if (!runtime.cloudEnv) return;
     if (!wx.cloud) {
