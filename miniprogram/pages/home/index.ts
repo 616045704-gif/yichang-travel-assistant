@@ -18,6 +18,9 @@ Page({
     getApp<TravelApp>().globalData.pendingDiscoverCategory = category as Category;
     wx.switchTab({ url: '/pages/discover/index' });
   },
+  openPlace(event: WechatMiniprogram.CustomEvent<{ placeId: string }>) {
+    wx.navigateTo({ url: `/pages/place-detail/index?placeId=${encodeURIComponent(event.detail.placeId)}` });
+  },
   openAiChat() { wx.navigateTo({ url: '/pages/ai-chat/index' }); },
   openTripForm() { wx.navigateTo({ url: '/pages/trip-form/index' }); },
 });

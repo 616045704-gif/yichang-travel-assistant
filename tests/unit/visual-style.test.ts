@@ -31,7 +31,9 @@ describe('travel visual presentation', () => {
     expect(chat).not.toContain('我要定制行程');
     expect(chat).not.toContain('bindtap="openTripForm"');
     expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
-    expect(home).toContain('status="empty"');
+    expect(home).toContain('featuredStatus');
+    expect(home).toContain('place-card');
+    expect(home).toContain('bind:open="openPlace"');
     expect(home).toContain('bindtap="openDiscover"');
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
