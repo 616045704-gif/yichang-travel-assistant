@@ -1,8 +1,14 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { PlaceListViewModel } from '../../miniprogram/view-models/place-list';
 import { culturePlace, scenicPlace } from '../fixtures/places';
 
 describe('place discovery view model', () => {
+  it('registers the place card used to render loaded discovery results', async () => {
+    const pageConfig = JSON.parse(await readFile('miniprogram/pages/discover/index.json', 'utf8'));
+    expect(pageConfig.usingComponents).toMatchObject({ 'place-card': '/components/place-card/index' });
+  });
+
   it('trims a keyword and resets its cursor when the category changes', async () => {
     const fetchPage = vi.fn().mockResolvedValue({ items: [scenicPlace], nextCursor: 'next-page' });
     const model = new PlaceListViewModel(fetchPage);
