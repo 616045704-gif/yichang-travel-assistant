@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildProject } from '../../scripts/build.mjs';
+import { buildProject, resolveCliBuildMode } from '../../scripts/build.mjs';
 import { checkPackage, validateResources } from '../../scripts/check-package.mjs';
 import { verifyDocs } from '../../scripts/verify-docs.mjs';
 
@@ -45,6 +45,17 @@ async function put(root: string, name: string, value: string) {
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe('deployable build boundary', () => {
+  it('defaults executable builds to demo and keeps development explicit', async () => {
+    expect(resolveCliBuildMode([])).toBe('demo');
+    expect(resolveCliBuildMode(['--mode=demo'])).toBe('demo');
+    expect(resolveCliBuildMode(['--mode=development'])).toBe('development');
+
+    const manifest = JSON.parse(await readFile(path.join(process.cwd(), 'package.json'), 'utf8'));
+    expect(manifest.scripts.build).toBe('node scripts/build.mjs --mode=demo');
+    expect(manifest.scripts['build:demo']).toBe('node scripts/build.mjs --mode=demo');
+    expect(manifest.scripts['build:dev']).toBe('node scripts/build.mjs --mode=development');
+  });
+
   it('builds a minimal client without sources or tests', async () => {
     const root = await fixture();
     await buildProject({ root });

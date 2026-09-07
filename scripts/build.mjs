@@ -81,8 +81,18 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
   await checkPackage({ root, mode });
   return output;
 }
+
+/**
+ * Resolves the command-line mode. Shipped builds must use the cloud AI service;
+ * the local mock is available only through an explicit development command.
+ */
+export function resolveCliBuildMode(args) {
+  const modeArgument = args.find((argument) => argument.startsWith('--mode='));
+  return modeArgument ? modeArgument.slice('--mode='.length) : 'demo';
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const mode = process.argv.find(arg => arg.startsWith('--mode='))?.split('=')[1] || 'development';
+  const mode = resolveCliBuildMode(process.argv.slice(2));
   await buildProject({ mode });
   console.log(`Build ready: dist/ (${mode})`);
 }
