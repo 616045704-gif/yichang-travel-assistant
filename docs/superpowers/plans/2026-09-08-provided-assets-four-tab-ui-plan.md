@@ -80,12 +80,18 @@ function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE
 describe('provided visual assets and UI boundary', () => {
   it('ships optimized derivatives within the agreed visual budget', async () => {
     let total = 0;
+    let heroTotal = 0;
+    let iconTotal = 0;
     for (const [file, width, maxBytes] of assets) {
       const path = `${root}/${file}`; const bytes = await readFile(path); const info = await stat(path);
-      total += info.size; expect(info.size).toBeLessThanOrEqual(maxBytes);
+      total += info.size;
+      if (file.endsWith('-hero.jpg')) heroTotal += info.size; else iconTotal += info.size;
+      expect(info.size).toBeLessThanOrEqual(maxBytes);
       if (width) { expect(bytes.subarray(1, 4).toString()).toBe('PNG'); expect(pngDimension(bytes, 16)).toBe(width); expect(pngDimension(bytes, 20)).toBe(width); }
     }
     expect(total).toBeLessThanOrEqual(700_000);
+    expect(heroTotal).toBeLessThanOrEqual(450_000);
+    expect(iconTotal).toBeLessThanOrEqual(250_000);
   });
 
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {
