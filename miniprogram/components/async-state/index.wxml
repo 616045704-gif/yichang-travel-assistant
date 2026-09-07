@@ -1,4 +1,4 @@
-<view wx:if="{{status === 'loading'}}" class="state"><view class="state-icon spinner" aria-hidden="true"></view><text class="state-title">正在加载</text><text class="state-message">请稍等片刻</text></view>
-<view wx:elif="{{status === 'empty'}}" class="state"><view class="state-icon empty-icon" aria-hidden="true">﹏</view><text class="state-title">{{title}}</text><text class="state-message">{{message}}</text></view>
-<view wx:elif="{{status === 'error'}}" class="state"><view class="state-icon error-icon" aria-hidden="true">!</view><text class="state-title">加载未完成</text><text class="state-message">{{message || '网络开了个小差，请稍后重试。'}}</text><button class="retry" bindtap="onRetry">{{retryText}}</button></view>
+<view wx:if="{{status === 'loading'}}" class="state"><view class="state-icon spinner" aria-hidden="true"><view class="spinner-dot"></view></view><text class="state-title">正在加载</text><text class="state-message">请稍等片刻</text></view>
+<view wx:elif="{{status === 'empty'}}" class="state"><view class="state-icon empty-icon" aria-hidden="true"><view class="empty-mark"></view></view><text class="state-title">{{title}}</text><text class="state-message">{{message}}</text></view>
+<view wx:elif="{{status === 'error'}}" class="state"><view class="state-icon error-icon" aria-hidden="true"><view class="error-mark"></view></view><text class="state-title">加载未完成</text><text class="state-message">{{message || '网络开了个小差，请稍后重试。'}}</text><button class="retry" bindtap="onRetry">{{retryText}}</button></view>
 <slot wx:elif="{{status === 'ready'}}" />

@@ -14,6 +14,20 @@ function instance(data: Record<string, unknown>): Instance {
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 describe('reusable travel components', () => {
+  it('uses modern visual feedback without changing component action contracts', async () => {
+    const state = await readFile('miniprogram/components/async-state/index.wxml', 'utf8');
+    const stateStyle = await readFile('miniprogram/components/async-state/index.wxss', 'utf8');
+    const feedback = await readFile('miniprogram/components/feedback-toast/index.wxml', 'utf8');
+    const feedbackStyle = await readFile('miniprogram/components/feedback-toast/index.wxss', 'utf8');
+    expect(state).not.toContain('﹏');
+    expect(state).not.toContain('>!</view>');
+    expect(stateStyle).toContain('var(--color-action)');
+    expect(feedback).toContain('feedback-toast');
+    expect(feedback).toContain('bindtap="dismiss"');
+    expect(feedbackStyle).toContain('var(--color-brand-deep)');
+    expect(feedbackStyle).toContain('var(--color-action)');
+  });
+
   it('uses reference labels rather than claiming every local fact is verified', async () => {
     await expect(readFile('miniprogram/components/source-card/index.wxml', 'utf8')).resolves.toContain('本地资料参考');
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');

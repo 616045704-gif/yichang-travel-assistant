@@ -1,0 +1,5 @@
+<view wx:if="{{visible && message}}" class="feedback-toast feedback-{{tone}}" role="alert">
+  <view class="feedback-mark" aria-hidden="true"><view class="feedback-mark-core"></view></view>
+  <text class="feedback-message">{{message}}</text>
+  <button class="feedback-close" bindtap="dismiss" aria-label="关闭提示"><view></view></button>
+</view>
