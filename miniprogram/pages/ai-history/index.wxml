@@ -1,7 +1,6 @@
 <view class="page history-page">
   <view class="chapter-heading">
-    <text class="chapter-seal">留记</text>
-    <view><text class="eyebrow">只对你可见</text><text class="page-title">AI 问答记录</text></view>
+    <view><text class="eyebrow">PRIVATE AI HISTORY</text><text class="page-title">AI 问答记录</text></view>
   </view>
   <view class="history-tabs">
     <view class="{{selectedKind === 'chat' ? 'history-tab history-tab-active' : 'history-tab'}}" data-kind="chat" bindtap="selectKind">自由问答</view>

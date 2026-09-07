@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "个人记录", "usingComponents": { "async-state": "/components/async-state/index" } }
+{ "navigationBarTitleText": "个人记录", "usingComponents": { "async-state": "/components/async-state/index", "feedback-toast": "/components/feedback-toast/index" } }

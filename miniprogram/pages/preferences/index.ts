@@ -8,7 +8,7 @@ function visibleOptions(selected: string[]): PreferenceOption[] {
 }
 
 Page({
-  data: { options: visibleOptions([]), selected: [] as string[], status: 'loading', message: '', saving: false },
+  data: { options: visibleOptions([]), selected: [] as string[], status: 'loading', message: '', saving: false, feedback: { visible: false, tone: 'info', message: '' } },
   onLoad() { void this.load(); },
   async load() {
     this.setData({ status: 'loading', message: '' });
@@ -32,9 +32,10 @@ Page({
     try {
       const selected = (await savePreferences(this.data.selected)).preferences;
       this.setData({ selected, options: visibleOptions(selected) });
-      wx.showToast({ title: '已保存', icon: 'success' });
+      this.setData({ feedback: { visible: true, tone: 'success', message: '已保存' } });
     }
-    catch { wx.showToast({ title: '保存失败，请稍后重试', icon: 'none' }); }
+    catch { this.setData({ feedback: { visible: true, tone: 'error', message: '保存失败，请稍后重试' } }); }
     finally { this.setData({ saving: false }); }
   },
+  onFeedbackDismiss() { this.setData({ 'feedback.visible': false }); },
 });

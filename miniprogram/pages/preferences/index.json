@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "旅行偏好", "usingComponents": { "async-state": "/components/async-state/index" } }
+{ "navigationBarTitleText": "旅行偏好", "usingComponents": { "async-state": "/components/async-state/index", "feedback-toast": "/components/feedback-toast/index" } }

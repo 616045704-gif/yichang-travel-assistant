@@ -1,8 +1,8 @@
 <view class="page">
-  <view class="chapter-heading"><text class="chapter-seal">行记</text><view><text class="eyebrow">一程山水 · 一册心事</text><text class="page-title">把旅途，慢慢收藏</text></view></view>
-  <view class="profile-card"><view class="profile-seal" aria-hidden="true">宜</view><view><text class="profile-title">你好，旅行者</text><text class="profile-subtitle">带着好奇心，认识这座城。</text></view></view>
-  <view class="card menu"><view wx:for="{{entries}}" wx:key="title" class="menu-row" bindtap="openEntry" data-url="{{item.url}}"><text class="menu-symbol" aria-hidden="true">{{item.symbol}}</text><view class="menu-copy"><text class="menu-title">{{item.title}}</text><text class="note">{{item.description}}</text></view><text class="menu-status">查看</text></view></view>
-  <button class="privacy-button card" bindtap="showPrivacy"><text>隐私说明</text><text aria-hidden="true">→</text></button>
+  <view class="chapter-heading"><view><text class="eyebrow">YOUR TRAVEL SPACE</text><text class="page-title">我的旅行</text></view></view>
+  <view class="profile-card"><view class="profile-badge" aria-hidden="true"></view><view><text class="profile-title">你好，旅行者</text><text class="profile-subtitle">收藏灵感，规划下一段出发。</text></view></view>
+  <view class="card menu"><view wx:for="{{entries}}" wx:key="title" class="menu-row" bindtap="openEntry" data-url="{{item.url}}"><view class="menu-icon menu-icon-{{item.icon}}" aria-hidden="true"></view><view class="menu-copy"><text class="menu-title">{{item.title}}</text><text class="note">{{item.description}}</text></view><view class="menu-arrow" aria-hidden="true"></view></view></view>
+  <button class="privacy-button card" bindtap="showPrivacy"><text>隐私说明</text><view class="menu-arrow" aria-hidden="true"></view></button>
   <text class="note personal-note">收藏、浏览、旅行偏好与 AI 问答记录只向对应用户展示。</text>
   <text class="footer-note">宜昌旅游助手 · 基础版</text>
 </view>

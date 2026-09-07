@@ -6,9 +6,12 @@ page {
   --color-page: #f8f6ff;
   --color-surface: #ffffff;
   --color-text: #30254a;
+  --color-text-strong: #201837;
   --color-muted: #746c8b;
   --color-border: #ddd5ff;
+  --color-brand-soft: #ece5ff;
   --color-danger: #c83f56;
+  --color-danger-soft: #ffe8ec;
   --color-success: #25866c;
   --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   --radius-card: 28rpx;

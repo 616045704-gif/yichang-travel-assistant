@@ -55,7 +55,7 @@ describe('AI history presentation', () => {
     expect(markup).toContain('bind:retry="onRetry"');
     expect(markup).not.toMatch(/item\.(?:requestId|recordId)/);
     const styles = await readFile('miniprogram/pages/ai-history/index.wxss', 'utf8');
-    expect(styles).toContain('background: var(--color-primary)');
+    expect(styles).toContain('background: var(--color-brand-deep)');
   });
 
   it('filters local records by type and expands only the selected record', async () => {

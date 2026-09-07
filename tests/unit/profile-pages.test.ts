@@ -20,6 +20,10 @@ describe('personal pages', () => {
     expect(me).toContain('/pages/ai-history/index');
     expect(me).not.toContain("listRecords('trips'");
     expect(template).toContain('AI 问答记录只向对应用户展示');
+    expect(me).not.toContain("symbol: '♡'");
+    expect(me).not.toContain("symbol: '◷'");
+    expect(me).not.toContain("symbol: '✦'");
+    expect(me).not.toContain("symbol: '☷'");
   });
   it('loads owner-scoped live AI records through aiService', async () => {
     vi.stubGlobal('__BUILD_MODE__', 'demo');

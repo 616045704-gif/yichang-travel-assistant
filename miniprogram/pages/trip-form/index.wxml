@@ -1,8 +1,7 @@
 <view class="page trip-page">
   <view class="chapter-heading">
-    <text class="chapter-seal">行程</text>
     <view>
-      <text class="eyebrow">宜昌旅行顾问</text>
+      <text class="eyebrow">YICHANG TRIP PLANNER</text>
       <text class="page-title">定制宜昌行程</text>
     </view>
   </view>

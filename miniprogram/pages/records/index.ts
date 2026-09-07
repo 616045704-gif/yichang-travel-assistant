@@ -4,7 +4,7 @@ import { listRecords, setFavorite } from '../../services/user';
 
 type DisplayRecord = UserRecord & { name: string; unavailable: boolean };
 Page({
-  data: { type: 'favorites' as Exclude<RecordType, 'trips'>, title: '我的收藏', status: 'loading', message: '', items: [] as DisplayRecord[], nextCursor: null as string | null },
+  data: { type: 'favorites' as Exclude<RecordType, 'trips'>, title: '我的收藏', status: 'loading', message: '', items: [] as DisplayRecord[], nextCursor: null as string | null, feedback: { visible: false, tone: 'info', message: '' } },
   onLoad(query: Record<string, string | undefined>) {
     const type: Exclude<RecordType, 'trips'> = query.type === 'browse' ? 'browse' : 'favorites';
     this.setData({ type, title: type === 'browse' ? '浏览记录' : '我的收藏' });
@@ -31,7 +31,8 @@ Page({
   async removeUnavailableFavorite(event: WechatMiniprogram.BaseEvent) {
     const placeId = event.currentTarget.dataset.placeId as string | undefined;
     if (!placeId || this.data.type !== 'favorites') return;
-    try { await setFavorite(placeId, false); wx.showToast({ title: '已移除收藏', icon: 'success' }); void this.load(); }
-    catch { wx.showToast({ title: '移除失败，请稍后重试', icon: 'none' }); }
+    try { await setFavorite(placeId, false); this.setData({ feedback: { visible: true, tone: 'success', message: '已移除收藏' } }); void this.load(); }
+    catch { this.setData({ feedback: { visible: true, tone: 'error', message: '移除失败，请稍后重试' } }); }
   },
+  onFeedbackDismiss() { this.setData({ 'feedback.visible': false }); },
 });

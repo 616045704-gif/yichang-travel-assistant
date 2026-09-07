@@ -100,4 +100,14 @@ describe('travel visual presentation', () => {
       expect(style).not.toContain('#a44d3e');
     }
   });
+
+  it('keeps private travel, AI, and planning screens in the modern visual system', async () => {
+    for (const page of ['me', 'records', 'preferences', 'privacy', 'ai-chat', 'ai-history', 'trip-form']) {
+      const markup = await readFile(`miniprogram/pages/${page}/index.wxml`, 'utf8');
+      const style = await readFile(`miniprogram/pages/${page}/index.wxss`, 'utf8');
+      expect(markup).not.toContain('chapter-seal');
+      expect(style).not.toContain('var(--font-display)');
+      expect(style).toMatch(/var\(--color-(?:brand|surface|action|page)/);
+    }
+  });
 });
