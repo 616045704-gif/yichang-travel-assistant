@@ -3,7 +3,7 @@ import { getPlaceDetail } from '../../services/places';
 import { recordBrowse, setFavorite } from '../../services/user';
 
 Page({
-  data: { placeId: '', place: null as PlaceDetail | null, status: 'loading', message: '', favoritePending: false },
+  data: { placeId: '', place: null as PlaceDetail | null, status: 'loading', message: '', favoritePending: false, feedback: { visible: false, tone: 'info', message: '' } },
   onLoad(query: Record<string, string | undefined>) { this.setData({ placeId: query.placeId || '' }); void this.loadDetail(); },
   async loadDetail() {
     if (!this.data.placeId) { this.setData({ status: 'error', message: '地点信息无效，请返回列表后重试。' }); return; }
@@ -21,7 +21,8 @@ Page({
     if (!place || this.data.favoritePending) return;
     this.setData({ favoritePending: true });
     try { const result = await setFavorite(place.placeId, !place.isFavorite); this.setData({ 'place.isFavorite': result.favorite }); }
-    catch { wx.showToast({ title: '收藏未保存，请稍后重试', icon: 'none' }); }
+    catch { this.setData({ feedback: { visible: true, tone: 'error', message: '收藏未保存，请稍后重试' } }); }
     finally { this.setData({ favoritePending: false }); }
   },
+  onFeedbackDismiss() { this.setData({ 'feedback.visible': false }); },
 });

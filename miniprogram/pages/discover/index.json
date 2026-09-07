@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "发现宜昌", "usingComponents": { "category-filter": "/components/category-filter/index", "place-card": "/components/place-card/index", "async-state": "/components/async-state/index" } }
+{ "navigationBarTitleText": "发现宜昌", "usingComponents": { "category-filter": "/components/category-filter/index", "place-card": "/components/place-card/index", "async-state": "/components/async-state/index", "feedback-toast": "/components/feedback-toast/index" } }

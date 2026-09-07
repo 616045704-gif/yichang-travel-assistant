@@ -25,6 +25,15 @@ function icon(name, size, color, isCategory = false) {
     if (isCategory ? motif : motif && outer) set(dark);
   });
 }
+function locationPin() {
+  return png(60, 76, (x, y, set) => {
+    const px = x + .5; const py = y + .5;
+    const head = (px - 30) ** 2 + (py - 25) ** 2 <= 22 ** 2 && py <= 31;
+    const tail = py >= 25 && py <= 71 && Math.abs(px - 30) <= 22 * (71 - py) / 46;
+    if (head || tail) set(palette.yellow);
+    if ((px - 30) ** 2 + (py - 25) ** 2 <= 9 ** 2) set(palette.purple);
+  });
+}
 
 const tabs = ['home', 'discover', 'map', 'me'];
 for (const name of tabs) {
@@ -32,4 +41,4 @@ for (const name of tabs) {
   await writeFile(new URL(`${name}-active.png`, root), icon(name, 81, palette.yellow));
 }
 for (const name of ['scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, root), icon(name, 96, palette.yellow, true));
-await writeFile(new URL('location.png', root), icon('location', 60, palette.yellow, true));
+await writeFile(new URL('location.png', root), locationPin());

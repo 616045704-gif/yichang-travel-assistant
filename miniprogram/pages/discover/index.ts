@@ -7,7 +7,7 @@ const viewModel = new PlaceListViewModel(listPlaces);
 type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
 Page({
-  data: viewModel.state,
+  data: { ...viewModel.state, feedback: { visible: false, tone: 'info', message: '' } },
   onShow() {
     const app = getApp<TravelApp>();
     const category = app.globalData.pendingDiscoverCategory;
@@ -30,6 +30,7 @@ Page({
   },
   async onFavorite(event: WechatMiniprogram.CustomEvent<{ placeId: string; favorite: boolean }>) {
     try { const result = await setFavorite(event.detail.placeId, event.detail.favorite); this.setData({ [`items[${this.data.items.findIndex((item: { placeId: string }) => item.placeId === result.placeId)}].isFavorite`]: result.favorite }); }
-    catch { wx.showToast({ title: '收藏未保存，请稍后重试', icon: 'none' }); }
+    catch { this.setData({ feedback: { visible: true, tone: 'error', message: '收藏未保存，请稍后重试' } }); }
   },
+  onFeedbackDismiss() { this.setData({ 'feedback.visible': false }); },
 });

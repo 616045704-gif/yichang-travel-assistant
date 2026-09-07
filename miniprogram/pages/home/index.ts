@@ -6,7 +6,7 @@ import { setFavorite } from '../../services/user';
 type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
 Page({
-  data: { categories: CATEGORIES, featured: [] as PlaceSummary[], featuredStatus: 'loading' as 'loading' | 'ready' | 'empty' | 'error' },
+  data: { categories: CATEGORIES, featured: [] as PlaceSummary[], featuredStatus: 'loading' as 'loading' | 'ready' | 'empty' | 'error', feedback: { visible: false, tone: 'info', message: '' } },
   onShow() { void this.loadFeatured(); },
   async loadFeatured() {
     try { const { featured } = await getHomePlaces(); this.setData({ featured, featuredStatus: featured.length ? 'ready' : 'empty' }); }
@@ -24,8 +24,9 @@ Page({
   },
   async onFavorite(event: WechatMiniprogram.CustomEvent<{ placeId: string; favorite: boolean }>) {
     try { const result = await setFavorite(event.detail.placeId, event.detail.favorite); this.setData({ [`featured[${this.data.featured.findIndex(item => item.placeId === result.placeId)}].isFavorite`]: result.favorite }); }
-    catch { wx.showToast({ title: '收藏未保存，请稍后重试', icon: 'none' }); }
+    catch { this.setData({ feedback: { visible: true, tone: 'error', message: '收藏未保存，请稍后重试' } }); }
   },
+  onFeedbackDismiss() { this.setData({ 'feedback.visible': false }); },
   openAiChat() { wx.navigateTo({ url: '/pages/ai-chat/index' }); },
   openTripForm() { wx.navigateTo({ url: '/pages/trip-form/index' }); },
 });

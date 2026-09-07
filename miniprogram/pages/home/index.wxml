@@ -21,4 +21,4 @@
     <view wx:if="{{featuredStatus === 'ready'}}" class="place-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view><view wx:else class="card"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
     <text class="footer-note">宜昌旅行，从这里开始</text>
   </view>
-</view>
+</view><feedback-toast visible="{{feedback.visible}}" tone="{{feedback.tone}}" message="{{feedback.message}}" bind:dismiss="onFeedbackDismiss" />

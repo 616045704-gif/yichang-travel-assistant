@@ -32,12 +32,17 @@ describe('travel visual presentation', () => {
       expect((await readFile(`miniprogram/assets/icons/${name}.png`)).subarray(1, 4).toString()).toBe('PNG');
       expect((await readFile(`miniprogram/assets/icons/${name}-active.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
-    for (const name of ['scenic', 'restaurant', 'culture', 'camping', 'location']) {
-      const filename = name === 'location' ? name : `category-${name}`;
+    for (const name of ['scenic', 'restaurant', 'culture', 'camping']) {
+      const filename = `category-${name}`;
       const svg = await readFile(`miniprogram/assets/icons/${filename}.svg`, 'utf8');
       expect(svg).toContain('viewBox="0 0 64 64"');
       expect(svg).toContain('#ffc400');
     }
+    const locationSvg = await readFile('miniprogram/assets/icons/location.svg', 'utf8');
+    const locationPng = await readFile('miniprogram/assets/icons/location.png');
+    expect(locationSvg).toContain('viewBox="0 0 60 76"');
+    expect(locationPng.readUInt32BE(16)).toBe(60);
+    expect(locationPng.readUInt32BE(20)).toBe(76);
     const scenic = await readFile('miniprogram/assets/icons/category-scenic.png');
     expect(scenic.readUInt32BE(16)).toBe(96);
     expect(scenic.readUInt32BE(20)).toBe(96);
@@ -108,6 +113,16 @@ describe('travel visual presentation', () => {
       expect(markup).not.toContain('chapter-seal');
       expect(style).not.toContain('var(--font-display)');
       expect(style).toMatch(/var\(--color-(?:brand|surface|action|page)/);
+    }
+  });
+
+  it('uses the shared feedback component instead of platform-specific toast styling', async () => {
+    for (const page of ['home', 'discover', 'place-detail', 'records', 'preferences']) {
+      const markup = await readFile(`miniprogram/pages/${page}/index.wxml`, 'utf8');
+      const logic = await readFile(`miniprogram/pages/${page}/index.ts`, 'utf8');
+      expect(markup).toContain('<feedback-toast');
+      expect(logic).not.toContain('wx.showToast');
+      expect(logic).toContain('onFeedbackDismiss');
     }
   });
 });

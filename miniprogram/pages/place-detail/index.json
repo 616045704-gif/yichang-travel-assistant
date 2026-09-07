@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "地点详情", "usingComponents": { "async-state": "/components/async-state/index" } }
+{ "navigationBarTitleText": "地点详情", "usingComponents": { "async-state": "/components/async-state/index", "feedback-toast": "/components/feedback-toast/index" } }

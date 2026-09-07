@@ -27,11 +27,11 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       await page.waitFor('.page');
       assert.equal(page.path, `pages/${name}/index`);
       if (name === 'home') {
-        const hero = await page.$('.hero-art');
+        const hero = await page.$('.hero');
         assert.ok(hero);
-        const art = await miniProgram.callWxMethod('getImageInfo', { src: '/assets/illustrations/yichang-ink.jpg' });
-        assert.ok(art.width > 0 && art.height > 0, 'Original landscape asset must load');
-        assert.equal(await (await page.$('.hero-title')).text(), '宜昌');
+        assert.ok(await page.$('.hero-orbit'));
+        assert.ok(await page.$('.hero-river'));
+        assert.equal(await (await page.$('.hero-title')).text(), '探索宜昌');
         const icons = await page.$$('.category-icon');
         assert.equal(icons.length, 4);
         const viewport = await page.size();
@@ -41,6 +41,23 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
           assert.ok(offset.left >= 0 && offset.left + size.width <= viewport.width, 'Category icons must fit the viewport');
         }
       }
+      await miniProgram.screenshot({ path: path.resolve('.local', `wechat-${name}.png`) });
+      console.log(`PASS: ${name}`);
+    }
+    const pageScreens = [
+      ['place-detail', '/pages/place-detail/index?placeId=smoke-place'],
+      ['records-favorites', '/pages/records/index?type=favorites'],
+      ['records-browse', '/pages/records/index?type=browse'],
+      ['preferences', '/pages/preferences/index'],
+      ['privacy', '/pages/privacy/index'],
+      ['ai-chat', '/pages/ai-chat/index'],
+      ['ai-history', '/pages/ai-history/index'],
+      ['trip-form', '/pages/trip-form/index'],
+    ];
+    for (const [name, route] of pageScreens) {
+      const page = await miniProgram.reLaunch(route);
+      assert.ok(page, `Expected ${name} page to open`);
+      await page.waitFor('.page');
       await miniProgram.screenshot({ path: path.resolve('.local', `wechat-${name}.png`) });
       console.log(`PASS: ${name}`);
     }
@@ -68,6 +85,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       const retry = await state.$('.retry');
       assert.equal(Boolean(retry), status === 'error', `${status} retry visibility must match its branch`);
       if (retry) await retry.tap();
+      await miniProgram.screenshot({ path: path.resolve('.local', `wechat-discover-${status}.png`) });
       console.log(`PASS: ${status}`);
     }
     console.log('PASS: category layout and selection');

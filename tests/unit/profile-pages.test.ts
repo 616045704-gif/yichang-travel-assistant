@@ -61,4 +61,9 @@ describe('personal pages', () => {
     page!.data = { placeId: '' }; page!.setData = vi.fn((value: Record<string, unknown>) => Object.assign(page!.data, value)); page!.onLoad({ placeId: 'place-1' });
     await vi.waitFor(() => expect(page!.setData).toHaveBeenCalledWith(expect.objectContaining({ status: 'ready' })));
   });
+  it('does not state that the implemented AI question flow is unavailable in privacy copy', async () => {
+    const privacy = await readFile('miniprogram/pages/privacy/index.wxml', 'utf8');
+    expect(privacy).toContain('AI 问答会使用你输入的问题生成出行参考');
+    expect(privacy).not.toContain('AI 问答与意见反馈尚未在当前版本开放');
+  });
 });

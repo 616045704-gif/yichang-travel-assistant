@@ -55,6 +55,13 @@ describe('reusable travel components', () => {
     definition.methods.onRetry.call(ctx);
     expect(ctx.triggerEvent).toHaveBeenCalledWith('retry');
   });
+  it('emits a dismiss event for a visible feedback message without changing page data', async () => {
+    const definition = await component('feedback-toast');
+    const ctx = instance({ visible: true, tone: 'error', message: '保存失败，请稍后重试' });
+    definition.methods.dismiss.call(ctx);
+    expect(ctx.triggerEvent).toHaveBeenCalledWith('dismiss');
+    expect(ctx.data).toMatchObject({ visible: true, tone: 'error', message: '保存失败，请稍后重试' });
+  });
   it('emits card actions without changing favorite or requesting location', async () => {
     const definition = await component('place-card');
     const ctx = instance({ place: { placeId: 'synthetic-test-id', isFavorite: false }, pending: false });
