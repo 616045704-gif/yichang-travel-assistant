@@ -2,18 +2,22 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('travel visual presentation', () => {
-  it('ships the paper theme consistently with native navigation and original assets', async () => {
+  it('ships the modern purple yellow theme consistently with native navigation and original assets', async () => {
     const tokens = await readFile('miniprogram/styles/tokens.wxss', 'utf8');
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
-    expect(tokens).toContain('--color-background: #f5eddf');
-    expect(tokens).toContain('--color-accent: #a44d3e');
-    expect(app.window.navigationBarBackgroundColor.toLowerCase()).toBe('#f5eddf');
-    expect(app.tabBar.selectedColor.toLowerCase()).toBe('#a44d3e');
-    const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
-    expect(home).toContain('/assets/illustrations/yichang-ink.jpg');
-    const art = await readFile('miniprogram/assets/illustrations/yichang-ink.jpg');
-    expect(art.subarray(0, 2).toString('hex')).toBe('ffd8');
-    expect(art.length).toBeLessThan(350_000);
+    expect(tokens).toContain('--color-brand: #623bc7');
+    expect(tokens).toContain('--color-brand-deep: #2b174d');
+    expect(tokens).toContain('--color-action: #ffc400');
+    expect(tokens).toContain('--color-page: #f8f6ff');
+    expect(tokens).toContain('--font-sans: -apple-system');
+    expect(tokens).not.toContain('--font-display:');
+    expect(app.window.navigationBarBackgroundColor.toLowerCase()).toBe('#2b174d');
+    expect(app.window.navigationBarTextStyle).toBe('white');
+    expect(app.tabBar.backgroundColor.toLowerCase()).toBe('#2b174d');
+    expect(app.tabBar.selectedColor.toLowerCase()).toBe('#ffc400');
+    expect(app.tabBar.list.map((tab: { pagePath: string }) => tab.pagePath)).toEqual([
+      'pages/home/index', 'pages/discover/index', 'pages/map/index', 'pages/me/index',
+    ]);
     for (const category of ['scenic', 'restaurant', 'culture', 'camping']) {
       expect((await readFile(`miniprogram/assets/icons/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
     }

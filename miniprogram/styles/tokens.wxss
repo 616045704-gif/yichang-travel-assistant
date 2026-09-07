@@ -1,16 +1,29 @@
 page {
-  --color-primary: #627968;
-  --color-deep: #3f574a;
-  --color-accent: #a44d3e;
-  --color-gold: #b29a65;
-  --color-gold-light: #ebe0c9;
-  --color-background: #f5eddf;
-  --color-surface: #fcf8ef;
-  --color-text: #38382e;
-  --color-muted: #817969;
-  --color-border: #e4d7bf;
-  --font-display: "STSong", "Songti SC", "SimSun", serif;
-  --radius-card: 24rpx;
-  --radius-control: 24rpx;
+  --color-brand: #623bc7;
+  --color-brand-deep: #2b174d;
+  --color-action: #ffc400;
+  --color-action-soft: #fff1b3;
+  --color-page: #f8f6ff;
+  --color-surface: #ffffff;
+  --color-text: #30254a;
+  --color-muted: #746c8b;
+  --color-border: #ddd5ff;
+  --color-danger: #c83f56;
+  --color-success: #25866c;
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --radius-card: 28rpx;
+  --radius-control: 20rpx;
   --space-page: 32rpx;
+  --shadow-card: 0 12rpx 32rpx rgba(70, 43, 139, .10);
+
+  /* Transitional aliases keep untouched pages readable while their local styles migrate. */
+  --color-primary: var(--color-brand);
+  --color-deep: var(--color-brand-deep);
+  --color-accent: var(--color-action);
+  --color-gold: var(--color-action);
+  --color-gold-light: var(--color-action-soft);
+  --color-background: var(--color-page);
+  --color-ink: var(--color-text);
+  --color-line: var(--color-border);
+  --color-gold-dark: var(--color-brand-deep);
 }
