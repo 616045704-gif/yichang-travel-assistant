@@ -28,26 +28,26 @@
       {
         "pagePath": "pages/home/index",
         "text": "首页",
-        "iconPath": "assets/icons/home.png",
-        "selectedIconPath": "assets/icons/home-active.png"
+        "iconPath": "assets/provided/tab-home.png",
+        "selectedIconPath": "assets/provided/tab-home-active.png"
       },
       {
         "pagePath": "pages/discover/index",
         "text": "发现",
-        "iconPath": "assets/icons/discover.png",
-        "selectedIconPath": "assets/icons/discover-active.png"
+        "iconPath": "assets/provided/tab-discover.png",
+        "selectedIconPath": "assets/provided/tab-discover-active.png"
       },
       {
         "pagePath": "pages/map/index",
         "text": "地图",
-        "iconPath": "assets/icons/map.png",
-        "selectedIconPath": "assets/icons/map-active.png"
+        "iconPath": "assets/provided/tab-map.png",
+        "selectedIconPath": "assets/provided/tab-map-active.png"
       },
       {
         "pagePath": "pages/me/index",
         "text": "我的",
-        "iconPath": "assets/icons/me.png",
-        "selectedIconPath": "assets/icons/me-active.png"
+        "iconPath": "assets/provided/tab-me.png",
+        "selectedIconPath": "assets/provided/tab-me-active.png"
       }
     ]
   },

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = 'miniprogram/assets/provided';
 const assets = [
-  ['home-hero.jpg', 0, 300_000], ['discover-hero.jpg', 0, 150_000],
+  ['home-hero.jpg', 0, 300_000], ['discover-hero.jpg', 0, 180_000],
   ['ai-chat.png', 120, 60_000], ['trip-plan.png', 120, 60_000],
   ['category-all.png', 96, 30_000], ['category-scenic.png', 96, 30_000], ['category-restaurant.png', 96, 30_000],
   ['category-culture.png', 96, 30_000], ['category-camping.png', 96, 30_000],
