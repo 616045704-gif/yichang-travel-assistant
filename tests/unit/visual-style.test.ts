@@ -35,8 +35,11 @@ describe('travel visual presentation', () => {
     expect(app.tabBar.list.map((tab: { pagePath: string }) => tab.pagePath)).toEqual([
       'pages/home/index', 'pages/discover/index', 'pages/map/index', 'pages/me/index',
     ]);
+    expect(app.tabBar.list.map((tab: { iconPath: string }) => tab.iconPath)).toEqual([
+      'assets/provided/tab-home.png', 'assets/provided/tab-discover.png', 'assets/provided/tab-map.png', 'assets/provided/tab-me.png',
+    ]);
     for (const category of ['scenic', 'restaurant', 'culture', 'camping']) {
-      expect((await readFile(`miniprogram/assets/icons/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
+      expect((await readFile(`miniprogram/assets/provided/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
   });
 
@@ -72,7 +75,7 @@ describe('travel visual presentation', () => {
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
     expect(home).not.toContain('yichang-ink.jpg');
     expect(home).not.toContain('把日子放慢');
-    expect(homeStyle).toContain('.home-intro');
+    expect(homeStyle).toContain('.home-hero');
     expect(homeStyle).toContain('.featured-list');
     expect(homeStyle).not.toContain('.hero-orbit');
     expect(homeStyle).not.toContain('STKaiti');
@@ -80,9 +83,9 @@ describe('travel visual presentation', () => {
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
-    expect(home).toContain('/assets/banners/home-gorge.jpg');
-    expect(home).toContain('banner-image');
-    expect(homeStyle).toContain('.ai-entry-list');
+    expect(home).toContain('/assets/provided/home-hero.jpg');
+    expect(home).toContain('home-hero-image');
+    expect(homeStyle).toContain('.ai-quick-grid');
     expect(homeStyle).not.toContain('background: var(--color-brand-deep)');
     expect(chat).not.toContain('我要定制行程');
     expect(chat).not.toContain('bindtap="openTripForm"');
@@ -111,7 +114,7 @@ describe('travel visual presentation', () => {
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
     expect(discover).toContain('确认搜索');
-    expect(discover).toContain('/assets/banners/discover-riverside.jpg');
+    expect(discover).toContain('/assets/provided/discover-hero.jpg');
     expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
     expect(card).toContain('favorite-icon');
