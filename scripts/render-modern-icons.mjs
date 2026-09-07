@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { deflateSync } from 'node:zlib';
 
 const root = new URL('../miniprogram/assets/icons/', import.meta.url);
-const palette = { purple: [43, 23, 77, 255], yellow: [255, 196, 0, 255], lilac: [207, 194, 255, 255], clear: [0, 0, 0, 0] };
+const palette = { purple: [116, 84, 216, 255], yellow: [246, 198, 68, 255], lilac: [155, 147, 166, 255], clear: [0, 0, 0, 0] };
 
 function crc32(bytes) { let crc = 0xffffffff; for (const byte of bytes) { crc ^= byte; for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1)); } return (crc ^ 0xffffffff) >>> 0; }
 function chunk(kind, data) { const name = Buffer.from(kind); const header = Buffer.alloc(8); header.writeUInt32BE(data.length); name.copy(header, 4); const tail = Buffer.alloc(4); tail.writeUInt32BE(crc32(Buffer.concat([name, data]))); return Buffer.concat([header, data, tail]); }
@@ -12,17 +12,26 @@ function png(width, height, paint) {
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(width); ihdr.writeUInt32BE(height, 4); ihdr[8] = 8; ihdr[9] = 6;
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(pixels)), chunk('IEND', Buffer.alloc(0))]);
 }
-function insideRounded(x, y, size, radius) { const qx = Math.max(radius - x, 0, x - (size - radius - 1)); const qy = Math.max(radius - y, 0, y - (size - radius - 1)); return qx * qx + qy * qy <= radius * radius; }
+function distanceToSegment(px, py, ax, ay, bx, by) { const vx = bx - ax; const vy = by - ay; const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy))); return Math.hypot(px - (ax + vx * t), py - (ay + vy * t)); }
 function icon(name, size, color, isCategory = false) {
   const scale = size / 64;
   return png(size, size, (x, y, set) => {
     const px = x / scale; const py = y / scale;
-    if (isCategory && insideRounded(px - 3, py - 3, 58, 18)) set(palette.yellow);
-    const outer = !isCategory && ((px - 32) ** 2 + (py - 32) ** 2 < 22 ** 2);
-    if (outer) set(color);
-    const dark = palette.purple;
-    const motif = name === 'home' ? (py > 27 && py < 50 && Math.abs(px - 32) < (50 - py) * .75) : name === 'discover' ? ((px - 32) ** 2 + (py - 32) ** 2 < 11 ** 2) : name === 'map' ? (py > 18 && py < 46 && (px > 22 && px < 28 || px > 36 && px < 42)) : name === 'me' ? ((px - 32) ** 2 + (py - 24) ** 2 < 8 ** 2 || (py > 35 && (px - 32) ** 2 + (py - 52) ** 2 < 20 ** 2)) : name === 'location' ? ((px - 32) ** 2 + (py - 26) ** 2 < 8 ** 2) : name === 'scenic' ? (py > 26 && py < 50 && Math.abs(px - 30) < py - 24) : name === 'restaurant' ? (py > 29 && py < 45 && Math.abs(px - 32) < 20) : name === 'culture' ? (py > 28 && py < 51 && px > 15 && px < 49) : (py > 27 && py < 50 && Math.abs(px - 32) < py - 22);
-    if (isCategory ? motif : motif && outer) set(dark);
+    const stroke = 2.25;
+    const line = (...points) => points.some(([ax, ay, bx, by]) => distanceToSegment(px, py, ax, ay, bx, by) <= stroke);
+    const circle = (cx, cy, radius) => Math.abs(Math.hypot(px - cx, py - cy) - radius) <= stroke;
+    const dot = (cx, cy, radius) => Math.hypot(px - cx, py - cy) <= radius;
+    let mark = false;
+    if (name === 'home') mark = line([12, 29, 32, 13], [32, 13, 52, 29], [12, 29, 12, 50], [52, 29, 52, 50], [12, 50, 26, 50], [38, 50, 52, 50], [26, 50, 26, 38], [38, 50, 38, 38]) || dot(46, 19, 3);
+    else if (name === 'discover') mark = circle(28, 28, 13) || line([38, 38, 51, 51], [23, 28, 28, 33], [28, 33, 35, 25]);
+    else if (name === 'map') mark = line([13, 18, 26, 13], [26, 13, 39, 18], [39, 18, 51, 13], [13, 18, 13, 51], [13, 51, 26, 46], [26, 46, 39, 51], [39, 51, 51, 46], [51, 46, 51, 13], [26, 13, 26, 46], [39, 18, 39, 51]);
+    else if (name === 'me') mark = circle(32, 23, 9) || line([15, 51, 17, 46], [17, 46, 23, 41], [23, 41, 32, 39], [32, 39, 41, 41], [41, 41, 47, 46], [47, 46, 49, 51]);
+    else if (name === 'scenic') mark = line([10, 47, 25, 27], [25, 27, 35, 39], [35, 39, 42, 31], [42, 31, 54, 47], [10, 50, 54, 50]) || dot(44, 17, 5);
+    else if (name === 'restaurant') mark = line([17, 13, 17, 31], [11, 13, 11, 24], [23, 13, 23, 24], [17, 31, 17, 51], [34, 13, 34, 28], [41, 13, 41, 28], [37, 33, 37, 51], [15, 51, 49, 51]) || dot(47, 16, 5);
+    else if (name === 'culture') mark = line([12, 25, 32, 13], [32, 13, 52, 25], [16, 28, 48, 28], [18, 50, 46, 50], [22, 29, 22, 49], [32, 29, 32, 49], [42, 29, 42, 49]) || dot(47, 17, 5);
+    else mark = line([12, 50, 31, 18], [31, 18, 52, 50], [22, 50, 31, 35], [31, 35, 41, 50], [9, 51, 55, 51]) || line([14, 18, 20, 18], [17, 15, 17, 21]);
+    if (mark) set(color);
+    if (isCategory && name !== 'scenic' && name !== 'restaurant' && name !== 'culture') { if (dot(17, 18, 3)) set(palette.yellow); }
   });
 }
 function locationPin() {
@@ -30,8 +39,9 @@ function locationPin() {
     const px = x + .5; const py = y + .5;
     const head = (px - 30) ** 2 + (py - 25) ** 2 <= 22 ** 2 && py <= 31;
     const tail = py >= 25 && py <= 71 && Math.abs(px - 30) <= 22 * (71 - py) / 46;
-    if (head || tail) set(palette.yellow);
-    if ((px - 30) ** 2 + (py - 25) ** 2 <= 9 ** 2) set(palette.purple);
+    if (head || tail) set(palette.purple);
+    if ((px - 30) ** 2 + (py - 25) ** 2 <= 9 ** 2) set([255, 255, 255, 255]);
+    if ((px - 30) ** 2 + (py - 25) ** 2 <= 3 ** 2) set(palette.yellow);
   });
 }
 

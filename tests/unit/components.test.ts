@@ -21,7 +21,7 @@ describe('reusable travel components', () => {
     const feedbackStyle = await readFile('miniprogram/components/feedback-toast/index.wxss', 'utf8');
     expect(state).not.toContain('﹏');
     expect(state).not.toContain('>!</view>');
-    expect(stateStyle).toContain('var(--color-action)');
+    expect(stateStyle).toContain('var(--color-brand)');
     expect(feedback).toContain('feedback-toast');
     expect(feedback).toContain('bindtap="dismiss"');
     expect(feedbackStyle).toContain('var(--color-brand-deep)');

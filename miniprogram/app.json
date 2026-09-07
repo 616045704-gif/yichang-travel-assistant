@@ -14,16 +14,16 @@
   ],
   "window": {
     "navigationBarTitleText": "宜昌旅游助手",
-    "navigationBarBackgroundColor": "#2B174D",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#F8F6FF"
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F8F7FB"
   },
   "style": "v2",
   "tabBar": {
-    "color": "#CFC2FF",
-    "selectedColor": "#FFC400",
-    "backgroundColor": "#2B174D",
-    "borderStyle": "black",
+    "color": "#9B93A6",
+    "selectedColor": "#7454D8",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/home/index",

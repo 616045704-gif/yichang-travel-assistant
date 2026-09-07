@@ -2,19 +2,19 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('travel visual presentation', () => {
-  it('ships the modern purple yellow theme consistently with native navigation and original assets', async () => {
+  it('ships the white editorial travel theme consistently with native navigation and original assets', async () => {
     const tokens = await readFile('miniprogram/styles/tokens.wxss', 'utf8');
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
-    expect(tokens).toContain('--color-brand: #623bc7');
-    expect(tokens).toContain('--color-brand-deep: #2b174d');
-    expect(tokens).toContain('--color-action: #ffc400');
-    expect(tokens).toContain('--color-page: #f8f6ff');
+    expect(tokens).toContain('--color-brand: #7454d8');
+    expect(tokens).toContain('--color-brand-deep: #29243a');
+    expect(tokens).toContain('--color-page: #f8f7fb');
+    expect(tokens).toContain('--color-surface: #ffffff');
     expect(tokens).toContain('--font-sans: -apple-system');
     expect(tokens).not.toContain('--font-display:');
-    expect(app.window.navigationBarBackgroundColor.toLowerCase()).toBe('#2b174d');
-    expect(app.window.navigationBarTextStyle).toBe('white');
-    expect(app.tabBar.backgroundColor.toLowerCase()).toBe('#2b174d');
-    expect(app.tabBar.selectedColor.toLowerCase()).toBe('#ffc400');
+    expect(app.window.navigationBarBackgroundColor.toLowerCase()).toBe('#ffffff');
+    expect(app.window.navigationBarTextStyle).toBe('black');
+    expect(app.tabBar.backgroundColor.toLowerCase()).toBe('#ffffff');
+    expect(app.tabBar.selectedColor.toLowerCase()).toBe('#7454d8');
     expect(app.tabBar.list.map((tab: { pagePath: string }) => tab.pagePath)).toEqual([
       'pages/home/index', 'pages/discover/index', 'pages/map/index', 'pages/me/index',
     ]);
@@ -23,12 +23,12 @@ describe('travel visual presentation', () => {
     }
   });
 
-  it('uses original rounded purple yellow icons for tabs, categories, and map markers', async () => {
+  it('uses original refined purple accent icons for tabs, categories, and map markers', async () => {
     for (const name of ['home', 'discover', 'map', 'me']) {
       const idle = await readFile(`miniprogram/assets/icons/${name}.svg`, 'utf8');
       const active = await readFile(`miniprogram/assets/icons/${name}-active.svg`, 'utf8');
-      expect(idle).toContain('#cfc2ff');
-      expect(active).toContain('#ffc400');
+      expect(idle).toContain('#9b93a6');
+      expect(active).toContain('#7454d8');
       expect((await readFile(`miniprogram/assets/icons/${name}.png`)).subarray(1, 4).toString()).toBe('PNG');
       expect((await readFile(`miniprogram/assets/icons/${name}-active.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
@@ -36,7 +36,7 @@ describe('travel visual presentation', () => {
       const filename = `category-${name}`;
       const svg = await readFile(`miniprogram/assets/icons/${filename}.svg`, 'utf8');
       expect(svg).toContain('viewBox="0 0 64 64"');
-      expect(svg).toContain('#ffc400');
+      expect(svg).toContain('#7454d8');
     }
     const locationSvg = await readFile('miniprogram/assets/icons/location.svg', 'utf8');
     const locationPng = await readFile('miniprogram/assets/icons/location.png');
@@ -47,21 +47,22 @@ describe('travel visual presentation', () => {
     expect(scenic.readUInt32BE(16)).toBe(96);
     expect(scenic.readUInt32BE(20)).toBe(96);
   });
-  it('renders separate AI chat and trip entry cards with the disclaimer in the themed home', async () => {
+  it('renders separate AI chat and trip entry rows with the disclaimer in the themed home', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
     const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
     expect(home).not.toContain('yichang-ink.jpg');
     expect(home).not.toContain('把日子放慢');
-    expect(homeStyle).toContain('.hero-orbit');
-    expect(homeStyle).toContain('linear-gradient');
+    expect(homeStyle).toContain('.home-intro');
+    expect(homeStyle).toContain('.featured-list');
+    expect(homeStyle).not.toContain('.hero-orbit');
     expect(homeStyle).not.toContain('STKaiti');
     expect(home).toContain('自由问答');
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
-    expect(homeStyle).toContain('.ai-entry-grid');
-    expect(homeStyle).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(homeStyle).toContain('.ai-entry-list');
+    expect(homeStyle).not.toContain('background: var(--color-brand-deep)');
     expect(chat).not.toContain('我要定制行程');
     expect(chat).not.toContain('bindtap="openTripForm"');
     expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
@@ -95,10 +96,10 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.favorite-bar');
     expect(cardStyle).toContain('.favorite-icon::after');
     expect(detail).toContain('favorite-icon');
-    expect(detailStyle).toContain('width: 136rpx');
+    expect(detailStyle).toContain('width: 64rpx');
   });
 
-  it('uses the shared purple yellow surface on discovery, map, and place details', async () => {
+  it('uses the shared white editorial surface on discovery, map, and place details', async () => {
     for (const page of ['discover', 'map', 'place-detail']) {
       const style = await readFile(`miniprogram/pages/${page}/index.wxss`, 'utf8');
       expect(style).toMatch(/var\(--color-brand(?:-deep)?\)/);

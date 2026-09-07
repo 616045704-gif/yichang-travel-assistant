@@ -1,24 +1,24 @@
 <view class="page home-page">
-  <view class="hero">
-    <view class="hero-orbit orbit-one" aria-hidden="true"></view><view class="hero-orbit orbit-two" aria-hidden="true"></view><view class="hero-river" aria-hidden="true"></view><view class="hero-pin" aria-hidden="true"></view>
-    <view class="hero-copy">
-      <text class="hero-kicker">YICHANG TRAVEL</text>
-      <text class="hero-title">探索宜昌</text>
-      <text class="hero-caption">用更轻松的方式，开始一段旅行。</text>
-    </view>
-    <button class="hero-button" bindtap="openDiscover"><text>去发现宜昌</text><view class="action-arrow" aria-hidden="true"></view></button>
+  <view class="home-intro">
+    <text class="intro-kicker">周末出发</text>
+    <text class="intro-title">去宜昌，<text class="intro-accent">正好。</text></text>
+    <text class="intro-copy">从一处喜欢的地点开始，慢慢安排你的行程。</text>
+    <button class="discover-link" bindtap="openDiscover"><text>浏览所有地点</text><view class="link-chevron" aria-hidden="true"></view></button>
   </view>
-  <view class="home-content">
-    <view class="category-panel card">
-      <view class="category-heading"><text>热门分类</text><text>快速开始</text></view>
-      <view class="category-grid"><view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><view class="category-icon-wrap"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /></view><text class="category-label">{{item.label}}</text></view></view>
-    </view>
-    <view class="ai-entry">
-      <view class="ai-copy"><text class="ai-kicker">AI TRAVEL ASSISTANT</text><text class="ai-title">你的旅行助手</text><text class="note">问景点、找灵感，也可以定制行程。</text><view class="ai-entry-grid"><button class="ai-action ai-action-chat" bindtap="openAiChat"><text class="ai-action-kicker">CHAT WITH AI</text><text class="ai-action-title">自由问答</text><text class="ai-action-note">景点、文化与出行建议</text><view class="action-arrow" aria-hidden="true"></view></button><button class="ai-action ai-action-trip" bindtap="openTripForm"><text class="ai-action-kicker">PLAN A TRIP</text><text class="ai-action-title">行程定制</text><text class="ai-action-note">填写偏好，生成旅行建议</text><view class="action-arrow" aria-hidden="true"></view></button></view></view>
-    </view>
-    <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
-    <view class="section-heading"><text class="section-title">宜昌 · 值得停留</text><text class="section-note">精选地点</text></view>
-    <view wx:if="{{featuredStatus === 'ready'}}" class="place-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view><view wx:else class="card"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
-    <text class="footer-note">宜昌旅行，从这里开始</text>
+
+  <view class="section-heading compact-heading"><text class="section-title">从哪里开始</text><text class="section-note">四类地点</text></view>
+  <view class="category-grid">
+    <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>
   </view>
+
+  <view class="section-heading"><text class="section-title">值得停留</text><text class="section-note">精选地点</text></view>
+  <view wx:if="{{featuredStatus === 'ready'}}" class="featured-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view>
+  <view wx:else class="state-shell"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
+
+  <view class="section-heading"><text class="section-title">旅行助手</text><text class="section-note">问问再出发</text></view>
+  <view class="ai-entry-list">
+    <button class="ai-action" bindtap="openAiChat"><view class="ai-icon chat-icon" aria-hidden="true"></view><view class="ai-action-copy"><text class="ai-action-title">自由问答</text><text class="ai-action-note">景点、文化与出行建议</text></view><view class="link-chevron" aria-hidden="true"></view></button>
+    <button class="ai-action" bindtap="openTripForm"><view class="ai-icon plan-icon" aria-hidden="true"></view><view class="ai-action-copy"><text class="ai-action-title">行程定制</text><text class="ai-action-note">填写偏好，生成旅行建议</text></view><view class="link-chevron" aria-hidden="true"></view></button>
+  </view>
+  <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
 </view><feedback-toast visible="{{feedback.visible}}" tone="{{feedback.tone}}" message="{{feedback.message}}" bind:dismiss="onFeedbackDismiss" />

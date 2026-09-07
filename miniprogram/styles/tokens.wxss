@@ -1,30 +1,31 @@
 page {
-  --color-brand: #623bc7;
-  --color-brand-deep: #2b174d;
-  --color-action: #ffc400;
-  --color-action-soft: #fff1b3;
-  --color-page: #f8f6ff;
+  --color-brand: #7454d8;
+  --color-brand-deep: #29243a;
+  --color-action: #7454d8;
+  --color-action-soft: #f0ecff;
+  --color-page: #f8f7fb;
   --color-surface: #ffffff;
-  --color-text: #30254a;
-  --color-text-strong: #201837;
-  --color-muted: #746c8b;
-  --color-border: #ddd5ff;
-  --color-brand-soft: #ece5ff;
-  --color-danger: #c83f56;
-  --color-danger-soft: #ffe8ec;
-  --color-success: #25866c;
+  --color-text: #29243a;
+  --color-text-strong: #1f1a2c;
+  --color-muted: #817a91;
+  --color-border: #eae6f1;
+  --color-brand-soft: #f0ecff;
+  --color-danger: #c63d55;
+  --color-danger-soft: #fff0f2;
+  --color-success: #2f8a70;
+  --color-warning: #f6c644;
   --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-  --radius-card: 28rpx;
-  --radius-control: 20rpx;
+  --radius-card: 24rpx;
+  --radius-control: 18rpx;
   --space-page: 32rpx;
-  --shadow-card: 0 12rpx 32rpx rgba(70, 43, 139, .10);
+  --shadow-card: none;
 
-  /* Transitional aliases keep untouched pages readable while their local styles migrate. */
+  /* Compatibility aliases keep existing page selectors visual-only while they share this system. */
   --color-primary: var(--color-brand);
   --color-deep: var(--color-brand-deep);
-  --color-accent: var(--color-action);
-  --color-gold: var(--color-action);
-  --color-gold-light: var(--color-action-soft);
+  --color-accent: var(--color-brand);
+  --color-gold: var(--color-warning);
+  --color-gold-light: #fff9e5;
   --color-background: var(--color-page);
   --color-ink: var(--color-text);
   --color-line: var(--color-border);
