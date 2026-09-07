@@ -41,6 +41,24 @@ describe('place repository', () => {
     expect(third.items.map(item => item.placeId)).toEqual(['uncovered-last']);
     expect(third.nextCursor).toBeNull();
   });
+  it('keeps 一刀鲜酒楼 behind other places and out of homepage featured results', async () => {
+    const knife = { ...scenicPlace, _id: 'knife', name: '一刀鲜酒楼', status: 'published', aliases: [], sources: [], coverFileId: 'cloud://approved-bucket/knife.jpg' };
+    const others = ['长江夜景', '三峡人家', '屈原故里', '清江画廊'].map((name, index) => ({
+      ...scenicPlace, _id: `other-${index}`, name, status: 'published', aliases: [], sources: [], coverFileId: `cloud://approved-bucket/${index}.jpg`,
+    }));
+    const records = [knife, ...others];
+    const db = { collection() { return { where() { return { skip(offset: number) { return { limit(count: number) { return { async get() { return { data: records.slice(offset, offset + count) }; } }; } }; } }; }, doc() { return { async get() { throw new Error('not found'); } }; } }; } };
+    const repository = createPlaceRepository(db);
+    const list = await repository.list({ pageSize: 5 });
+    const home = await handlePlaceRequest({ action: 'home' }, { repository, storage: { async getTempFileURL() { return { fileList: [] }; } } });
+
+    expect(list.items[list.items.length - 1]?.name).toBe('一刀鲜酒楼');
+    expect(list.items[0]?.name).not.toBe('一刀鲜酒楼');
+    expect(home).toMatchObject({ code: 'OK', data: { featured: expect.any(Array) } });
+    const featured = (home.data as { featured: Array<{ name: string }> }).featured;
+    expect(featured).toHaveLength(4);
+    expect(featured.some(item => item.name === '一刀鲜酒楼')).toBe(false);
+  });
   it('returns null for an unknown or unpublished detail', async () => {
     const repository = createPlaceRepository(database());
     await expect(repository.detail('missing')).resolves.toBeNull();
