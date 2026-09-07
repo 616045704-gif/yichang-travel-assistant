@@ -1,4 +1,4 @@
-import { readdir, readFile, access } from 'node:fs/promises';
+import { readdir, readFile, access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,7 +48,10 @@ export async function validateResources(root, extension = 'js') {
 export async function checkPackage({ root = process.cwd(), mode = 'development' } = {}) {
   const client = path.join(root, 'dist/miniprogram');
   await validateResources(client);
-  for (const file of await listFiles(client)) {
+  const files = await listFiles(client);
+  const bytes = (await Promise.all(files.map(async file => (await stat(file)).size))).reduce((total, size) => total + size, 0);
+  if (bytes > 1_900_000) throw new Error(`Mini-program main package exceeds 1.9 MB budget: ${bytes} B`);
+  for (const file of files) {
     const relative = path.relative(client, file).replaceAll('\\', '/');
     if (/\.(ts|map|md)$|(^|\/)(tests|cloudfunctions|node_modules|secrets)\//.test(relative)) throw new Error(`Forbidden package resource: ${relative}`);
     if (mode === 'demo' && /(^|[/.\-_])(mock|fixtures?|tests?)([/.\-_]|$)/i.test(relative)) throw new Error(`Mock in demo: ${relative}`);

@@ -17,10 +17,29 @@ function icon(name, size, color, isCategory = false) {
   const scale = size / 64;
   return png(size, size, (x, y, set) => {
     const px = x / scale; const py = y / scale;
+    const dot = (cx, cy, radius) => Math.hypot(px - cx, py - cy) <= radius;
+    const triangle = (cx, top, halfWidth, bottom) => py >= top && py <= bottom && Math.abs(px - cx) <= (py - top) * halfWidth / (bottom - top);
+    if (isCategory) {
+      let filled = false;
+      if (name === 'scenic') filled = triangle(25, 25, 16, 50) || triangle(42, 30, 13, 50) || (py >= 49 && py <= 53 && px >= 11 && px <= 55);
+      else if (name === 'restaurant') filled = (px >= 11 && px <= 15 && py >= 12 && py <= 46) || (px >= 20 && px <= 24 && py >= 12 && py <= 46) || (px >= 15 && px <= 20 && py >= 28 && py <= 51) || (px >= 36 && px <= 42 && py >= 12 && py <= 51) || (px >= 32 && px <= 46 && py >= 12 && py <= 25) || (py >= 49 && py <= 53 && px >= 10 && px <= 52);
+      else if (name === 'culture') filled = triangle(32, 12, 24, 27) || (py >= 27 && py <= 32 && px >= 12 && px <= 52) || (py >= 31 && py <= 51 && ((px >= 17 && px <= 23) || (px >= 29 && px <= 35) || (px >= 41 && px <= 47))) || (py >= 49 && py <= 53 && px >= 11 && px <= 53);
+      else filled = triangle(31, 17, 22, 51) && !(triangle(31, 32, 9, 51)) || (py >= 49 && py <= 53 && px >= 9 && px <= 55);
+      if (filled) set(color);
+      if (name === 'scenic' && dot(45, 17, 5)) set(palette.yellow);
+      if ((name === 'restaurant' || name === 'culture') && dot(47, 16, 5)) set(palette.yellow);
+      if (name === 'camping' && dot(17, 18, 3)) set(palette.yellow);
+      return;
+    }
+    let solid = false;
+    if (name === 'home') solid = triangle(32, 11, 23, 34) || (py >= 30 && py <= 52 && px >= 13 && px <= 51) && !(px >= 26 && px <= 38 && py >= 38);
+    else if (name === 'discover') solid = dot(27, 27, 14) || Math.abs(px - py) < 4 && px >= 37 && px <= 53 && py >= 37 && py <= 53;
+    else if (name === 'map') solid = (px >= 12 && px <= 25 && py >= 16 && py <= 50) || (px >= 27 && px <= 38 && py >= 14 && py <= 52) || (px >= 40 && px <= 52 && py >= 16 && py <= 50);
+    else if (name === 'me') solid = dot(32, 22, 10) || (((px - 32) / 20) ** 2 + ((py - 52) / 15) ** 2 <= 1 && py >= 37);
+    if (solid) { set(color); return; }
     const stroke = 2.25;
     const line = (...points) => points.some(([ax, ay, bx, by]) => distanceToSegment(px, py, ax, ay, bx, by) <= stroke);
     const circle = (cx, cy, radius) => Math.abs(Math.hypot(px - cx, py - cy) - radius) <= stroke;
-    const dot = (cx, cy, radius) => Math.hypot(px - cx, py - cy) <= radius;
     let mark = false;
     if (name === 'home') mark = line([12, 29, 32, 13], [32, 13, 52, 29], [12, 29, 12, 50], [52, 29, 52, 50], [12, 50, 26, 50], [38, 50, 52, 50], [26, 50, 26, 38], [38, 50, 38, 38]) || dot(46, 19, 3);
     else if (name === 'discover') mark = circle(28, 28, 13) || line([38, 38, 51, 51], [23, 28, 28, 33], [28, 33, 35, 25]);

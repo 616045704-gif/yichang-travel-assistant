@@ -1,5 +1,5 @@
-.place-card { position: relative; padding: 20rpx 0; border-bottom: 1rpx solid var(--color-border); background: var(--color-surface); }
-.open-area { display: flex; min-height: 152rpx; padding-right: 82rpx; }
+.place-card { display: flex; align-items: flex-start; gap: 14rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--color-border); background: var(--color-surface); }
+.open-area { display: flex; flex: 1; min-width: 0; min-height: 152rpx; padding-right: 0; }
 .cover { flex: 0 0 auto; width: 152rpx; height: 152rpx; overflow: hidden; border-radius: 18rpx; background: #eeeaf1; }
 .placeholder { display: flex; align-items: center; justify-content: center; color: var(--color-muted); font-size: 21rpx; line-height: 1.45; text-align: center; }
 .body { display: flex; flex: 1; flex-direction: column; justify-content: center; min-width: 0; padding-left: 20rpx; }
@@ -8,7 +8,7 @@
 .intro { display: -webkit-box; margin-top: 11rpx; overflow: hidden; color: var(--color-muted); font-size: 23rpx; line-height: 1.55; overflow-wrap: break-word; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 12rpx; }
 .tag { padding: 4rpx 10rpx; border-radius: 999rpx; background: var(--color-page); color: var(--color-muted); font-size: 19rpx; }
-.favorite-bar { position: absolute; top: 18rpx; right: 0; }
+.favorite-bar { flex: 0 0 auto; margin-top: 2rpx; }
 .favorite { display: grid; width: 56rpx; min-width: 56rpx; height: 56rpx; padding: 0; border: 1rpx solid var(--color-border); border-radius: 50%; background: var(--color-surface); color: var(--color-brand); place-items: center; }
 .favorite text { display: none; }
 .favorite-icon { position: relative; width: 16rpx; height: 22rpx; border: 2rpx solid currentColor; border-radius: 3rpx 3rpx 0 0; }

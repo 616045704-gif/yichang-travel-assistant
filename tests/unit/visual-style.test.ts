@@ -80,6 +80,8 @@ describe('travel visual presentation', () => {
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
+    expect(home).toContain('/assets/banners/home-gorge.jpg');
+    expect(home).toContain('banner-image');
     expect(homeStyle).toContain('.ai-entry-list');
     expect(homeStyle).not.toContain('background: var(--color-brand-deep)');
     expect(chat).not.toContain('我要定制行程');
@@ -109,10 +111,12 @@ describe('travel visual presentation', () => {
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
     expect(discover).toContain('确认搜索');
+    expect(discover).toContain('/assets/banners/discover-riverside.jpg');
     expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
     expect(card).toContain('favorite-icon');
     expect(cardStyle).toContain('.favorite-bar');
+    expect(cardStyle).toContain('flex: 0 0 auto');
     expect(cardStyle).toContain('.favorite-icon::after');
     expect(detail).toContain('favorite-icon');
     expect(detailStyle).toContain('width: 64rpx');

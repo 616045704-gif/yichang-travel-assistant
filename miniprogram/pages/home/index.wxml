@@ -6,6 +6,12 @@
     <button class="discover-link" bindtap="openDiscover"><text>浏览所有地点</text><view class="link-chevron" aria-hidden="true"></view></button>
   </view>
 
+  <view class="home-banner" bindtap="openDiscover" aria-role="button" aria-label="浏览宜昌地点">
+    <image class="banner-image" src="/assets/banners/home-gorge.jpg" mode="aspectFill" />
+    <view class="banner-shade"></view>
+    <view class="banner-copy"><text class="banner-kicker">江峡之间</text><text class="banner-title">沿着江风<br/>遇见宜昌</text><text class="banner-link">去看一看</text></view>
+  </view>
+
   <view class="section-heading compact-heading"><text class="section-title">从哪里开始</text><text class="section-note">四类地点</text></view>
   <view class="category-grid">
     <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>

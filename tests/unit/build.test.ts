@@ -194,6 +194,12 @@ describe('deployable build boundary', () => {
     await put(root, 'dist/miniprogram/leak.js', 'const value = "DIFY_TRIP_API_KEY";');
     await expect(checkPackage({ root })).rejects.toThrow(/boundary/);
   });
+  it('rejects an oversized mini-program main package before WeChat upload', async () => {
+    const root = await fixture();
+    await buildProject({ root });
+    await put(root, 'dist/miniprogram/assets/oversized.jpg', 'x'.repeat(1_950_000));
+    await expect(checkPackage({ root })).rejects.toThrow(/main package exceeds 1.9 MB/i);
+  });
   it('validates documentation links and incomplete drafts', async () => {
     const root = await fixture();
     await mkdir(path.join(root, 'docs/testing'), { recursive: true });
