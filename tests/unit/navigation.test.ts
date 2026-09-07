@@ -89,6 +89,7 @@ describe('four-tab application', () => {
   it('registers personal routes and gives privacy its own truthful page', async () => {
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
     expect(app.pages).toEqual(expect.arrayContaining(['pages/records/index', 'pages/preferences/index', 'pages/privacy/index']));
+    expect(app.requiredPrivateInfos).toEqual(expect.arrayContaining(['getLocation']));
     const privacy = await readFile('miniprogram/pages/privacy/index.wxml', 'utf8');
     expect(privacy).toContain('定位我的附近');
     expect(privacy).toContain('位置不会长期保存');

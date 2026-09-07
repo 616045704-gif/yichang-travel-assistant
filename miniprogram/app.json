@@ -51,5 +51,7 @@
       }
     ]
   },
+  "requiredPrivateInfos": ["getLocation"],
+  "permission": { "scope.userLocation": { "desc": "用于展示您附近 20 公里以内的旅游地点" } },
   "sitemapLocation": "sitemap.json"
 }
