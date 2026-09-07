@@ -4,6 +4,23 @@ import { PlaceListViewModel } from '../../miniprogram/view-models/place-list';
 import { culturePlace, scenicPlace } from '../fixtures/places';
 
 describe('place discovery view model', () => {
+  it('keeps existing discovery bindings while using the supplied Hero and shared card', async () => {
+    const [discover, detail] = await Promise.all([
+      readFile('miniprogram/pages/discover/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/place-detail/index.wxml', 'utf8'),
+    ]);
+    expect(discover).toContain('/assets/provided/discover-hero.jpg');
+    expect(discover).toContain('class="discover-hero-copy"');
+    expect(discover).toContain('<category-filter');
+    expect(discover).toContain('bind:categorychange="onCategoryChange"');
+    expect(discover).toContain('bindinput="onKeywordInput"');
+    expect(discover).toContain('bindconfirm="onSearch"');
+    expect(discover).toContain('<place-card');
+    expect(discover).not.toContain('discover-riverside.jpg');
+    expect(detail).toContain('/assets/provided/favorite-active.png');
+    expect(detail).toContain('bindtap="onFavorite"');
+  });
+
   it('registers the place card used to render loaded discovery results', async () => {
     const pageConfig = JSON.parse(await readFile('miniprogram/pages/discover/index.json', 'utf8'));
     expect(pageConfig.usingComponents).toMatchObject({ 'place-card': '/components/place-card/index' });

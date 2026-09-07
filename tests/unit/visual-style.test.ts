@@ -116,7 +116,8 @@ describe('travel visual presentation', () => {
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
     expect(discover).toContain('确认搜索');
-    expect(discover).toContain('/assets/banners/discover-riverside.jpg');
+    expect(discover).toContain('/assets/provided/discover-hero.jpg');
+    expect(discover).toContain('discover-hero-copy');
     expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
     expect(card).toContain('cover-favorite');
@@ -124,7 +125,8 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.cover-wrap');
     expect(cardStyle).toContain('flex: 0 0 40%');
     expect(cardStyle).toContain('.cover-favorite');
-    expect(detail).toContain('favorite-icon');
+    expect(detail).toContain('detail-favorite-image');
+    expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detailStyle).toContain('width: 64rpx');
   });
 
