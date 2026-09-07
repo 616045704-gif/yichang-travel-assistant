@@ -22,6 +22,26 @@ describe('travel visual presentation', () => {
       expect((await readFile(`miniprogram/assets/icons/category-${category}.png`)).subarray(1, 4).toString()).toBe('PNG');
     }
   });
+
+  it('uses original rounded purple yellow icons for tabs, categories, and map markers', async () => {
+    for (const name of ['home', 'discover', 'map', 'me']) {
+      const idle = await readFile(`miniprogram/assets/icons/${name}.svg`, 'utf8');
+      const active = await readFile(`miniprogram/assets/icons/${name}-active.svg`, 'utf8');
+      expect(idle).toContain('#cfc2ff');
+      expect(active).toContain('#ffc400');
+      expect((await readFile(`miniprogram/assets/icons/${name}.png`)).subarray(1, 4).toString()).toBe('PNG');
+      expect((await readFile(`miniprogram/assets/icons/${name}-active.png`)).subarray(1, 4).toString()).toBe('PNG');
+    }
+    for (const name of ['scenic', 'restaurant', 'culture', 'camping', 'location']) {
+      const filename = name === 'location' ? name : `category-${name}`;
+      const svg = await readFile(`miniprogram/assets/icons/${filename}.svg`, 'utf8');
+      expect(svg).toContain('viewBox="0 0 64 64"');
+      expect(svg).toContain('#ffc400');
+    }
+    const scenic = await readFile('miniprogram/assets/icons/category-scenic.png');
+    expect(scenic.readUInt32BE(16)).toBe(96);
+    expect(scenic.readUInt32BE(20)).toBe(96);
+  });
   it('renders separate AI chat and trip entry cards with the disclaimer in the themed home', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
     const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
