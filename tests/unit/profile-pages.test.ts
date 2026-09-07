@@ -3,6 +3,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 describe('personal pages', () => {
+  it('uses the four supplied menu illustrations without changing personal destinations', async () => {
+    const [markup, logic] = await Promise.all([
+      readFile('miniprogram/pages/me/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/me/index.ts', 'utf8'),
+    ]);
+    expect(markup).toContain('src="/assets/provided/menu-{{item.icon}}.png"');
+    expect(markup).toContain('bindtap="openEntry"');
+    expect(markup).toContain('data-url="{{item.url}}"');
+    expect(markup).not.toContain('意见反馈');
+    expect(logic).toContain("icon: 'favorite'");
+    expect(logic).toContain("icon: 'history'");
+    expect(logic).toContain("icon: 'ai'");
+    expect(logic).toContain("icon: 'preferences'");
+  });
+
   it('navigates only to implemented personal pages and privacy details', async () => {
     let page: { openEntry(event: unknown): void; showPrivacy(): void };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });

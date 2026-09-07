@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readFile } from 'node:fs/promises';
 
 type MapPage = {
   data: Record<string, unknown>;
@@ -22,6 +23,18 @@ async function loadPage(wxMock: Record<string, unknown>) {
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
 describe('nearby map page', () => {
+  it('keeps the map controls on white safe-area surfaces without changing map bindings', async () => {
+    const [markup, css] = await Promise.all([
+      readFile('miniprogram/pages/map/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/map/index.wxss', 'utf8'),
+    ]);
+    expect(markup).toContain('<map id="city-map"');
+    expect(markup).toContain('bindtap="locateNearby"');
+    expect(markup).toContain('bindtap="openSelectedPlace"');
+    expect(css).toContain('pointer-events: none');
+    expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');
+  });
+
   it('loads public markers on entry without asking for a location', async () => {
     const getLocation = vi.fn();
     const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: { items: [publicPlace] } } }));
