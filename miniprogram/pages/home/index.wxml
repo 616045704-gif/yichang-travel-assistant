@@ -1,29 +1,24 @@
 <view class="page home-page">
   <view class="hero">
-    <image class="hero-art" src="/assets/illustrations/yichang-ink.jpg" mode="aspectFill" aria-hidden="true" />
+    <view class="hero-orbit orbit-one" aria-hidden="true"></view><view class="hero-orbit orbit-two" aria-hidden="true"></view><view class="hero-river" aria-hidden="true"></view><view class="hero-pin" aria-hidden="true"></view>
     <view class="hero-copy">
-      <text class="hero-kicker">一江清碧 · 两岸青山</text>
-      <view class="hero-brand"><text class="hero-title">宜昌</text><text class="hero-seal">山水之城</text></view>
-      <text class="hero-caption">山水入画，行旅成诗</text>
+      <text class="hero-kicker">YICHANG TRAVEL</text>
+      <text class="hero-title">探索宜昌</text>
+      <text class="hero-caption">用更轻松的方式，开始一段旅行。</text>
     </view>
-    <text class="hero-verse">把日子放慢
-把山水看遍</text>
-    <button class="hero-button" bindtap="openDiscover">去发现宜昌 <text aria-hidden="true">›</text></button>
+    <button class="hero-button" bindtap="openDiscover"><text>去发现宜昌</text><view class="action-arrow" aria-hidden="true"></view></button>
   </view>
   <view class="home-content">
     <view class="category-panel card">
-      <view class="category-grid"><view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><view class="category-seal seal-{{item.value}}"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /></view><text class="category-label">{{item.label}}</text></view></view>
-      <view class="category-footnote"><text>山水有境</text><text>人间有味</text></view>
+      <view class="category-heading"><text>热门分类</text><text>快速开始</text></view>
+      <view class="category-grid"><view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><view class="category-icon-wrap"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /></view><text class="category-label">{{item.label}}</text></view></view>
     </view>
     <view class="ai-entry">
-      <view class="scroll-rod scroll-left" aria-hidden="true"></view><view class="scroll-rod scroll-right" aria-hidden="true"></view>
-      <view class="ai-copy"><text class="ai-kicker">与山水相逢</text><text class="ai-title">你的宜昌旅行助手</text><text class="note">聊聊心之所向，写下旅途的序章。</text><view class="ai-entry-grid"><button class="ai-action ai-action-chat" bindtap="openAiChat"><text class="ai-action-kicker">随心问问</text><text class="ai-action-title">自由问答</text><text class="ai-action-note">景点、文化与出行建议</text><text class="ai-action-arrow" aria-hidden="true">›</text></button><button class="ai-action ai-action-trip" bindtap="openTripForm"><text class="ai-action-kicker">从容成行</text><text class="ai-action-title">行程定制</text><text class="ai-action-note">填写偏好，生成模拟建议</text><text class="ai-action-arrow" aria-hidden="true">›</text></button></view></view>
-      <text class="ai-decoration" aria-hidden="true">山
-水</text>
+      <view class="ai-copy"><text class="ai-kicker">AI TRAVEL ASSISTANT</text><text class="ai-title">你的旅行助手</text><text class="note">问景点、找灵感，也可以定制行程。</text><view class="ai-entry-grid"><button class="ai-action ai-action-chat" bindtap="openAiChat"><text class="ai-action-kicker">CHAT WITH AI</text><text class="ai-action-title">自由问答</text><text class="ai-action-note">景点、文化与出行建议</text><view class="action-arrow" aria-hidden="true"></view></button><button class="ai-action ai-action-trip" bindtap="openTripForm"><text class="ai-action-kicker">PLAN A TRIP</text><text class="ai-action-title">行程定制</text><text class="ai-action-note">填写偏好，生成旅行建议</text><view class="action-arrow" aria-hidden="true"></view></button></view></view>
     </view>
     <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
     <view class="section-heading"><text class="section-title">宜昌 · 值得停留</text><text class="section-note">精选地点</text></view>
     <view wx:if="{{featuredStatus === 'ready'}}" class="place-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view><view wx:else class="card"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
-    <text class="footer-note">一城山水 · 慢慢发现</text>
+    <text class="footer-note">宜昌旅行，从这里开始</text>
   </view>
 </view>

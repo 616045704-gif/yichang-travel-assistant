@@ -46,6 +46,11 @@ describe('travel visual presentation', () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
     const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
+    expect(home).not.toContain('yichang-ink.jpg');
+    expect(home).not.toContain('把日子放慢');
+    expect(homeStyle).toContain('.hero-orbit');
+    expect(homeStyle).toContain('linear-gradient');
+    expect(homeStyle).not.toContain('STKaiti');
     expect(home).toContain('自由问答');
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
@@ -86,5 +91,13 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.favorite-icon::after');
     expect(detail).toContain('favorite-icon');
     expect(detailStyle).toContain('width: 136rpx');
+  });
+
+  it('uses the shared purple yellow surface on discovery, map, and place details', async () => {
+    for (const page of ['discover', 'map', 'place-detail']) {
+      const style = await readFile(`miniprogram/pages/${page}/index.wxss`, 'utf8');
+      expect(style).toMatch(/var\(--color-brand(?:-deep)?\)/);
+      expect(style).not.toContain('#a44d3e');
+    }
   });
 });
