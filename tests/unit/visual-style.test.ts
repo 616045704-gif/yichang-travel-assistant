@@ -69,13 +69,13 @@ describe('travel visual presentation', () => {
     expect(scenic.readUInt32BE(16)).toBe(96);
     expect(scenic.readUInt32BE(20)).toBe(96);
   });
-  it('renders separate AI chat and trip entry rows with the disclaimer in the themed home', async () => {
+  it('renders the provided Home Hero with paired AI actions and the disclaimer', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
     const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
     expect(home).not.toContain('yichang-ink.jpg');
     expect(home).not.toContain('把日子放慢');
-    expect(homeStyle).toContain('.home-intro');
+    expect(homeStyle).toContain('.home-hero');
     expect(homeStyle).toContain('.featured-list');
     expect(homeStyle).not.toContain('.hero-orbit');
     expect(homeStyle).not.toContain('STKaiti');
@@ -83,9 +83,11 @@ describe('travel visual presentation', () => {
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
-    expect(home).toContain('/assets/banners/home-gorge.jpg');
-    expect(home).toContain('banner-image');
-    expect(homeStyle).toContain('.ai-entry-list');
+    expect(home).toContain('/assets/provided/home-hero.jpg');
+    expect(home).toContain('home-hero-image');
+    expect(homeStyle).toContain('.ai-quick-grid');
+    expect(homeStyle).not.toContain('.home-intro');
+    expect(homeStyle).not.toContain('.ai-entry-list');
     expect(homeStyle).not.toContain('background: var(--color-brand-deep)');
     expect(chat).not.toContain('我要定制行程');
     expect(chat).not.toContain('bindtap="openTripForm"');
@@ -117,10 +119,11 @@ describe('travel visual presentation', () => {
     expect(discover).toContain('/assets/banners/discover-riverside.jpg');
     expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
-    expect(card).toContain('favorite-icon');
-    expect(cardStyle).toContain('.favorite-bar');
-    expect(cardStyle).toContain('flex: 0 0 auto');
-    expect(cardStyle).toContain('.favorite-icon::after');
+    expect(card).toContain('cover-favorite');
+    expect(card).toContain('/assets/provided/favorite-active.png');
+    expect(cardStyle).toContain('.cover-wrap');
+    expect(cardStyle).toContain('flex: 0 0 40%');
+    expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('favorite-icon');
     expect(detailStyle).toContain('width: 64rpx');
   });

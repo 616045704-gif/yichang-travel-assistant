@@ -18,10 +18,14 @@ function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE
 describe('provided visual assets and UI boundary', () => {
   it('ships optimized derivatives within the agreed visual budget', async () => {
     let total = 0;
+    let heroTotal = 0;
+    let iconTotal = 0;
     for (const [file, width, maxBytes] of assets) {
       const path = `${root}/${file}`;
       const [bytes, info] = await Promise.all([readFile(path), stat(path)]);
       total += info.size;
+      if (file.endsWith('-hero.jpg')) heroTotal += info.size;
+      else iconTotal += info.size;
       expect(info.size).toBeLessThanOrEqual(maxBytes);
       if (width) {
         expect(bytes.subarray(1, 4).toString()).toBe('PNG');
@@ -30,6 +34,8 @@ describe('provided visual assets and UI boundary', () => {
       }
     }
     expect(total).toBeLessThanOrEqual(700_000);
+    expect(heroTotal).toBeLessThanOrEqual(450_000);
+    expect(iconTotal).toBeLessThanOrEqual(250_000);
   });
 
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {
@@ -54,5 +60,19 @@ describe('provided visual assets and UI boundary', () => {
     expect(map).toContain('bindtap="locateNearby"');
     expect(me).not.toContain('意见反馈');
     expect(me).not.toContain('parking');
+  });
+
+  it('places the supplied Home Hero before one paired set of existing AI actions', async () => {
+    const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
+    expect(home).toContain('class="home-hero"');
+    expect(home).toContain('/assets/provided/home-hero.jpg');
+    expect(home).toContain('class="ai-quick-grid"');
+    expect(home).not.toContain('class="home-intro"');
+    expect(home).not.toContain('class="ai-entry-list"');
+    expect((home.match(/bindtap="openAiChat"/g) ?? []).length).toBe(1);
+    expect((home.match(/bindtap="openTripForm"/g) ?? []).length).toBe(1);
+    expect(home).toContain('/assets/provided/ai-chat.png');
+    expect(home).toContain('/assets/provided/trip-plan.png');
+    expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
   });
 });

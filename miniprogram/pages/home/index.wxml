@@ -1,30 +1,26 @@
 <view class="page home-page">
-  <view class="home-intro">
-    <text class="intro-kicker">周末出发</text>
-    <text class="intro-title">去宜昌，<text class="intro-accent">正好。</text></text>
-    <text class="intro-copy">从一处喜欢的地点开始，慢慢安排你的行程。</text>
-    <button class="discover-link" bindtap="openDiscover"><text>浏览所有地点</text><view class="link-chevron" aria-hidden="true"></view></button>
+  <view class="home-hero" bindtap="openDiscover" aria-role="button" aria-label="浏览宜昌地点">
+    <image class="home-hero-image" src="/assets/provided/home-hero.jpg" mode="aspectFill" />
+    <view class="home-hero-shade"></view>
+    <button class="home-hero-action" catchtap="openDiscover">浏览所有地点<view class="hero-arrow" aria-hidden="true"></view></button>
   </view>
 
-  <view class="home-banner" bindtap="openDiscover" aria-role="button" aria-label="浏览宜昌地点">
-    <image class="banner-image" src="/assets/banners/home-gorge.jpg" mode="aspectFill" />
-    <view class="banner-shade"></view>
-    <view class="banner-copy"><text class="banner-kicker">江峡之间</text><text class="banner-title">沿着江风<br/>遇见宜昌</text><text class="banner-link">去看一看</text></view>
+  <view class="assistant-section">
+    <view class="section-heading compact-heading"><text class="section-title">旅行助手</text><text class="section-note">从灵感到行程</text></view>
+    <view class="ai-quick-grid">
+      <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="aspectFit" /><view class="ai-quick-copy"><text class="ai-quick-title">自由问答</text><text class="ai-quick-note">景点与出行建议</text></view></button>
+      <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="aspectFit" /><view class="ai-quick-copy"><text class="ai-quick-title">行程定制</text><text class="ai-quick-note">按偏好规划旅程</text></view></button>
+    </view>
   </view>
 
   <view class="section-heading compact-heading"><text class="section-title">从哪里开始</text><text class="section-note">四类地点</text></view>
   <view class="category-grid">
-    <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/icons/category-{{item.value}}.png" class="category-icon" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>
+    <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/provided/category-{{item.value}}.png" class="category-icon" mode="aspectFit" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>
   </view>
 
   <view class="section-heading"><text class="section-title">值得停留</text><text class="section-note">精选地点</text></view>
   <view wx:if="{{featuredStatus === 'ready'}}" class="featured-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view>
   <view wx:else class="state-shell"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
 
-  <view class="section-heading"><text class="section-title">旅行助手</text><text class="section-note">问问再出发</text></view>
-  <view class="ai-entry-list">
-    <button class="ai-action" bindtap="openAiChat"><view class="ai-icon chat-icon" aria-hidden="true"></view><view class="ai-action-copy"><text class="ai-action-title">自由问答</text><text class="ai-action-note">景点、文化与出行建议</text></view><view class="link-chevron" aria-hidden="true"></view></button>
-    <button class="ai-action" bindtap="openTripForm"><view class="ai-icon plan-icon" aria-hidden="true"></view><view class="ai-action-copy"><text class="ai-action-title">行程定制</text><text class="ai-action-note">填写偏好，生成旅行建议</text></view><view class="link-chevron" aria-hidden="true"></view></button>
-  </view>
   <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
 </view><feedback-toast visible="{{feedback.visible}}" tone="{{feedback.tone}}" message="{{feedback.message}}" bind:dismiss="onFeedbackDismiss" />
