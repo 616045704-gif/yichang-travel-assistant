@@ -1,5 +1,22 @@
 import { readFile } from 'node:fs/promises';
+import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+
+function hasRgbaPixel(png: Buffer, red: number, green: number, blue: number) {
+  const chunks: Buffer[] = [];
+  let offset = 8;
+  while (offset < png.length) {
+    const size = png.readUInt32BE(offset);
+    const type = png.subarray(offset + 4, offset + 8).toString();
+    if (type === 'IDAT') chunks.push(png.subarray(offset + 8, offset + 8 + size));
+    offset += size + 12;
+  }
+  const rows = inflateSync(Buffer.concat(chunks));
+  for (let index = 0; index < rows.length; index += 4) {
+    if (rows[index] !== 0 && rows[index] === red && rows[index + 1] === green && rows[index + 2] === blue) return true;
+  }
+  return false;
+}
 
 describe('travel visual presentation', () => {
   it('ships the white editorial travel theme consistently with native navigation and original assets', async () => {
@@ -30,7 +47,9 @@ describe('travel visual presentation', () => {
       expect(idle).toContain('#9b93a6');
       expect(active).toContain('#7454d8');
       expect((await readFile(`miniprogram/assets/icons/${name}.png`)).subarray(1, 4).toString()).toBe('PNG');
-      expect((await readFile(`miniprogram/assets/icons/${name}-active.png`)).subarray(1, 4).toString()).toBe('PNG');
+      const activePng = await readFile(`miniprogram/assets/icons/${name}-active.png`);
+      expect(activePng.subarray(1, 4).toString()).toBe('PNG');
+      expect(hasRgbaPixel(activePng, 116, 84, 216)).toBe(true);
     }
     for (const name of ['scenic', 'restaurant', 'culture', 'camping']) {
       const filename = `category-${name}`;

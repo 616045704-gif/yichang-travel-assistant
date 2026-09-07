@@ -31,7 +31,9 @@ function icon(name, size, color, isCategory = false) {
     else if (name === 'culture') mark = line([12, 25, 32, 13], [32, 13, 52, 25], [16, 28, 48, 28], [18, 50, 46, 50], [22, 29, 22, 49], [32, 29, 32, 49], [42, 29, 42, 49]) || dot(47, 17, 5);
     else mark = line([12, 50, 31, 18], [31, 18, 52, 50], [22, 50, 31, 35], [31, 35, 41, 50], [9, 51, 55, 51]) || line([14, 18, 20, 18], [17, 15, 17, 21]);
     if (mark) set(color);
-    if (isCategory && name !== 'scenic' && name !== 'restaurant' && name !== 'culture') { if (dot(17, 18, 3)) set(palette.yellow); }
+    if (isCategory && name === 'scenic' && dot(44, 17, 5)) set(palette.yellow);
+    if (isCategory && (name === 'restaurant' || name === 'culture') && dot(47, 16, 5)) set(palette.yellow);
+    if (isCategory && name === 'camping' && dot(17, 18, 3)) set(palette.yellow);
   });
 }
 function locationPin() {
@@ -48,7 +50,7 @@ function locationPin() {
 const tabs = ['home', 'discover', 'map', 'me'];
 for (const name of tabs) {
   await writeFile(new URL(`${name}.png`, root), icon(name, 81, palette.lilac));
-  await writeFile(new URL(`${name}-active.png`, root), icon(name, 81, palette.yellow));
+  await writeFile(new URL(`${name}-active.png`, root), icon(name, 81, palette.purple));
 }
-for (const name of ['scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, root), icon(name, 96, palette.yellow, true));
+for (const name of ['scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, root), icon(name, 96, palette.purple, true));
 await writeFile(new URL('location.png', root), locationPin());
