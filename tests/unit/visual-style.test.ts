@@ -55,10 +55,11 @@ describe('travel visual presentation', () => {
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
     expect(discover).toContain('确认搜索');
-    expect(discover).toContain('🔍');
+    expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
     expect(card).toContain('favorite-icon');
     expect(cardStyle).toContain('.favorite-bar');
+    expect(cardStyle).toContain('.favorite-icon::after');
     expect(detail).toContain('favorite-icon');
     expect(detailStyle).toContain('width: 136rpx');
   });
