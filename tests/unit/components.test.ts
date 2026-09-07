@@ -21,6 +21,7 @@ describe('reusable travel components', () => {
     const feedbackStyle = await readFile('miniprogram/components/feedback-toast/index.wxss', 'utf8');
     const card = await readFile('miniprogram/components/place-card/index.wxml', 'utf8');
     const cardStyle = await readFile('miniprogram/components/place-card/index.wxss', 'utf8');
+    const filters = await readFile('miniprogram/components/category-filter/index.wxml', 'utf8');
     expect(state).not.toContain('﹏');
     expect(state).not.toContain('>!</view>');
     expect(stateStyle).toContain('var(--color-brand)');
@@ -28,7 +29,11 @@ describe('reusable travel components', () => {
     expect(feedback).toContain('bindtap="dismiss"');
     expect(feedback).toContain('feedback-close-mark');
     expect(feedbackStyle).not.toMatch(/\.feedback-close\s+view/);
-    expect(card).toContain('favorite-label');
+    expect(filters).toContain('data-value="{{item.value}}"');
+    expect(filters).toContain('bindtap="onSelect"');
+    expect(filters).toContain('/assets/provided/category-');
+    expect(card).toContain('cover-favorite');
+    expect(card).toContain('/assets/provided/favorite.png');
     expect(cardStyle).not.toMatch(/\.favorite\s+text/);
     expect(feedbackStyle).toContain('var(--color-brand-deep)');
     expect(feedbackStyle).toContain('var(--color-action)');

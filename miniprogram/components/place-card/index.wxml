@@ -1,8 +1,6 @@
 <view wx:if="{{place}}" class="place-card">
   <view class="open-area" bindtap="onOpen" aria-role="button" aria-label="{{'查看' + place.name}}">
-    <image wx:if="{{place.coverUrl && !imageFailed}}" class="cover" src="{{place.coverUrl}}" mode="aspectFill" binderror="onImageError" />
-    <view wx:else class="cover placeholder">图片暂不可用</view>
+    <view class="cover-wrap"><image wx:if="{{place.coverUrl && !imageFailed}}" class="cover" src="{{place.coverUrl}}" mode="aspectFill" binderror="onImageError" /><view wx:else class="cover placeholder">图片暂不可用</view><button class="cover-favorite" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}"><image class="favorite-image" src="{{place.isFavorite ? '/assets/provided/favorite-active.png' : '/assets/provided/favorite.png'}}" mode="aspectFit" /></button></view>
     <view class="body"><text class="name">{{place.name}}</text><text class="district">{{place.district}}</text><text class="intro">{{place.intro}}</text><view class="tags"><text wx:for="{{place.tags}}" wx:key="*this" class="tag">{{item}}</text></view></view>
   </view>
-  <view class="favorite-bar"><button class="favorite" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}"><view class="favorite-icon {{place.isFavorite ? 'is-active' : ''}}"></view><text class="favorite-label">{{place.isFavorite ? '已收藏' : '收藏'}}</text></button></view>
 </view>
