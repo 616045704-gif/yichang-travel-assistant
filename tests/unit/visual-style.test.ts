@@ -19,6 +19,24 @@ function hasRgbaPixel(png: Buffer, red: number, green: number, blue: number) {
 }
 
 describe('travel visual presentation', () => {
+  it('uses the Three Gorges travel assistant brand everywhere visible', async () => {
+    const [app, home, me, project, packageManifest] = await Promise.all([
+      readFile('miniprogram/app.json', 'utf8'),
+      readFile('miniprogram/pages/home/index.json', 'utf8'),
+      readFile('miniprogram/pages/me/index.wxml', 'utf8'),
+      readFile('project.config.json', 'utf8'),
+      readFile('package.json', 'utf8'),
+    ]);
+    expect(app).toContain('三峡旅游小助手');
+    expect(home).toContain('三峡旅游小助手');
+    expect(me).toContain('三峡旅游小助手 · 基础版');
+    expect(project).toContain('"description": "三峡旅游小助手：原生微信小程序"');
+    expect(project).toContain('"projectname": "sanxia-travel-assistant"');
+    expect(packageManifest).toContain('"name": "sanxia-travel-assistant"');
+    for (const source of [app, home, me, project, packageManifest]) {
+      expect(source).not.toMatch(/宜昌旅游(?:助手|小助手)?|yichang-travel/i);
+    }
+  });
   it('ships the white editorial travel theme consistently with native navigation and original assets', async () => {
     const tokens = await readFile('miniprogram/styles/tokens.wxss', 'utf8');
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));

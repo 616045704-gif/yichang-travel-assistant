@@ -1,8 +1,8 @@
-# 宜昌旅游 AI 微信小程序分阶段 Implementation Plan
+# 三峡旅游小助手分阶段 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 交付可通过微信体验版二维码运行的宜昌旅游小程序，完成地点发现、地图附近、收藏记录、真实 AI 问答和行程定制的面试演示闭环。
+**Goal:** 交付可通过微信体验版二维码运行的“三峡旅游小助手”，完成地点发现、地图附近、收藏记录、真实 AI 问答和行程定制的面试演示闭环。
 
 **Architecture:** 原生微信小程序只承担展示、交互和主动授权定位；业务统一通过微信云函数访问云数据库和云存储。AI 先完成明确标记的模拟交互，再通过云函数先检索本地已核验地点、后调用用户现有 Dify 应用；后端控制用户归属、调用额度、任务状态及来源展示。
 

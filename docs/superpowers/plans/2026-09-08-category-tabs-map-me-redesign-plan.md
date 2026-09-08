@@ -470,7 +470,7 @@ Use this structure around the current text and loop:
   </view>
   <button class="privacy-button" bindtap="showPrivacy"><text>隐私说明</text><view class="menu-arrow" aria-hidden="true"></view></button>
   <text class="note personal-note">收藏、浏览、旅行偏好与 AI 问答记录只向对应用户展示。</text>
-  <text class="footer-note">宜昌旅游助手 · 基础版</text>
+  <text class="footer-note">三峡旅游小助手 · 基础版</text>
 </view>
 ```
 

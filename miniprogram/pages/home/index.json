@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "宜昌旅游助手", "usingComponents": { "async-state": "/components/async-state/index", "place-card": "/components/place-card/index", "feedback-toast": "/components/feedback-toast/index" } }
+{ "navigationBarTitleText": "三峡旅游小助手", "usingComponents": { "async-state": "/components/async-state/index", "place-card": "/components/place-card/index", "feedback-toast": "/components/feedback-toast/index" } }
