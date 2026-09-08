@@ -140,14 +140,17 @@ describe('travel visual presentation', () => {
     expect(detail).toContain('detail-section-heading');
     expect(detail).toContain('section-marker');
     expect(detail).toContain('card-headline');
+    expect(detail).toContain('<view class="title-row"><text class="eyebrow">');
     expect(detailStyle).toContain('height: 420rpx');
     expect(detailStyle).toContain('box-sizing: border-box');
     expect(detailStyle).toContain('width: 100%');
     expect(detailStyle).toContain('.section-marker.info');
     expect(detailStyle).toContain('.detail-section-heading');
     expect(detailStyle).toContain('font-size: 36rpx');
-    expect(detailStyle).toContain('width: 160rpx');
-    expect(detailStyle).toContain('background: var(--color-action)');
+    expect(detailStyle).toContain('background: #f3f1fa');
+    expect(detailStyle).toContain('border: 0');
+    expect(detailStyle).toContain('width: 64rpx');
+    expect(detailStyle).toContain('.favorite-button text { display: none; }');
   });
 
   it('uses the shared white editorial surface on discovery, map, and place details', async () => {
