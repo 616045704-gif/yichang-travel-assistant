@@ -1,43 +1,42 @@
 # 行程调整输入框 iPhone 键盘定位验收记录
 
 日期：2026-09-08，更新于 2026-09-09
-功能被测提交：`98f9c5d`（`fix: restore trip input after keyboard opens`）
+功能被测提交：`c867eb0`（`fix: move trip adjustment to separate page`）
 
-## 真机复现与对照证据
+## 真机复现与方案结论
 
-iPhone 微信二维码预览中，生成行程后点击调整 `textarea`，键盘能够弹出，但不到一秒页面会滚回“当前计划”开头，导致无法输入。微信开发者工具不复现。
+iPhone 微信二维码预览中，生成行程后点击长结果页底部的调整 `textarea`，键盘能够弹出且输入框仍可接收文字，但页面视野会在不到一秒内滚回“当前计划”开头。微信开发者工具不复现，同一台 iPhone 上自由问答的长内容和多轮输入正常。
 
-用户已在同一台 iPhone、同一份最新预览包完成以下对照：
+以下尝试均经用户真机复测后确认无效：
 
-- 静态值 `adjust-position="false"` 的预览版本仍然复现。
-- 布尔绑定 `adjust-position="{{false}}"` 的预览版本仍然复现。
-- `84766e9` 将外层从 `label` 换成 `view` 后仍然复现；输入框保持焦点并能接收文字，只是页面视野瞬间滚回“当前计划”。
-- 自由问答页面在长内容和多轮对话后可以正常点击、输入和继续对话。
-- 最新包标题已经更新，排除了旧二维码或旧缓存。
+- 静态值 `adjust-position="false"`。
+- 布尔绑定 `adjust-position="{{false}}"`。
+- 将输入框外层由 `label` 改为 `view`（`84766e9`）。
+- 监听 `keyboardheightchange` 后调用 `wx.pageScrollTo` 主动定位输入框（`98f9c5d`）。
 
-因此，先前把问题归因于 `adjust-position` 写法或外层标签的结论均已被真机结果否定。问题位于键盘出现后的页面视野滚动阶段，而不是焦点或输入阶段。本次改为主动控制：调整 `textarea` 监听 `keyboardheightchange`，键盘高度大于 0 时调用 `wx.pageScrollTo`，把 `#trip-adjustment-input` 立即定位回可视区域。输入绑定、1000 字限制、样式、调整提交、重新规划、行程生成、Dify 和云函数边界均未修改。
+因此，不再继续叠加键盘属性或滚动计时器。本次把调整输入框从长行程结果页移到独立的短页面：用户点击“调整行程”，在新页面输入并确认，页面通过 EventChannel 把文字交回原行程页，原行程页继续调用既有 `submitAdjustment()` 完整重新生成逻辑。Dify、云函数、本地地点检索和会话逻辑均未修改。
 
 ## 实际执行
 
 | 项目 | 实际执行 | 结果 |
 | --- | --- | --- |
-| 失败测试 | 修改测试后运行 `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts` | 旧 WXML 缺少输入框 ID 和键盘事件绑定，页面缺少滚动处理方法；其余 6 项通过。 |
-| 修复后定向测试 | `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts` | 8/8 通过；覆盖键盘打开时定位和键盘关闭时不滚动。 |
+| 失败测试 | 实现前运行行程表单、导航和新页面定向测试 | 5 项按预期失败：缺少新路由、新页面、打开页面按钮和回传处理。 |
+| 修复后定向测试 | `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts tests\unit\trip-adjustment-page.test.ts tests\unit\navigation.test.ts` | 3 个文件、26 项全部通过；覆盖独立编辑页、输入校验、EventChannel 回传和沿用完整重新生成。 |
+| 全量测试 | `node node_modules\vitest\vitest.mjs run --reporter=dot` | 30 个文件、285 项通过；1 个数据库安全集成测试按环境条件跳过。 |
 | 类型检查 | `node node_modules\typescript\bin\tsc --noEmit` | 通过。 |
-| 静态检查 | `node node_modules\eslint\bin\eslint.js .` | 通过。定向检查 WXML 时仅报告该文件没有 ESLint 匹配配置，无错误且退出码为 0。 |
+| 静态检查 | `node node_modules\eslint\bin\eslint.js .` | 通过。 |
 | 文档与空白 | `node scripts\verify-docs.mjs`、`git diff --check` | 文档 60 项验证通过；差异检查通过。 |
-| 全量测试 | `node node_modules\vitest\vitest.mjs run` | 283 通过、1 个数据库安全集成测试按环境条件跳过。 |
-| 真实体验包 | `node scripts\build.mjs --mode=demo` | 通过；当前 `dist` 已重新生成。 |
+| 体验包构建 | `node scripts\build.mjs --mode=demo` | 通过；`dist` 已重新生成。 |
 | 包边界 | `node scripts\check-package.mjs --mode=demo` | 通过。 |
-| 生成物结构核对 | 核对 `dist/miniprogram/pages/trip-form/index.wxml` 和页面脚本 | WXML 包含 `trip-adjustment-input` 与 `onAdjustmentKeyboardHeightChange`；脚本包含 `wx.pageScrollTo`。 |
+| 生成物结构核对 | 核对 `dist/miniprogram/app.json`、行程页和调整页 | 新路由、独立页面和 `openAdjustmentPage` 已进入生成物；旧 `pageScrollTo` 和长页调整输入框未进入生成物。 |
 
 ## 待验项
 
-- 用户在 iPhone 微信中扫描本次主动滚动版本的新二维码，执行“生成行程 → 点击调整框 → 连续输入不少于 10 个汉字 → 确认调整”。
-- 合格标准：键盘弹出后输入框自动回到键盘上方，已输入文字保持可见，完整行程能够正常重新生成。
-- 独立真机验收：待用户复测。本地自动化和开发者工具不能代替该结果。
-- Android、真实 Dify/CloudBase 调用及体验版发布不由本次前端结构修改替代验证。
+- 用户在 iPhone 微信中执行普通编译并扫描新二维码，完成“生成行程 → 调整行程 → 输入不少于 10 个汉字 → 确认调整”。
+- 合格标准：独立调整页输入框始终可见；确认后返回原页并生成包含调整要求的完整行程。
+- 独立真机验收：待用户复测。本地自动化和开发者工具不能替代该结果。
+- Android、真实 Dify/CloudBase 调用及体验版发布不由本次纯前端结构修改替代验证。
 
 ## 阶段结论
 
-主动滚动修复、自动化回归、类型检查、静态检查、文档检查、真实包构建和包边界检查均已完成。当前只差 iPhone 新二维码复测；在结果返回前，不声称真机问题已解决。如果仍然看不到输入框，将停止增加属性或计时器，转为独立调整页面方案。
+独立调整页面、自动化回归、类型检查、静态检查、文档检查、体验包构建和包边界检查均已完成。当前只差 iPhone 新二维码复测；在用户返回结果前，不声称真机问题已经解决。
