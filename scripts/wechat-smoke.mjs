@@ -276,6 +276,9 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       '/assets/provided/map-marker-culture.png',
       '/assets/provided/map-marker-camping.png',
     ]));
+    await map.trigger('markertap', { markerId: allMarkers[0].id });
+    await mapPage.waitFor('.marker-card');
+    assert.ok(await mapPage.data('selectedPlace'), 'Marker fixture must open a preview before category reset is tested');
     for (const [index, category] of ['scenic', 'restaurant', 'culture', 'camping'].entries()) {
       const currentTabs = await mapPage.$$('.map-filter-tab');
       await currentTabs[index + 1].tap();

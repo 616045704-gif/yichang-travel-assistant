@@ -138,14 +138,14 @@ describe('travel visual presentation', () => {
     expect(overlay).toContain('box-shadow: 0 12rpx 30rpx');
     expect(overlay).toContain('border: 1rpx solid');
     expect(overlay).toContain('pointer-events: auto');
-    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*width:\s*100rpx[^}]*height:\s*112rpx/);
+    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*width:\s*100rpx[^}]*height:\s*112rpx[^}]*padding:\s*8rpx 8rpx 7rpx[^}]*border-radius:\s*24rpx[^}]*background:\s*rgba\(255, 255, 255, \.98\)[^}]*box-shadow:[^}]*line-height:\s*normal/);
     expect(css).toMatch(/\.map-filter-track\s*\{[^}]*gap:\s*12rpx[^}]*justify-content:\s*flex-start/);
     expect(css).toMatch(/\.map-filter-tab\.is-wide\s*\{[^}]*width:\s*184rpx/);
     expect(css).toMatch(/\.map-filter-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
     expect(buttons).toMatch(/\.category-tabs\s*\{[^}]*pointer-events:\s*auto/);
     expect(buttons).toMatch(/\.category-tabs-track\s*\{[^}]*gap:\s*12rpx/);
-    expect(buttons).toMatch(/\.category-tab\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*width:\s*100rpx[^}]*height:\s*112rpx[^}]*border-radius:\s*24rpx/);
+    expect(buttons).toMatch(/\.category-tab\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*width:\s*100rpx[^}]*height:\s*112rpx[^}]*padding:\s*8rpx 8rpx 7rpx[^}]*border-radius:\s*24rpx[^}]*background:\s*rgba\(255, 255, 255, \.98\)[^}]*box-shadow:[^}]*line-height:\s*normal/);
     expect(buttons).toMatch(/\.category-tab\.is-wide\s*\{[^}]*width:\s*184rpx/);
     expect(buttons).toContain('.category-tab::after');
     expect(buttons).toContain('.category-tab.category-tab-pressed');

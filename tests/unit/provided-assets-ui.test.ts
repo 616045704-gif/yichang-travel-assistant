@@ -16,7 +16,7 @@ const assets = [
   ['map-marker.png', 72, 88, 20_000],
   ['map-marker-scenic.png', 88, 108, 24_000], ['map-marker-restaurant.png', 88, 108, 24_000],
   ['map-marker-culture.png', 88, 108, 24_000], ['map-marker-camping.png', 88, 108, 24_000],
-  ['me-hero-travel.png', 0, 0, 900_000], ['me-traveler-avatar.png', 0, 0, 400_000],
+  ['me-hero-travel.png', 1400, 840, 900_000], ['me-traveler-avatar.png', 512, 512, 400_000],
 ] as const;
 
 function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE(offset); }
