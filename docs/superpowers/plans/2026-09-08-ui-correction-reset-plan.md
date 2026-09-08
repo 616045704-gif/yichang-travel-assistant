@@ -423,3 +423,52 @@ Expected: 任务文件已提交；只剩用户既有的 `project.config.json` �
 - Scope coverage: 服务、云函数、Dify、数据库、接口、路线、定位时机、首页/发现头图、地点列表、详情页、底部 Tab 与“我的”下半页均列为禁止修改。
 - Type consistency: 分类值、`categorychange`、`onMapCategoryTap → applyCategory`、`openSelectedPlace`、`openEntry` 和既有 URL 保持当前签名。
 - Placeholder scan: 所有文件、资源名、尺寸、命令、预期结果、截图目录和验收阈值均明确；不存在 TODO/TBD。
+
+---
+
+### Task 10: Make Both Category Bars Fill Their Available Width
+
+**Files:**
+- Modify: `miniprogram/components/category-filter/index.wxss`
+- Modify: `miniprogram/pages/map/index.wxss`
+- Modify: `tests/unit/visual-style.test.ts`
+- Modify: `tests/unit/map-nearby-page.test.ts`
+
+**Interfaces:**
+- Consumes: 既有五项 `options` / `mapCategories` 数据及原 `bindtap`，不改变分类值或事件。
+- Produces: 发现页搜索按钮右侧完整五等分分类栏，以及地图页无右侧空白的五等分分类栏。
+
+- [ ] **Step 1: Write the failing width contract**
+
+断言两个轨道均为 `display: flex; width: 100%; gap: 8rpx`，分类项均为 `flex: 1 1 0; width: auto; min-width: 0`，并移除 `.is-wide` 固定宽度。标签必须允许两行，不能使用 `white-space: nowrap` 或 `text-overflow: ellipsis`。
+
+- [ ] **Step 2: Run the focused tests and confirm failure**
+
+Run: `node .local-tools/package/bin/npm-cli.js test -- --run tests/unit/visual-style.test.ts tests/unit/map-nearby-page.test.ts`
+
+Expected: FAIL，仅指向旧 `100rpx/184rpx/12rpx` 固定宽度契约。
+
+- [ ] **Step 3: Implement equal-width tracks**
+
+共享组件和地图原生覆盖层分别改用同一组 token：轨道 `width: 100%`、`gap: 8rpx`；项目 `flex: 1 1 0`、`width: auto`、`min-width: 0`、高度 `112rpx`；长标签两行居中。保留 `56rpx` 本地图标、边框、圆角、背景、阴影和选中态。
+
+- [ ] **Step 4: Run focused and full verification**
+
+Run: `node .local-tools/package/bin/npm-cli.js test -- --run tests/unit/visual-style.test.ts tests/unit/map-nearby-page.test.ts tests/unit/navigation.test.ts`
+
+Expected: PASS。
+
+Run: `node .local-tools/package/bin/npm-cli.js run typecheck && node .local-tools/package/bin/npm-cli.js run lint && node scripts/build.mjs --mode=demo && node scripts/check-package.mjs --mode=demo`
+
+Expected: 全部退出码 0，构建输出 `Build ready: dist/ (demo)`。
+
+- [ ] **Step 5: Commit the focused correction**
+
+```powershell
+git add -- miniprogram/components/category-filter/index.wxss miniprogram/pages/map/index.wxss tests/unit/visual-style.test.ts tests/unit/map-nearby-page.test.ts docs/superpowers/plans/2026-09-08-ui-correction-reset-plan.md
+git commit -m "fix: fit all category tabs on screen"
+```
+
+- [ ] **Step 6: Cold-start visual QA**
+
+完整关闭微信开发者工具并从项目列表重开。分别保存发现页默认状态和地图页默认状态截图，确认发现页搜索按钮与五分类全部可见、地图五分类填满栏宽且右侧无空白；逐项点击五分类，确认完整卡片热区仍可用。
