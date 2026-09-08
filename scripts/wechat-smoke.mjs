@@ -28,24 +28,17 @@ async function waitForPageData(page, key, expected, timeout = 6000) {
   return actual;
 }
 
-async function waitForSettledStatus(page, timeout = 6000) {
+async function waitForItemsChange(page, previousItems, timeout = 6000) {
   const deadline = Date.now() + timeout;
-  let status;
-  let previousStatus;
-  let stableReads = 0;
+  const previous = JSON.stringify(previousItems);
+  let items;
   while (Date.now() < deadline) {
-    status = await page.data('status');
-    if (status === 'ready' || status === 'empty' || status === 'error') {
-      stableReads = status === previousStatus ? stableReads + 1 : 1;
-      if (stableReads >= 2) return status;
-    } else {
-      stableReads = 0;
-    }
-    previousStatus = status;
+    items = await page.data('items');
+    if (JSON.stringify(items) !== previous) return items;
     await wait(100);
   }
-  assert.ok(['ready', 'empty', 'error'].includes(status), `Expected a settled page status, received ${status}`);
-  return status;
+  assert.notEqual(JSON.stringify(items), previous, 'Expected the category request to replace the visible items');
+  return items;
 }
 
 async function elementBox(element) {
@@ -191,9 +184,10 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.ok(filter);
     const categoryTabs = await filter.$$('.category-tab');
     assert.equal(categoryTabs.length, 5);
+    const itemsBeforeCategoryReset = await page.data('items');
     await categoryTabs[0].tap();
     await waitForPageData(page, 'category', '');
-    await waitForSettledStatus(page);
+    await waitForItemsChange(page, itemsBeforeCategoryReset);
     const searchTrigger = await page.$('.search-trigger');
     assert.ok(searchTrigger);
     assert.equal(await page.$('.search-input'), null);
