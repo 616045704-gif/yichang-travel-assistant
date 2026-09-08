@@ -149,7 +149,12 @@ describe('travel visual presentation', () => {
     expect(detailStyle).toContain('font-size: 36rpx');
     expect(detailStyle).toContain('background: #f3f1fa');
     expect(detailStyle).toContain('border: 0');
-    expect(detailStyle).toContain('width: 64rpx');
+    expect(detailStyle).toContain('position: absolute');
+    expect(detailStyle).toContain('top: 24rpx');
+    expect(detailStyle).toContain('right: 24rpx');
+    expect(detailStyle).toContain('width: 88rpx');
+    expect(detailStyle).toContain('width: 56rpx');
+    expect(detailStyle).toContain('.place-name-heading { margin-top: 48rpx; }');
     expect(detailStyle).toContain('.favorite-button text { display: none; }');
   });
 
