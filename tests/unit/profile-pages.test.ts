@@ -10,6 +10,12 @@ describe('personal pages', () => {
     ]);
     expect(markup).toContain('src="/assets/provided/menu-{{item.icon}}.png"');
     expect(markup).toContain('class="travel-hero"');
+    expect(markup).toContain('class="travel-kicker"');
+    expect(markup).toContain('class="travel-title"');
+    expect(markup).toContain('class="travel-subtitle"');
+    expect(markup).toContain('class="travel-illustration"');
+    expect(markup).toContain('class="profile-avatar-art"');
+    expect(markup.indexOf('class="profile-card"')).toBeLessThan(markup.indexOf('class="menu"'));
     expect(markup).toContain('/assets/provided/category-scenic.png');
     expect(markup).toContain('/assets/provided/category-camping.png');
     expect(markup).toContain('/assets/provided/tab-me-active.png');

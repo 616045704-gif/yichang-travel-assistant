@@ -250,11 +250,17 @@ describe('travel visual presentation', () => {
       readFile('miniprogram/pages/me/index.wxss', 'utf8'),
     ]);
     expect(markup).toContain('class="travel-hero"');
+    expect(markup).toContain('class="travel-kicker"');
+    expect(markup).toContain('class="travel-title"');
+    expect(markup).toContain('class="travel-subtitle"');
+    expect(markup).toContain('class="travel-illustration"');
+    expect(markup).toContain('class="profile-avatar-art"');
     expect(markup).toContain('/assets/provided/tab-me-active.png');
     expect(style).toMatch(/\.me-page\s*\{[^}]*background:\s*var\(--color-page\)/);
-    expect(style).toMatch(/\.travel-hero\s*\{[^}]*position:\s*relative[^}]*overflow:\s*hidden[^}]*linear-gradient/);
-    expect(style).toMatch(/\.travel-motif\s*\{[^}]*opacity:\s*\.1[0-9][^}]*pointer-events:\s*none/);
-    expect(style).toMatch(/\.profile-card\s*\{[^}]*margin-top:\s*-\d+rpx[^}]*background:\s*var\(--color-surface\)[^}]*box-shadow:/);
+    expect(style).toMatch(/\.travel-hero\s*\{[^}]*position:\s*relative[^}]*height:\s*420rpx[^}]*overflow:\s*hidden[^}]*linear-gradient/);
+    expect(style).toMatch(/\.travel-illustration\s*\{[^}]*pointer-events:\s*none/);
+    expect(style).toMatch(/\.profile-card\s*\{[^}]*position:\s*absolute[^}]*left:\s*22rpx[^}]*right:\s*22rpx[^}]*bottom:\s*22rpx[^}]*min-height:\s*148rpx[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*\.92\)[^}]*box-shadow:/);
+    expect(style).toMatch(/\.profile-avatar-art\s*\{[^}]*width:\s*108rpx[^}]*height:\s*108rpx/);
     expect(style).toMatch(/\.menu\s*\{[^}]*border:[^}]*border-radius:[^}]*background:\s*var\(--color-surface\)/);
     expect(style).toMatch(/\.menu-icon\s*\{[^}]*width:\s*72rpx[^}]*height:\s*72rpx/);
     for (const name of ['favorite', 'history', 'ai', 'preferences']) expect(style).toContain(`.menu-icon-shell-${name}`);
