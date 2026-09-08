@@ -137,11 +137,15 @@ describe('four-tab application', () => {
     expect(smoke).toContain("assert.equal(aiPage.path, 'pages/ai-chat/index')");
     expect(smoke).toContain("assert.equal(detailPage.path, 'pages/place-detail/index')");
     expect(smoke).toContain("await filter.$$('.category-tab')");
-    expect(smoke).toContain("await filter.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } })");
+    expect(smoke).toContain('await categoryTabs[1].tap()');
     expect(smoke).toContain("await mapFilters.$$('.category-tab')");
-    expect(smoke).toContain("await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } })");
+    expect(smoke).toContain('await mapCategoryTabs[1].tap()');
     expect(smoke).toContain("await page.$('.search-trigger')");
     expect(smoke).toContain("await page.$('.search-input')");
+    expect(smoke).toContain("Typing must not start a request");
+    expect(smoke).toContain("searchInput.trigger('confirm'");
+    expect(smoke).toContain("map.trigger('markertap'");
+    expect(smoke).toContain('/assets/provided/map-marker-camping.png');
     expect(smoke).toContain("assert.equal(recordsPage.query.type, 'favorites')");
     expect(smoke).not.toContain("page.$('.hero')");
     expect(smoke).not.toContain("filter.$$('.filter')");

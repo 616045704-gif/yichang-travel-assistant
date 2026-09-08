@@ -44,6 +44,7 @@ describe('nearby map page', () => {
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
     expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*-webkit-line-clamp:\s*2/);
+    expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
     expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');
   });
 

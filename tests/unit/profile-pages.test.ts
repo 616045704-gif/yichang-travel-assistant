@@ -16,6 +16,8 @@ describe('personal pages', () => {
     expect(markup).toContain('menu-icon-shell menu-icon-shell-{{item.icon}}');
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('bindtap="openEntry"');
+    expect(markup).toContain('hover-class="menu-row-pressed"');
+    expect(markup).toContain('hover-class="privacy-button-pressed"');
     expect(markup).toContain('data-url="{{item.url}}"');
     expect(markup).not.toContain('意见反馈');
     expect(logic).toContain("icon: 'favorite'");

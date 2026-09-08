@@ -16,6 +16,7 @@
 .profile-subtitle { display: block; margin-top: 6rpx; color: var(--color-muted); font-size: 23rpx; }
 .menu { overflow: hidden; padding: 0 22rpx; border: 1rpx solid rgba(90, 70, 138, .10); border-radius: 30rpx; background: var(--color-surface); }
 .menu-row { display: flex; align-items: center; gap: 18rpx; min-height: 124rpx; padding: 16rpx 2rpx; border-bottom: 1rpx solid var(--color-border); }
+.menu-row.menu-row-pressed { margin: 0 -10rpx; padding-right: 12rpx; padding-left: 12rpx; background: var(--color-brand-soft); }
 .menu-row:last-child { border-bottom: 0; }
 .menu-icon-shell { display: flex; flex: 0 0 88rpx; align-items: center; justify-content: center; width: 88rpx; height: 88rpx; border-radius: 24rpx; }
 .menu-icon-shell-favorite { background: #fff1f1; }
@@ -29,5 +30,6 @@
 .menu-arrow { flex: 0 0 auto; width: 14rpx; height: 14rpx; margin-right: 6rpx; border-top: 3rpx solid var(--color-brand); border-right: 3rpx solid var(--color-brand); transform: rotate(45deg); }
 .privacy-button { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100%; min-height: 92rpx; margin-top: 20rpx; padding: 0 28rpx; border: 1rpx solid rgba(90, 70, 138, .10); border-radius: 24rpx; background: var(--color-surface); color: var(--color-text-strong); font-size: 27rpx; font-weight: 700; line-height: 1.5; }
 .privacy-button::after { border: 0; }
+.privacy-button.privacy-button-pressed { background: var(--color-brand-soft); }
 .personal-note { display: block; margin: 24rpx 8rpx 18rpx; line-height: 1.7; }
 .footer-note { margin-left: 8rpx; }

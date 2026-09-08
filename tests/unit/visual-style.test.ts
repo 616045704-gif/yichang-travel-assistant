@@ -75,9 +75,11 @@ describe('travel visual presentation', () => {
       readFile('miniprogram/pages/map/index.wxss', 'utf8'),
     ]);
     expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
+    expect(markup).toContain('hover-class="detail-button-pressed"');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
     expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*display:\s*-webkit-box[^}]*-webkit-line-clamp:\s*2/);
+    expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
   });
   it('renders the provided Home Hero with clean paired AI actions', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
@@ -144,8 +146,12 @@ describe('travel visual presentation', () => {
     expect(discover).toContain('discover-hero-copy');
     expect(discover).toContain('/assets/icons/discover-active.png');
     expect(discover).toContain('search-trigger-icon');
+    expect(discover).toContain('aria-label="搜索地点"');
+    expect(discover).toContain('hover-class="search-trigger-pressed"');
+    expect(discover).toContain('hover-class="search-send-pressed"');
     expect(discoverStyle).toContain('.search-trigger');
     expect(discoverStyle).toContain('.search-send');
+    expect(discoverStyle).toContain('pointer-events: none');
     expect(discoverStyle).toMatch(/\.discover-tools\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/);
     expect(discoverStyle).toMatch(/\.discover-search\s*\{[^}]*flex:\s*0\s+0\s+88rpx/);
     expect(discoverStyle).toMatch(/\.discover-search\.is-expanded\s*\{[^}]*flex-basis:\s*400rpx/);

@@ -16,6 +16,18 @@ async function waitForPagePath(miniProgram, expectedPath, timeout = 6000) {
   return currentPage;
 }
 
+async function waitForPageData(page, key, expected, timeout = 6000) {
+  const deadline = Date.now() + timeout;
+  let actual;
+  while (Date.now() < deadline) {
+    actual = await page.data(key);
+    if (actual === expected) return actual;
+    await wait(100);
+  }
+  assert.equal(actual, expected);
+  return actual;
+}
+
 // The user starts the official CLI for this project before running this check.
 const endpoint = process.env.WECHAT_AUTOMATION_ENDPOINT;
 if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
@@ -114,11 +126,21 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const searchSend = await page.$('.search-send');
     assert.ok(searchInput);
     assert.ok(searchSend);
-    await searchInput.input('三峡');
-    assert.equal(await page.data('keyword'), '三峡');
+    const itemsBeforeInput = await page.data('items');
+    const statusBeforeInput = await page.data('status');
+    await searchInput.input('不会存在的自动化检索词');
+    await page.waitFor(300);
+    assert.equal(await page.data('keyword'), '不会存在的自动化检索词');
+    assert.equal(await page.data('status'), statusBeforeInput, 'Typing must not start a request');
+    assert.deepEqual(await page.data('items'), itemsBeforeInput, 'Typing must not replace results');
     await searchSend.tap();
-    await filter.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } });
-    await page.waitFor(400);
+    await waitForPageData(page, 'status', 'empty');
+    await searchInput.input('三峡');
+    await searchInput.trigger('confirm', { value: '三峡' });
+    await waitForPageData(page, 'status', 'ready');
+    assert.ok((await page.data('items')).length > 0, 'Keyboard confirm must execute the search');
+    await categoryTabs[1].tap();
+    await waitForPageData(page, 'category', 'scenic');
     assert.equal(await page.data('category'), 'scenic');
     state = await page.$('#content-state');
     assert.ok(state);
@@ -157,10 +179,19 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     await mapPage.callMethod('setPlaces', [
       { placeId: 'e2e-scenic', name: '自动化测试点（景区）', category: 'scenic', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' },
       { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
+      { placeId: 'e2e-culture', name: '自动化测试点（文化馆）', category: 'culture', latitude: 30.72, longitude: 111.32, coordinateSystem: 'GCJ-02' },
+      { placeId: 'e2e-camping', name: '自动化测试点（露营地）', category: 'camping', latitude: 30.73, longitude: 111.33, coordinateSystem: 'GCJ-02' },
     ]);
-    assert.equal((await mapPage.data('markers')).length, 2);
-    await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } });
-    await mapPage.waitFor(400);
+    const allMarkers = await mapPage.data('markers');
+    assert.equal(allMarkers.length, 4);
+    assert.deepEqual(new Set(allMarkers.map(marker => marker.iconPath)), new Set([
+      '/assets/provided/map-marker-scenic.png',
+      '/assets/provided/map-marker-restaurant.png',
+      '/assets/provided/map-marker-culture.png',
+      '/assets/provided/map-marker-camping.png',
+    ]));
+    await mapCategoryTabs[1].tap();
+    await waitForPageData(mapPage, 'category', 'scenic');
     assert.equal(await mapPage.data('category'), 'scenic');
     assert.equal((await mapPage.data('markers')).length, 1);
     // Element.property stringifies object arrays; query the actual component properties instead.
@@ -168,11 +199,25 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       wx.createSelectorQuery().select('#city-map').fields({ properties: ['markers'] }, resolve).exec();
     }));
     assert.deepEqual(nativeMarkers.markers, await mapPage.data('markers'));
-    await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: '' } } });
-    await mapPage.waitFor(400);
-    assert.equal((await mapPage.data('markers')).length, 2);
+    await mapCategoryTabs[0].tap();
+    await waitForPageData(mapPage, 'category', '');
+    assert.equal((await mapPage.data('markers')).length, 4);
     assert.deepEqual(await mapPage.data('center'), center);
-    console.log('PASS: full map viewport and category marker updates');
+    const firstMarker = (await mapPage.data('markers'))[0];
+    await map.trigger('markertap', { markerId: firstMarker.id });
+    await mapPage.waitFor('.marker-card');
+    const markerCard = await mapPage.$('.marker-card');
+    const selectedPlace = await mapPage.data('selectedPlace');
+    assert.ok(markerCard);
+    assert.ok(selectedPlace);
+    assert.equal(await (await markerCard.$('.marker-name')).text(), selectedPlace.name);
+    assert.ok(await markerCard.$('.marker-cover'));
+    assert.ok(await markerCard.$('.marker-category-icon'));
+    await (await markerCard.$('.detail-button')).tap();
+    const mapDetailPage = await waitForPagePath(miniProgram, 'pages/place-detail/index');
+    assert.equal(mapDetailPage.query.placeId, selectedPlace.placeId);
+    console.log('PASS: full map viewport, category markers, preview card and detail route');
+    console.log('SKIP: location permission paths require explicit user interaction and are covered by unit tests');
   } catch (error) {
     console.error(`WeChat smoke check failed: ${error.message}`);
     process.exitCode = 1;
