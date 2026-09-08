@@ -137,6 +137,7 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
+    expect(detail).toContain('favorite-anchor');
     for (const filename of ['favorite.png', 'favorite-active.png']) {
       const favorite = await readFile(`miniprogram/assets/provided/${filename}`);
       expect(favorite.readUInt32BE(16)).toBe(128);
@@ -156,12 +157,14 @@ describe('travel visual presentation', () => {
     expect(detailStyle).toContain('background: #f3f1fa');
     expect(detailStyle).toContain('border: 0');
     expect(detailStyle).toContain('position: absolute');
+    expect(detailStyle).toContain('.favorite-anchor');
     expect(detailStyle).toContain('top: 24rpx');
     expect(detailStyle).toContain('right: 24rpx');
     expect(detailStyle).toContain('width: 88rpx');
     expect(detailStyle).toContain('width: 72rpx');
     expect(detailStyle).toContain('.place-name-heading { margin-top: 48rpx; }');
     expect(detailStyle).toContain('.favorite-button text { display: none; }');
+    expect(detailStyle).toContain('box-shadow: 0 8rpx 24rpx rgba(53, 39, 92, .08)');
   });
 
   it('uses the shared white editorial surface on discovery, map, and place details', async () => {
