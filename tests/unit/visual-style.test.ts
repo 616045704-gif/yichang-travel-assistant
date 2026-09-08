@@ -137,7 +137,12 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
-    expect(detailStyle).toContain('width: 64rpx');
+    expect(detailStyle).toContain('height: 420rpx');
+    expect(detailStyle).toContain('padding-bottom: 48rpx');
+    expect(detailStyle).toContain('margin: 24rpx');
+    expect(detailStyle).toContain('padding: 28rpx');
+    expect(detailStyle).toContain('width: 136rpx');
+    expect(detailStyle).toContain('background: var(--color-action)');
   });
 
   it('uses the shared white editorial surface on discovery, map, and place details', async () => {
