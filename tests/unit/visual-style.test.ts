@@ -159,8 +159,12 @@ describe('travel visual presentation', () => {
     expect(discoverStyle).toMatch(/\.discover-search\.is-expanded\s*\{[^}]*flex-basis:\s*324rpx/);
     expect(discoverStyle).toMatch(/\.discover-category\s*\{[^}]*flex:\s*1[^}]*min-width:\s*300rpx/);
     expect(discoverStyle).toMatch(/\.search-send\s*\{[^}]*background:\s*transparent/);
+    expect(discoverStyle).toMatch(/\.search-close-shell,\s*\.search-send-shell\s*\{[^}]*height:\s*80rpx/);
+    expect(discoverStyle).toMatch(/\.search-close-shell\s*\{[^}]*width:\s*80rpx/);
+    expect(discoverStyle).toMatch(/\.search-send-shell\s*\{[^}]*width:\s*80rpx/);
     expect(discoverStyle).toMatch(/\.send-glyph\s*\{[^}]*width:\s*30rpx[^}]*height:\s*30rpx/);
     expect(discoverStyle).toContain('.search-line-icon::after');
+    expect(discoverStyle).not.toContain('clip-path');
     expect(card).toContain('favorite-action');
     expect(card).toContain('/assets/provided/favorite-active.png');
     expect(cardStyle).toContain('.cover-wrap');
