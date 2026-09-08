@@ -53,3 +53,39 @@
 ## 阶段结论
 
 本提交在自动化、类型、Lint、开发模式构建、包体边界、源码范围以及所提供的前后截图复核范围内通过，可作为前端视觉调整的阶段性放行版本。真机、真实云端及现场交互未测，不构成完整体验版或发布验收结论。
+
+---
+
+## 聚焦 UI 修复独立复验
+
+- 测试角色：独立测试
+- 被测提交：`cf9bc194aa5ce0ade94d48587ef47b111f05fafa`
+- 对照提交：`b911a5df319e534c995ca9c7b2f62e8ab314cce2`
+- 日期：2026-09-08
+- 范围：行程定制图片黑角修复、地点卡收藏触控区、发现搜索占位文案、地图筛选宽度及分类 picker 映射回归。
+
+### 执行结果
+
+| 命令/检查 | 结果 | 实际证据/备注 |
+| --- | --- | --- |
+| `git show --check cf9bc19` | 通过 | 无补丁空白错误输出。 |
+| `node .local-tools\package\bin\npm-cli.js test` | 通过 | 29 个测试文件通过、273 项断言通过；1 项数据库集成测试按配置跳过。 |
+| `node .local-tools\package\bin\npm-cli.js run typecheck` | 通过 | `tsc --noEmit` 退出码 0。 |
+| `node .local-tools\package\bin\npm-cli.js run lint` | 通过 | `eslint .` 退出码 0。 |
+| `node scripts\build.mjs --mode=development` | 通过 | 输出 `Build ready: dist/ (development)`。 |
+| `node scripts\check-package.mjs` | 通过 | 输出 `Client routes, resources and boundary verified`。 |
+| `git diff --check b911a5d..cf9bc19` | 通过 | 无空白错误输出。 |
+
+### 聚焦复核
+
+- `trip-plan.png` 已实际目视检查，四角为连续浅蓝画面；新增资源测试同时解压并检查四个外角调色板颜色均非黑色。
+- 共享地点卡的 `.favorite-action` 最小高度为 `80rpx`，且全量组件测试仍验证收藏事件、pending 禁用与 `favoritechange` 合约。
+- 发现页搜索输入框占位已恢复为“搜索地点名称或简介”，原 `bindinput`、`bindconfirm` 与搜索按钮绑定仍存在。
+- 地图 `.map-filters` 宽度为设计规定的 `214rpx`，并保留 `pointer-events: auto`。
+- 分类 picker 的 0–4 全部索引分别映射回 `''`、`scenic`、`restaurant`、`culture`、`camping`；非法索引拒绝，外部有效/无效 value 的显示索引同步均有自动化覆盖。
+- 本提交除测试记录外只修改静态图片、WXSS、发现页占位文案及测试；未涉及云函数、Dify、数据库字段、接口、路由或页面业务 TypeScript。
+
+### 缺陷与未测项
+
+- 本次可测范围未发现缺陷，可在聚焦修复范围内放行。
+- 未由独立测试角色在微信开发者工具/真机上实际触摸新的 80rpx 收藏热区，或验证 picker 的原生系统弹层；仍需按前述真机、真实定位、云端集成和端到端自动化未测项完成后续验收。
