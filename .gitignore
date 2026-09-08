@@ -8,6 +8,7 @@ project.private.config.json
 # Local dependency and build output
 node_modules/
 dist/
+dist-dev/
 coverage/
 .local-tools/
 .local/

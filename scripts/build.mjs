@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { checkPackage, listFiles, validateResources } from './check-package.mjs';
+import { resolveBuildOutput } from './build-output.mjs';
 
 async function readOptional(file, fallback) {
   try { return JSON.parse(await readFile(file, 'utf8')); }
@@ -13,7 +14,7 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
   root = path.resolve(root);
   if (!['development', 'demo'].includes(mode)) throw new Error('Invalid build mode');
   const source = path.join(root, 'miniprogram');
-  const output = path.join(root, 'dist');
+  const output = resolveBuildOutput(root, mode);
   await access(path.join(source, 'app.ts'));
   await validateResources(source, 'ts');
   const local = await readOptional(path.join(root, 'config/local.json'), {});
@@ -21,7 +22,8 @@ export async function buildProject({ root = process.cwd(), mode = 'development' 
   if (local.appid && !/^(wx[a-f0-9]{16}|touristappid)$/.test(local.appid)) throw new Error('Invalid AppID');
   if (local.cloudEnv && (typeof local.cloudEnv !== 'string' || !/^[a-zA-Z0-9-]+$/.test(local.cloudEnv))) throw new Error('Invalid cloud environment');
   // Keep the IDE's imported directory openable on Windows; only replace generated children.
-  if (path.dirname(output) !== root || path.basename(output) !== 'dist') throw new Error('Unsafe output path');
+  const expectedOutputName = mode === 'demo' ? 'dist' : 'dist-dev';
+  if (path.dirname(output) !== root || path.basename(output) !== expectedOutputName) throw new Error('Unsafe output path');
   await mkdir(output, { recursive: true });
   for (const item of await readdir(output, { withFileTypes: true })) {
     if (item.name === 'project.private.config.json' && item.isFile()) continue;
@@ -94,5 +96,5 @@ export function resolveCliBuildMode(args) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const mode = resolveCliBuildMode(process.argv.slice(2));
   await buildProject({ mode });
-  console.log(`Build ready: dist/ (${mode})`);
+  console.log(`Build ready: ${path.basename(resolveBuildOutput(process.cwd(), mode))}/ (${mode})`);
 }

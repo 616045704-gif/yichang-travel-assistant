@@ -1,6 +1,7 @@
 import { readdir, readFile, access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveBuildOutput } from './build-output.mjs';
 
 export async function listFiles(root) {
   const result = [];
@@ -46,7 +47,7 @@ export async function validateResources(root, extension = 'js') {
 }
 
 export async function checkPackage({ root = process.cwd(), mode = 'development' } = {}) {
-  const client = path.join(root, 'dist/miniprogram');
+  const client = path.join(resolveBuildOutput(root, mode), 'miniprogram');
   await validateResources(client);
   const files = await listFiles(client);
   const bytes = (await Promise.all(files.map(async file => (await stat(file)).size))).reduce((total, size) => total + size, 0);
@@ -61,6 +62,7 @@ export async function checkPackage({ root = process.cwd(), mode = 'development' 
   }
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await checkPackage();
+  const mode = process.argv.find(argument => argument.startsWith('--mode='))?.slice('--mode='.length) || 'demo';
+  await checkPackage({ mode });
   console.log('Client routes, resources and boundary verified');
 }

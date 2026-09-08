@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildProject, resolveCliBuildMode } from '../../scripts/build.mjs';
+import { resolveBuildOutput } from '../../scripts/build-output.mjs';
 import { checkPackage, validateResources } from '../../scripts/check-package.mjs';
 import { verifyDocs } from '../../scripts/verify-docs.mjs';
 
@@ -45,6 +46,19 @@ async function put(root: string, name: string, value: string) {
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe('deployable build boundary', () => {
+  it('separates live and development outputs so a development build cannot overwrite the live package', async () => {
+    const root = await fixture();
+    expect(resolveBuildOutput(root, 'demo')).toBe(path.join(root, 'dist'));
+    expect(resolveBuildOutput(root, 'development')).toBe(path.join(root, 'dist-dev'));
+
+    await buildProject({ root, mode: 'demo' });
+    const liveBefore = await readFile(path.join(root, 'dist/miniprogram/app.js'), 'utf8');
+    await buildProject({ root, mode: 'development' });
+
+    expect(await readFile(path.join(root, 'dist/miniprogram/app.js'), 'utf8')).toBe(liveBefore);
+    expect(await readFile(path.join(root, 'dist-dev/miniprogram/app.js'), 'utf8')).toContain('App(');
+  });
+
   it('defaults executable builds to demo and keeps development explicit', async () => {
     expect(resolveCliBuildMode([])).toBe('demo');
     expect(resolveCliBuildMode(['--mode=demo'])).toBe('demo');
@@ -59,18 +73,18 @@ describe('deployable build boundary', () => {
   it('builds a minimal client without sources or tests', async () => {
     const root = await fixture();
     await buildProject({ root });
-    expect(await readFile(path.join(root, 'dist/miniprogram/app.js'), 'utf8')).toContain('App(');
-    expect(await readdir(path.join(root, 'dist/miniprogram'))).not.toContain('app.ts');
+    expect(await readFile(path.join(root, 'dist-dev/miniprogram/app.js'), 'utf8')).toContain('App(');
+    expect(await readdir(path.join(root, 'dist-dev/miniprogram'))).not.toContain('app.ts');
   });
   it('preserves the imported project directory and IDE preferences across rebuilds', async () => {
     const root = await fixture();
-    await put(root, 'dist/project.private.config.json', '{"libVersion":"3.16.2"}');
-    await put(root, 'dist/miniprogram/stale.js', 'stale');
-    const before = await stat(path.join(root, 'dist'));
+    await put(root, 'dist-dev/project.private.config.json', '{"libVersion":"3.16.2"}');
+    await put(root, 'dist-dev/miniprogram/stale.js', 'stale');
+    const before = await stat(path.join(root, 'dist-dev'));
     await buildProject({ root });
-    expect((await stat(path.join(root, 'dist'))).ino).toBe(before.ino);
-    expect(await readFile(path.join(root, 'dist/project.private.config.json'), 'utf8')).toContain('3.16.2');
-    expect(await readdir(path.join(root, 'dist/miniprogram'))).not.toContain('stale.js');
+    expect((await stat(path.join(root, 'dist-dev'))).ino).toBe(before.ino);
+    expect(await readFile(path.join(root, 'dist-dev/project.private.config.json'), 'utf8')).toContain('3.16.2');
+    expect(await readdir(path.join(root, 'dist-dev/miniprogram'))).not.toContain('stale.js');
   });
   it('rejects a missing entry', async () => {
     const root = await fixture();
@@ -100,17 +114,17 @@ describe('deployable build boundary', () => {
     await put(root, 'shared/value.ts', 'export const value = 7;');
     await put(root, 'cloudfunctions/health/index.ts', "import { value } from '../../shared/value'; export async function main() { return value; }");
     await buildProject({ root });
-    const code = await readFile(path.join(root, 'dist/cloudfunctions/health/index.js'), 'utf8');
+    const code = await readFile(path.join(root, 'dist-dev/cloudfunctions/health/index.js'), 'utf8');
     expect(code).toContain('value = 7');
     expect(code).not.toContain('../../shared');
-    expect(JSON.parse(await readFile(path.join(root, 'dist/cloudfunctions/health/package.json'), 'utf8')).main).toBe('index.js');
+    expect(JSON.parse(await readFile(path.join(root, 'dist-dev/cloudfunctions/health/package.json'), 'utf8')).main).toBe('index.js');
   });
   it('keeps import.meta.url runnable in CommonJS cloud-function bundles', async () => {
     const root = await fixture();
     await put(root, 'cloudfunctions/health/index.ts', "import { createRequire } from 'node:module'; const load = createRequire(import.meta.url); exports.main = () => typeof load;");
     await buildProject({ root });
     const loadBundle = createRequire(import.meta.url);
-    const bundle = loadBundle(path.join(root, 'dist/cloudfunctions/health/index.js')) as { main: () => string };
+    const bundle = loadBundle(path.join(root, 'dist-dev/cloudfunctions/health/index.js')) as { main: () => string };
     expect(bundle.main()).toBe('function');
   });
   it('declares the CloudBase server SDK required by aiService', async () => {
@@ -135,7 +149,7 @@ describe('deployable build boundary', () => {
     const root = await fixture();
     await put(root, 'config/local.json', '{"appid":"wx0000000000000000","cloudEnv":"test-env"}');
     await buildProject({ root });
-    const project = JSON.parse(await readFile(path.join(root, 'dist/project.config.json'), 'utf8'));
+    const project = JSON.parse(await readFile(path.join(root, 'dist-dev/project.config.json'), 'utf8'));
     expect(project.appid).toBe('wx0000000000000000');
     expect(project.miniprogramRoot).toBe('miniprogram/');
     expect(await readFile(path.join(root, 'project.config.json'), 'utf8')).toContain('touristappid');
@@ -186,18 +200,18 @@ describe('deployable build boundary', () => {
   it('rejects source and sensitive server artifacts added to the output', async () => {
     const root = await fixture();
     await buildProject({ root });
-    await put(root, 'dist/miniprogram/stray.ts', '');
+    await put(root, 'dist-dev/miniprogram/stray.ts', '');
     await expect(checkPackage({ root })).rejects.toThrow(/Forbidden/);
-    await rm(path.join(root, 'dist/miniprogram/stray.ts'));
-    await put(root, 'dist/miniprogram/leak.js', 'const value = "wx-server-sdk";');
+    await rm(path.join(root, 'dist-dev/miniprogram/stray.ts'));
+    await put(root, 'dist-dev/miniprogram/leak.js', 'const value = "wx-server-sdk";');
     await expect(checkPackage({ root })).rejects.toThrow(/boundary/);
-    await put(root, 'dist/miniprogram/leak.js', 'const value = "DIFY_TRIP_API_KEY";');
+    await put(root, 'dist-dev/miniprogram/leak.js', 'const value = "DIFY_TRIP_API_KEY";');
     await expect(checkPackage({ root })).rejects.toThrow(/boundary/);
   });
   it('rejects an oversized mini-program main package before WeChat upload', async () => {
     const root = await fixture();
     await buildProject({ root });
-    await put(root, 'dist/miniprogram/assets/oversized.jpg', 'x'.repeat(1_950_000));
+    await put(root, 'dist-dev/miniprogram/assets/oversized.jpg', 'x'.repeat(1_950_000));
     await expect(checkPackage({ root })).rejects.toThrow(/main package exceeds 1.9 MB/i);
   });
   it('validates documentation links and incomplete drafts', async () => {
