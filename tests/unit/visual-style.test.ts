@@ -139,14 +139,15 @@ describe('travel visual presentation', () => {
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
     expect(discover).toContain('发送搜索');
+    expect(discover).toContain('>发送</button>');
     expect(discover).toContain('/assets/provided/discover-hero.jpg');
     expect(discover).toContain('discover-hero-copy');
-    expect(discover).toContain('search-glyph');
+    expect(discover).toContain('aria-label="打开搜索">⌕</button>');
     expect(discoverStyle).toContain('.search-trigger');
     expect(discoverStyle).toContain('.search-send');
     expect(discoverStyle).toMatch(/\.discover-tools\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/);
     expect(discoverStyle).toMatch(/\.discover-search\s*\{[^}]*flex:\s*0\s+0\s+88rpx/);
-    expect(discoverStyle).toMatch(/\.discover-search\.is-expanded\s*\{[^}]*flex-basis:\s*360rpx/);
+    expect(discoverStyle).toMatch(/\.discover-search\.is-expanded\s*\{[^}]*flex-basis:\s*400rpx/);
     expect(discoverStyle).toMatch(/\.discover-category\s*\{[^}]*flex:\s*1[^}]*min-width:\s*0/);
     expect(card).toContain('favorite-action');
     expect(card).toContain('/assets/provided/favorite-active.png');

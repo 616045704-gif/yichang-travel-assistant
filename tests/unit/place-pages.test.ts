@@ -27,7 +27,7 @@ describe('place discovery view model', () => {
     expect(discover).toContain('aria-label="发送搜索"');
     expect(discover).not.toContain('bindinput="onSearch"');
     expect(discoverStyle).toContain('height: 340rpx');
-    expect(discoverStyle).toContain('flex-basis: 360rpx');
+    expect(discoverStyle).toContain('flex-basis: 400rpx');
     expect(discover).not.toContain('discover-riverside.jpg');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('bindtap="onFavorite"');
