@@ -27,11 +27,9 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       await page.waitFor('.page');
       assert.equal(page.path, `pages/${name}/index`);
       if (name === 'home') {
-        const hero = await page.$('.hero');
-        assert.ok(hero);
-        assert.ok(await page.$('.hero-orbit'));
-        assert.ok(await page.$('.hero-river'));
-        assert.equal(await (await page.$('.hero-title')).text(), '探索宜昌');
+        assert.ok(await page.$('.home-hero'));
+        const aiCards = await page.$$('.ai-quick-card');
+        assert.equal(aiCards.length, 2);
         const icons = await page.$$('.category-icon');
         assert.equal(icons.length, 4);
         const viewport = await page.size();
@@ -44,6 +42,32 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       await miniProgram.screenshot({ path: path.resolve('.local', `wechat-${name}.png`) });
       console.log(`PASS: ${name}`);
     }
+    let page = await miniProgram.switchTab('/pages/home/index');
+    const aiCards = await page.$$('.ai-quick-card');
+    await aiCards[0].tap();
+    const aiPage = await miniProgram.currentPage();
+    assert.equal(aiPage.path, 'pages/ai-chat/index');
+    console.log('PASS: Home AI card opens its secondary page');
+    page = await miniProgram.switchTab('/pages/home/index');
+    await page.setData({
+      featuredStatus: 'ready',
+      featured: [{ placeId: 'smoke-place', name: '自动化测试地点', category: 'scenic', district: '西陵区', intro: '', tags: [], coverUrl: '', isFavorite: false }],
+    });
+    const placeCard = await page.$('place-card');
+    assert.ok(placeCard);
+    const openArea = await placeCard.$('.open-area');
+    assert.ok(openArea);
+    await openArea.tap();
+    const detailPage = await miniProgram.currentPage();
+    assert.equal(detailPage.path, 'pages/place-detail/index');
+    console.log('PASS: Home place card opens its detail page');
+    page = await miniProgram.switchTab('/pages/me/index');
+    const menuRows = await page.$$('.menu-row');
+    assert.ok(menuRows.length >= 1);
+    await menuRows[0].tap();
+    const recordsPage = await miniProgram.currentPage();
+    assert.equal(recordsPage.path, 'pages/records/index');
+    console.log('PASS: Me menu opens its secondary page');
     const pageScreens = [
       ['place-detail', '/pages/place-detail/index?placeId=smoke-place'],
       ['records-favorites', '/pages/records/index?type=favorites'],
@@ -61,16 +85,12 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       await miniProgram.screenshot({ path: path.resolve('.local', `wechat-${name}.png`) });
       console.log(`PASS: ${name}`);
     }
-    const page = await miniProgram.switchTab('/pages/discover/index');
+    page = await miniProgram.switchTab('/pages/discover/index');
     await page.waitFor('#categories');
     const filter = await page.$('#categories');
     assert.ok(filter);
-    const buttons = await filter.$$('.filter');
-    assert.equal(buttons.length, 5);
-    const first = await buttons[0].offset();
-    const second = await buttons[1].offset();
-    assert.equal(Math.round(first.top), Math.round(second.top), 'Categories should share a row');
-    await buttons[1].tap();
+    assert.ok(await page.$('.category-select'));
+    await filter.callMethod('onChange', { detail: { value: '1' } });
     await page.waitFor(400);
     assert.equal(await page.data('category'), 'scenic');
     state = await page.$('#content-state');
@@ -101,10 +121,9 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const overlay = await mapPage.$('.map-filters');
     assert.equal(await overlay.style('background-color'), 'rgba(0, 0, 0, 0)');
     assert.equal(await overlay.style('box-shadow'), 'none');
-    assert.equal(await overlay.style('pointer-events'), 'none');
+    assert.equal(await overlay.style('pointer-events'), 'auto');
     const mapFilters = await mapPage.$('#categories');
-    const mapButtons = await mapFilters.$$('.filter');
-    assert.equal(await mapButtons[0].style('pointer-events'), 'auto');
+    assert.ok(await mapPage.$('.category-select'));
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
     await mapPage.callMethod('setPlaces', [
@@ -112,7 +131,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
     ]);
     assert.equal((await mapPage.data('markers')).length, 2);
-    await mapButtons[1].tap();
+    await mapFilters.callMethod('onChange', { detail: { value: '1' } });
     await mapPage.waitFor(400);
     assert.equal(await mapPage.data('category'), 'scenic');
     assert.equal((await mapPage.data('markers')).length, 1);
@@ -121,7 +140,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       wx.createSelectorQuery().select('#city-map').fields({ properties: ['markers'] }, resolve).exec();
     }));
     assert.deepEqual(nativeMarkers.markers, await mapPage.data('markers'));
-    await mapButtons[0].tap();
+    await mapFilters.callMethod('onChange', { detail: { value: '0' } });
     await mapPage.waitFor(400);
     assert.equal((await mapPage.data('markers')).length, 2);
     assert.deepEqual(await mapPage.data('center'), center);
