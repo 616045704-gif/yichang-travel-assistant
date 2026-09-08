@@ -177,8 +177,9 @@ describe('provided visual assets and UI boundary', () => {
     expect((home.match(/bindtap="openTripForm"/g) ?? []).length).toBe(1);
     expect(home).toContain('/assets/provided/ai-chat.png');
     expect(home).toContain('/assets/provided/trip-plan.png');
-    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*gap:\s*24rpx/);
-    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*90%/);
+    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*288rpx\)[^}]*justify-content:\s*center[^}]*gap:\s*20rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*288rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%/);
     expect(homeStyle).toMatch(/\.category-icon\s*\{[^}]*width:\s*128rpx[^}]*height:\s*128rpx/);
     expect(homeStyle).toMatch(/\.category-label\s*\{[^}]*color:\s*var\(--color-text\)/);
     for (const retiredCopy of ['旅行助手', '从哪里开始', '从灵感到行程', '四类地点', '值得停留', '精选地点', '内容仅供出行参考，请以景区、交通等官方公告为准']) {

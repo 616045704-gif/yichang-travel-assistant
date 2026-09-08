@@ -4,11 +4,11 @@
 .cover { width: 100%; height: 336rpx; }
 .placeholder { display: flex; align-items: center; justify-content: center; width: 100%; height: 336rpx; color: var(--color-muted); font-size: 21rpx; line-height: 1.45; text-align: center; }
 .category-pill { position: absolute; top: 16rpx; right: 16rpx; padding: 8rpx 14rpx; border-radius: 999rpx; background: rgba(255, 255, 255, .9); color: var(--color-text-strong); font-size: 20rpx; font-weight: 700; line-height: 1.35; }
-.card-meta { display: flex; align-items: center; gap: 16rpx; min-width: 0; padding: 14rpx 2rpx 0; }
-.body { flex: 1; min-width: 0; padding: 0; }
-.name { display: block; color: #1f1d2b; font-size: 34rpx; font-weight: 750; letter-spacing: -.6rpx; line-height: 1.35; overflow-wrap: break-word; }
-.favorite-action { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 6rpx; width: auto; min-width: 0; min-height: 80rpx; margin: 0 0 0 auto; padding: 0 2rpx 0 16rpx; border: 0; border-radius: 0; background: transparent; color: var(--color-muted); font-size: 24rpx; font-weight: 650; line-height: 1; }
+.card-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8rpx; min-width: 0; padding: 14rpx 2rpx 0; }
+.body { min-width: 0; padding: 0; }
+.name { display: block; overflow: hidden; color: #1f1d2b; font-size: 32rpx; white-space: nowrap; font-weight: 750; letter-spacing: -.6rpx; line-height: 1.35; overflow-wrap: normal; text-overflow: ellipsis; }
+.favorite-action { display: flex; align-items: center; justify-content: flex-end; gap: 4rpx; width: auto; min-width: 0; min-height: 80rpx; margin: 0 0 0 auto; padding: 0 2rpx 0 8rpx; border: 0; border-radius: 0; background: transparent; color: var(--color-muted); font-size: 22rpx; font-weight: 650; line-height: 1; }
 .favorite-action::after { border: 0; }
 .favorite-action.is-pending { background: transparent; opacity: .55; }
-.favorite-image { width: 40rpx; height: 40rpx; }
-.favorite-label { color: var(--color-muted); font-size: 24rpx; line-height: 1; }
+.favorite-image { width: 34rpx; height: 34rpx; }
+.favorite-label { color: var(--color-muted); font-size: 22rpx; line-height: 1; }

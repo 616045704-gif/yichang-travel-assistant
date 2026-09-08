@@ -47,9 +47,10 @@ describe('reusable travel components', () => {
     expect(card).not.toContain('class="tags"');
     expect(cardStyle).toContain('height: 336rpx');
     expect(cardStyle).toContain('font-weight: 750');
-    expect(cardStyle).toMatch(/\.card-meta\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/);
-    expect(cardStyle).toMatch(/\.body\s*\{[^}]*flex:\s*1/);
+    expect(cardStyle).toMatch(/\.card-meta\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto[^}]*align-items:\s*center/);
+    expect(cardStyle).toMatch(/\.name\s*\{[^}]*font-size:\s*32rpx[^}]*white-space:\s*nowrap[^}]*text-overflow:\s*ellipsis/);
     expect(cardStyle).toMatch(/\.favorite-action\s*\{[^}]*min-height:\s*80rpx/);
+    expect(cardStyle).toMatch(/\.favorite-image\s*\{[^}]*width:\s*34rpx[^}]*height:\s*34rpx/);
     expect(cardStyle).not.toMatch(/\.favorite\s+text/);
     expect(feedbackStyle).toContain('var(--color-brand-deep)');
     expect(feedbackStyle).toContain('var(--color-action)');

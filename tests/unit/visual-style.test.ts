@@ -117,6 +117,12 @@ describe('travel visual presentation', () => {
     expect(home).toContain('place-card');
     expect(home).toContain('bind:open="openPlace"');
     expect(home).toContain('bindtap="openDiscover"');
+    expect(home).toContain('<button class="home-hero-action" catchtap="openDiscover">');
+    expect(homeStyle).toMatch(/\.home-hero-action\s*\{[^}]*top:\s*50%[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*\.94\)[^}]*color:\s*var\(--color-brand\)/);
+    expect(homeStyle).toMatch(/\.home-hero-shade\s*\{[^}]*display:\s*none/);
+    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*288rpx\)[^}]*justify-content:\s*center[^}]*gap:\s*20rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*288rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%/);
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
   it('keeps the map visible and the horizontal category tabs interactive', async () => {
@@ -174,6 +180,10 @@ describe('travel visual presentation', () => {
     expect(card).not.toContain('class="tags"');
     expect(cardStyle).toContain('height: 336rpx');
     expect(cardStyle).toContain('.favorite-action');
+    expect(cardStyle).toMatch(/\.card-meta\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/);
+    expect(cardStyle).toMatch(/\.name\s*\{[^}]*font-size:\s*32rpx[^}]*white-space:\s*nowrap[^}]*text-overflow:\s*ellipsis/);
+    expect(cardStyle).toMatch(/\.favorite-action\s*\{[^}]*min-height:\s*80rpx/);
+    expect(cardStyle).toMatch(/\.favorite-image\s*\{[^}]*width:\s*34rpx[^}]*height:\s*34rpx/);
     expect(card).not.toContain('cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
