@@ -21,11 +21,12 @@ npm run verify:docs
 ## 导入微信开发者工具
 
 1. 安装官方 Windows 稳定版，使用有该小程序开发权限的微信扫码登录。
-2. 执行 `npm run build`。选择“导入项目”，目录选本项目的 **dist 文件夹**，不要选 miniprogram 源码文件夹。
+2. 执行 `npm run build`。选择“导入项目”，目录选本项目的 **dist 文件夹**，不要选 miniprogram 源码文件夹或 `dist-dev`。
 3. 构建已在 dist 中生成项目配置和本地 AppID；确认界面显示自己的 AppID。不要覆盖生成内容创建另一套模板。
 4. 选择小程序编译，使用开发者工具当前可用的稳定基础库，记录实际版本。保持合法域名校验开启。
 5. 点击“编译”，验证页面正常打开，记录工具版本和基础库版本。TypeScript 已由项目构建为 JS，不再选择额外的 TS 编译插件。
-6. 每次改源码后重新构建，再在工具内编译；不要直接编辑 dist，重建会覆盖它。
+6. 开发者工具只导入 `dist`。它是调用 `aiService` 的真实体验包；每次准备真实测试或上传前执行 `npm run build`，再在工具内点击“编译”。
+7. `npm run build:dev` 只会生成 `dist-dev` 的模拟包，供界面开发使用；不要在开发者工具中导入它，也不要上传它。
 
 实际编译与真机预览依赖已安装且登录的微信开发者工具。单元测试只验证代码和资源，不能据此宣称微信运行验收已通过。
 
@@ -40,8 +41,9 @@ npm run verify:docs
 
 ## 构建与验收边界
 
-- 输出为 `dist/miniprogram/` 和每个独立的 `dist/cloudfunctions/<函数名>/`，导入目录为 dist。
-- 发布候选构建使用 `npm run build:demo`，拒绝引入测试与模拟模块；当前无真实业务，不可作为体验版交付。
+- `npm run build` 与 `npm run build:demo` 输出真实包：`dist/miniprogram/` 和每个独立的 `dist/cloudfunctions/<函数名>/`；导入目录固定为 `dist`。
+- `npm run build:dev` 输出模拟开发包：`dist-dev/miniprogram/` 和 `dist-dev/cloudfunctions/`。它不能覆盖 `dist`，也不能作为体验版上传。
+- 发布候选构建使用 `npm run build` 或 `npm run build:demo`，拒绝引入测试与模拟模块。
 - `test:integration`、`validate:content`、`release:check` 是明确的阶段关口，未接入时返回 BLOCKED（退出码 2），不冒充测试通过。对应阶段实现后替换。
 - 单元测试使用临时合成资料，不调用微信、Dify 或真实数据库。
 - 禁止将个人配置、微信登录数据、身份标识、用户位置和原始截图提交 Git。
@@ -62,4 +64,4 @@ npm run test:e2e
 
 测试先核对 AppID，再切换四页、检查分类布局与点击、四种通用状态；结束恢复首页，截图写入 `.local/`。该脚本不创建云资源、不获取登录票据、不调用 Dify。没有配置本地端口时报告 BLOCKED；连接或断言失败时退出 1。
 
-重新构建会保留 `dist` 根目录及其 `project.private.config.json`，以兼容打开中的开发者工具；其余生成文件仍会替换，禁止手工修改。
+重新构建会在各自输出目录保留根目录及其 `project.private.config.json`，以兼容打开中的开发者工具；其余生成文件仍会替换，禁止手工修改。

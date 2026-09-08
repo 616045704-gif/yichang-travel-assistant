@@ -68,6 +68,11 @@ describe('deployable build boundary', () => {
     expect(manifest.scripts.build).toBe('node scripts/build.mjs --mode=demo');
     expect(manifest.scripts['build:demo']).toBe('node scripts/build.mjs --mode=demo');
     expect(manifest.scripts['build:dev']).toBe('node scripts/build.mjs --mode=development');
+
+    const developmentRunbook = await readFile(path.join(process.cwd(), 'docs/runbooks/development.md'), 'utf8');
+    expect(developmentRunbook).toContain('`dist`');
+    expect(developmentRunbook).toContain('`dist-dev`');
+    expect(developmentRunbook).toContain('`npm run build:dev`');
   });
 
   it('builds a minimal client without sources or tests', async () => {
