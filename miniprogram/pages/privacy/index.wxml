@@ -1,1 +1,29 @@
-<view class="page"><view class="chapter-heading"><view><text class="eyebrow">PRIVACY &amp; PERMISSIONS</text><text class="page-title">隐私说明</text></view></view><view class="card privacy-card"><text class="privacy-title">位置</text><text>仅当你主动点击“定位我的附近”时，才申请并读取当前位置，用于当次 20 公里地点筛选。位置不会长期保存；拒绝后仍可浏览地图和地点清单。</text><text class="privacy-title">个人记录</text><text>收藏、浏览记录和旅行偏好用于向你展示自己的旅行内容，只能由对应用户通过云函数查询。本小程序不要求手机号登录。</text><text class="privacy-title">AI 与保留</text><text>AI 问答会使用你输入的问题生成出行参考，问答记录仅用于向你展示自己的旅行内容，并只能由对应用户通过云函数查询。个人记录的保留期限仍待确定；在明确前不会承诺自动删除或跨服务删除。</text><text class="note">内容仅供出行参考，请以景区、交通等官方公告为准。</text></view></view>
+<view class="page">
+  <view class="chapter-heading"><view><text class="eyebrow">PRIVACY &amp; PERMISSIONS</text><text class="page-title">三峡旅游小助手隐私保护说明</text><text class="note">更新时间：2026年9月9日</text></view></view>
+  <view class="card privacy-card">
+    <text>三峡旅游小助手是一款用于展示宜昌及三峡地区旅游地点、地图信息和 AI 行程建议的演示作品。我们重视你的个人信息和隐私安全。</text>
+    <text class="privacy-title">一、我们会收集和使用哪些信息</text>
+    <text class="privacy-subtitle">1. 位置信息</text>
+    <text>当你主动点击“定位我的附近”时，小程序会向你申请位置信息授权，并读取你的当前位置，用于筛选你周边 20 公里内的旅游地点。</text>
+    <text>位置信息仅用于本次附近地点筛选，不会持续定位，也不会长期保存。你拒绝授权后，仍可以正常浏览地点列表、地图和详情内容。</text>
+    <text class="privacy-subtitle">2. AI 问答和行程定制内容</text>
+    <text>当你使用 AI 问答或行程定制功能时，你输入的问题、出行偏好和预算等内容会发送至本项目后台，并由第三方 AI 服务生成回答或行程建议。</text>
+    <text>AI 生成内容仅供出行参考，不代表景区、交通或商家的实时官方信息，请以相关官方公告为准。</text>
+    <text class="privacy-subtitle">3. 收藏、浏览和问答记录</text>
+    <text>为方便你查看自己的使用记录，小程序会保存你的收藏、浏览记录、AI 问答记录和行程记录。这些记录仅与你当前登录的微信账号关联，仅你本人可查看，不会向其他用户公开。</text>
+    <text class="privacy-title">二、信息的共享</text>
+    <text>除实现 AI 问答和行程建议所必需的处理外，我们不会出售、出租或向无关第三方提供你的个人信息。</text>
+    <text>你的 AI 提问内容会发送给第三方 AI 服务进行处理；位置信息仅用于本项目后台完成附近地点筛选。</text>
+    <text class="privacy-title">三、信息的保存和删除</text>
+    <text>位置信息仅用于当次附近地点筛选，不长期保存。</text>
+    <text>收藏、浏览、问答和行程记录会保存在项目服务中，供你本人查看。如需查询、修改或删除相关记录，请联系开发者：616045704@qq.com。</text>
+    <text class="privacy-title">四、你的权利</text>
+    <text>你可以拒绝位置授权，拒绝后不影响浏览其他旅游内容。</text>
+    <text>你可以通过微信系统设置关闭小程序的位置授权。关闭后，“定位我的附近”功能将无法使用，但其他功能不受影响。</text>
+    <text class="privacy-title">五、联系我们</text>
+    <text>如你对本隐私说明或个人信息处理方式有任何疑问、意见或请求，请联系开发者：</text>
+    <text>联系方式：616045704@qq.com</text>
+    <text class="privacy-title">六、说明更新</text>
+    <text>如本小程序的功能或个人信息处理方式发生变化，我们会在小程序内更新本说明。</text>
+  </view>
+</view>

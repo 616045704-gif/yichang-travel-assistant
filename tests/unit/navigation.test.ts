@@ -92,8 +92,9 @@ describe('four-tab application', () => {
     expect(app.requiredPrivateInfos).toEqual(expect.arrayContaining(['getLocation']));
     const privacy = await readFile('miniprogram/pages/privacy/index.wxml', 'utf8');
     expect(privacy).toContain('定位我的附近');
-    expect(privacy).toContain('位置不会长期保存');
-    expect(privacy).toContain('不要求手机号登录');
+    expect(privacy).toContain('不会持续定位，也不会长期保存');
+    expect(privacy).toContain('第三方 AI 服务');
+    expect(privacy).toContain('616045704@qq.com');
   });
   it('registers all AI routes and renders the mandatory warning and mock label', async () => {
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
