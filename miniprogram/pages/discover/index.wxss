@@ -6,10 +6,17 @@
 .discover-hero-title, .discover-hero-note { display: block; }
 .discover-hero-title { font-size: 46rpx; font-weight: 800; letter-spacing: -1.4rpx; line-height: 1.2; }
 .discover-hero-note { max-width: 310rpx; margin-top: 10rpx; color: rgba(255, 255, 255, .9); font-size: 24rpx; line-height: 1.55; }
-.discover-tools { display: flex; align-items: stretch; gap: 14rpx; margin-top: 24rpx; }
-.discover-category { flex: 0 0 214rpx; width: 214rpx; min-width: 0; }
-.search-panel { display: flex; flex: 1; align-items: center; gap: 8rpx; min-width: 0; height: 80rpx; padding: 0 10rpx 0 18rpx; border: 1rpx solid var(--color-border); border-radius: 20rpx; background: var(--color-surface); box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .05); }
-.search-input { flex: 1; min-width: 0; height: 80rpx; padding: 0; border: 0; background: transparent; color: var(--color-text); font-size: 25rpx; }
-.search-icon { flex: 0 0 62rpx; width: 62rpx; min-width: 62rpx; height: 62rpx; margin: 0; padding: 0; border-radius: 16rpx; background: var(--color-action-soft); }.search-icon::after { border: 0; }
-.search-glyph { position: relative; box-sizing: border-box; width: 22rpx; height: 22rpx; margin: 17rpx auto 0; border: 3rpx solid var(--color-brand); border-radius: 50%; }.search-glyph::after { position: absolute; right: -9rpx; bottom: -6rpx; width: 11rpx; height: 3rpx; border-radius: 3rpx; background: var(--color-brand); content: ''; transform: rotate(45deg); }
+.discover-tools { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 14rpx; margin-top: 24rpx; overflow: hidden; }
+.discover-search { flex: 0 0 88rpx; min-width: 0; height: 112rpx; transition: flex-basis .2s ease; }
+.discover-search.is-expanded { flex-basis: 360rpx; }
+.discover-category { flex: 1; min-width: 0; overflow: hidden; }
+.search-trigger, .search-panel { box-sizing: border-box; width: 100%; height: 112rpx; border: 1rpx solid rgba(116, 84, 216, .12); border-radius: 24rpx; background: rgba(255, 255, 255, .98); box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .06); }
+.search-trigger { display: flex; align-items: center; justify-content: center; min-width: 88rpx; margin: 0; padding: 0; }
+.search-trigger::after, .search-send::after { border: 0; }
+.search-panel { display: flex; align-items: center; gap: 8rpx; min-width: 0; padding: 0 10rpx 0 18rpx; }
+.search-input { flex: 1; min-width: 0; height: 92rpx; padding: 0; border: 0; background: transparent; color: var(--color-text); font-size: 25rpx; }
+.search-send { position: relative; flex: 0 0 64rpx; width: 64rpx; min-width: 64rpx; height: 64rpx; margin: 0; padding: 0; border-radius: 18rpx; background: var(--color-brand); }
+.search-glyph { position: relative; box-sizing: border-box; width: 25rpx; height: 25rpx; border: 4rpx solid var(--color-brand); border-radius: 50%; }
+.search-glyph::after { position: absolute; right: -10rpx; bottom: -7rpx; width: 12rpx; height: 4rpx; border-radius: 4rpx; background: var(--color-brand); content: ''; transform: rotate(45deg); }
+.send-glyph { position: absolute; top: 19rpx; left: 21rpx; width: 22rpx; height: 22rpx; border-top: 4rpx solid #fff; border-right: 4rpx solid #fff; transform: rotate(45deg); }
 .place-list { border-top: 1rpx solid var(--color-border); }.discovery-note { margin-top: 34rpx; padding: 24rpx 0; border-top: 1rpx solid var(--color-border); border-bottom: 1rpx solid var(--color-border); background: transparent; }.discovery-note-title { display: block; margin-bottom: 8rpx; color: var(--color-brand); font-size: 26rpx; font-weight: 700; }

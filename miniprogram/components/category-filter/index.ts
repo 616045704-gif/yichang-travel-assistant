@@ -1,6 +1,10 @@
-import { CATEGORIES } from '../../../shared/contracts';
+import { CATEGORIES, type Category } from '../../../shared/contracts';
 
-const OPTIONS = [{ value: '', label: '全部分类' }, ...CATEGORIES];
+type CategoryValue = Category | '';
+const OPTIONS: Array<{ value: CategoryValue; label: string }> = [{ value: '', label: '全部分类' }, ...CATEGORIES];
+function isCategoryValue(value: unknown): value is CategoryValue {
+  return typeof value === 'string' && OPTIONS.some(option => option.value === value);
+}
 
 Component({
   properties: {
@@ -8,22 +12,20 @@ Component({
       type: String,
       value: '',
       observer(value: string) {
-        const selectedIndex = OPTIONS.findIndex(option => option.value === value);
-        this.setData({ selectedIndex: selectedIndex >= 0 ? selectedIndex : 0 });
+        const selectedValue = isCategoryValue(value) ? value : '';
+        this.setData({ selectedValue });
       },
     },
   },
   data: {
     options: OPTIONS,
-    labels: OPTIONS.map(option => option.label),
-    selectedIndex: 0,
+    selectedValue: '' as CategoryValue,
   },
   methods: {
-    onChange(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
-      const selectedIndex = Number(event.detail.value);
-      if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= OPTIONS.length) return;
-      const category = OPTIONS[selectedIndex].value;
-      this.setData({ selectedIndex });
+    onTabTap(event: WechatMiniprogram.BaseEvent) {
+      const category = event.currentTarget.dataset.category;
+      if (!isCategoryValue(category)) return;
+      this.setData({ selectedValue: category });
       this.triggerEvent('categorychange', { category });
     },
   },

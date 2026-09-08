@@ -105,7 +105,7 @@ describe('travel visual presentation', () => {
     expect(home).toContain('bindtap="openDiscover"');
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
-  it('keeps the map visible and the compact dropdown interactive', async () => {
+  it('keeps the map visible and the horizontal category tabs interactive', async () => {
     const css = await readFile('miniprogram/pages/map/index.wxss', 'utf8');
     const overlay = css.match(/\.map-filters\s*\{([^}]+)\}/)![1];
     expect(overlay).toContain('background: transparent');
@@ -113,7 +113,11 @@ describe('travel visual presentation', () => {
     expect(overlay).toContain('border: 0');
     expect(overlay).toContain('pointer-events: auto');
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
-    expect(buttons).toMatch(/\.category-picker\s*\{[^}]*pointer-events:\s*auto/);
+    expect(buttons).toMatch(/\.category-tabs\s*\{[^}]*pointer-events:\s*auto/);
+    expect(buttons).toMatch(/\.category-tab\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*height:\s*112rpx/);
+    expect(buttons).toMatch(/\.category-tab-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
+    expect(buttons).toContain('.category-tab.is-active');
+    expect(buttons).not.toMatch(/(^|[},]\s*)(?:picker|scroll-view|view|image|text|#|\[)[^{]*\{/m);
   });
   it('uses visible compact search and favorite controls for place browsing', async () => {
     const discover = await readFile('miniprogram/pages/discover/index.wxml', 'utf8');
@@ -122,11 +126,16 @@ describe('travel visual presentation', () => {
     const cardStyle = await readFile('miniprogram/components/place-card/index.wxss', 'utf8');
     const detail = await readFile('miniprogram/pages/place-detail/index.wxml', 'utf8');
     const detailStyle = await readFile('miniprogram/pages/place-detail/index.wxss', 'utf8');
-    expect(discover).toContain('确认搜索');
+    expect(discover).toContain('发送搜索');
     expect(discover).toContain('/assets/provided/discover-hero.jpg');
     expect(discover).toContain('discover-hero-copy');
     expect(discover).toContain('search-glyph');
-    expect(discoverStyle).toContain('.search-icon');
+    expect(discoverStyle).toContain('.search-trigger');
+    expect(discoverStyle).toContain('.search-send');
+    expect(discoverStyle).toMatch(/\.discover-tools\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/);
+    expect(discoverStyle).toMatch(/\.discover-search\s*\{[^}]*flex:\s*0\s+0\s+88rpx/);
+    expect(discoverStyle).toMatch(/\.discover-search\.is-expanded\s*\{[^}]*flex-basis:\s*360rpx/);
+    expect(discoverStyle).toMatch(/\.discover-category\s*\{[^}]*flex:\s*1[^}]*min-width:\s*0/);
     expect(card).toContain('favorite-action');
     expect(card).toContain('/assets/provided/favorite-active.png');
     expect(cardStyle).toContain('.cover-wrap');

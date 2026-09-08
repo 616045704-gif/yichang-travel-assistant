@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlaceListViewModel } from '../../miniprogram/view-models/place-list';
 import { culturePlace, scenicPlace } from '../fixtures/places';
 
 describe('place discovery view model', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
   it('keeps existing discovery bindings while using the supplied Hero and shared card', async () => {
     const [discover, discoverStyle, detail] = await Promise.all([
       readFile('miniprogram/pages/discover/index.wxml', 'utf8'),
@@ -18,11 +19,48 @@ describe('place discovery view model', () => {
     expect(discover).toContain('bindconfirm="onSearch"');
     expect(discover).toContain('<place-card');
     expect(discover).toContain('class="discover-tools"');
+    expect(discover.indexOf('class="discover-search')).toBeLessThan(discover.indexOf('<category-filter'));
+    expect(discover).toContain('wx:if="{{!searchExpanded}}"');
+    expect(discover).toContain('bindtap="expandSearch"');
+    expect(discover).toContain('aria-label="打开搜索"');
+    expect(discover).toContain('focus="{{searchExpanded}}"');
+    expect(discover).toContain('aria-label="发送搜索"');
+    expect(discover).not.toContain('bindinput="onSearch"');
     expect(discoverStyle).toContain('height: 340rpx');
-    expect(discoverStyle).toContain('width: 214rpx');
+    expect(discoverStyle).toContain('flex-basis: 360rpx');
     expect(discover).not.toContain('discover-riverside.jpg');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('bindtap="onFavorite"');
+  });
+
+  it('expands and edits search locally, then requests only after explicit submission', async () => {
+    type DiscoverPage = {
+      data: { searchExpanded: boolean; keyword: string };
+      setData(value: Record<string, unknown>): void;
+      expandSearch(): void;
+      onKeywordInput(event: { detail: { value: string } }): void;
+      onSearch(): void;
+    };
+    let page: DiscoverPage;
+    vi.stubGlobal('Page', (value: DiscoverPage) => { page = value; });
+    vi.stubGlobal('getApp', () => ({ globalData: { pendingDiscoverCategory: '' } }));
+    const callFunction = vi.fn(async () => ({ result: { code: 'OK', data: { items: [], nextCursor: null } } }));
+    vi.stubGlobal('wx', { cloud: { callFunction } });
+    await import('../../miniprogram/pages/discover/index');
+    page!.setData = function (value) { Object.assign(this.data, value); };
+
+    expect(page!.data.searchExpanded).toBe(false);
+    page!.expandSearch();
+    expect(page!.data.searchExpanded).toBe(true);
+    page!.onKeywordInput({ detail: { value: '三峡' } });
+    expect(page!.data.keyword).toBe('三峡');
+    expect(callFunction).not.toHaveBeenCalled();
+
+    page!.onSearch();
+    await vi.waitFor(() => expect(callFunction).toHaveBeenCalledWith({
+      name: 'placeService',
+      data: expect.objectContaining({ action: 'list', keyword: '三峡' }),
+    }));
   });
 
   it('registers the place card used to render loaded discovery results', async () => {

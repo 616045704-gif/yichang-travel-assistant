@@ -29,9 +29,12 @@ describe('reusable travel components', () => {
     expect(feedback).toContain('bindtap="dismiss"');
     expect(feedback).toContain('feedback-close-mark');
     expect(feedbackStyle).not.toMatch(/\.feedback-close\s+view/);
-    expect(filters).toContain('<picker');
-    expect(filters).toContain('bindchange="onChange"');
-    expect(filters).toContain('class="category-select"');
+    expect(filters).toContain('<scroll-view');
+    expect(filters).toContain('scroll-x');
+    expect(filters).toContain('class="category-tabs"');
+    expect(filters).toContain('wx:for="{{options}}"');
+    expect(filters).toContain('bindtap="onTabTap"');
+    expect(filters).not.toContain('<picker');
     expect(card).toContain('favorite-action');
     expect(card).toContain('class="card-meta"');
     expect(card).toContain('class="body" bindtap="onOpen"');
@@ -59,31 +62,42 @@ describe('reusable travel components', () => {
     expect(detail).toContain('local_reference');
     expect(detail).toContain('价格、营业时间、交通和预约请以官方公告为准。');
   });
-  it('maps every picker index to the existing category contract and rejects unknown indexes', async () => {
+  it('emits the existing category contract from local-icon tabs and rejects unknown values', async () => {
     const definition = await component('category-filter');
     const options = definition.data.options as Array<{ value: string; label: string }>;
-    expect(options.map(item => item.label)).toEqual(['全部分类', '景区', '餐馆', '文化馆/博物馆', '露营地']);
-    const ctx = instance({ value: '', selectedIndex: 0, options });
-    for (const [index, category] of ['', 'scenic', 'restaurant', 'culture', 'camping'].entries()) {
+    expect(options).toEqual([
+      { value: '', label: '全部分类' },
+      { value: 'scenic', label: '景区' },
+      { value: 'restaurant', label: '餐馆' },
+      { value: 'culture', label: '文化馆/博物馆' },
+      { value: 'camping', label: '露营地' },
+    ]);
+    const getLocation = vi.fn();
+    const callFunction = vi.fn();
+    vi.stubGlobal('wx', { getLocation, cloud: { callFunction } });
+    const ctx = instance({ value: '', selectedValue: '', options });
+    for (const category of ['', 'scenic', 'restaurant', 'culture', 'camping']) {
       ctx.triggerEvent.mockClear();
-      definition.methods.onChange.call(ctx, { detail: { value: String(index) } });
+      definition.methods.onTabTap.call(ctx, { currentTarget: { dataset: { category } } });
       expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category });
-      expect(ctx.data.selectedIndex).toBe(index);
+      expect(ctx.data.selectedValue).toBe(category);
     }
-    ctx.triggerEvent.mockClear();
-    definition.methods.onChange.call(ctx, { detail: { value: '99' } });
-    expect(ctx.triggerEvent).not.toHaveBeenCalled();
-    definition.methods.onChange.call(ctx, { detail: { value: '-1' } });
-    expect(ctx.triggerEvent).not.toHaveBeenCalled();
+    for (const category of ['parking', 'unknown', undefined]) {
+      ctx.triggerEvent.mockClear();
+      definition.methods.onTabTap.call(ctx, { currentTarget: { dataset: { category } } });
+      expect(ctx.triggerEvent).not.toHaveBeenCalled();
+    }
+    expect(getLocation).not.toHaveBeenCalled();
+    expect(callFunction).not.toHaveBeenCalled();
   });
-  it('keeps the picker label synchronized with valid and invalid external values', async () => {
+  it('keeps the selected tab synchronized with valid and invalid external values', async () => {
     const definition = await component('category-filter');
     const observer = definition.properties.value.observer!;
-    const ctx = instance({ selectedIndex: 4 });
+    const ctx = instance({ selectedValue: 'camping' });
     observer.call(ctx, 'restaurant');
-    expect(ctx.data.selectedIndex).toBe(2);
+    expect(ctx.data.selectedValue).toBe('restaurant');
     observer.call(ctx, 'unknown');
-    expect(ctx.data.selectedIndex).toBe(0);
+    expect(ctx.data.selectedValue).toBe('');
   });
   it('only exposes retry from an error state', async () => {
     const definition = await component('async-state');

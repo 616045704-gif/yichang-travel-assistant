@@ -136,22 +136,23 @@ describe('four-tab application', () => {
     expect(smoke).toContain("await page.$$('.ai-quick-card')");
     expect(smoke).toContain("assert.equal(aiPage.path, 'pages/ai-chat/index')");
     expect(smoke).toContain("assert.equal(detailPage.path, 'pages/place-detail/index')");
-    expect(smoke).toContain("await filter.$('.category-select')");
-    expect(smoke).toContain('await filterSelect.tap()');
-    expect(smoke).toContain("await mapFilters.$('.category-select')");
-    expect(smoke).toContain('await mapFilterSelect.tap()');
-    expect(smoke).toContain("await filter.callMethod('onChange', { detail: { value: '1' } })");
+    expect(smoke).toContain("await filter.$$('.category-tab')");
+    expect(smoke).toContain("await filter.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } })");
+    expect(smoke).toContain("await mapFilters.$$('.category-tab')");
+    expect(smoke).toContain("await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } })");
+    expect(smoke).toContain("await page.$('.search-trigger')");
+    expect(smoke).toContain("await page.$('.search-input')");
     expect(smoke).toContain("assert.equal(recordsPage.query.type, 'favorites')");
     expect(smoke).not.toContain("page.$('.hero')");
     expect(smoke).not.toContain("filter.$$('.filter')");
     expect(smoke).not.toContain("mapFilters.$$('.filter')");
   });
-  it('uses the approved compact category dropdown without changing the event binding', async () => {
+  it('uses the approved horizontal category tabs without changing the event binding', async () => {
     const css = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
-    expect(css).toMatch(/\.category-select\s*\{[^}]*width:\s*100%/);
-    expect(css).toContain('height: 80rpx');
+    expect(css).toMatch(/\.category-tab\s*\{[^}]*height:\s*112rpx/);
+    expect(css).toContain('flex: 0 0 auto');
     const template = await readFile('miniprogram/components/category-filter/index.wxml', 'utf8');
-    expect(template).toContain('<picker');
-    expect(template).toContain('bindchange="onChange"');
+    expect(template).toContain('<scroll-view');
+    expect(template).toContain('bindtap="onTabTap"');
   });
 });

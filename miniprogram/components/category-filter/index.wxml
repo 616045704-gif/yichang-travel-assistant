@@ -1,7 +1,8 @@
-<picker class="category-picker" mode="selector" range="{{labels}}" value="{{selectedIndex}}" bindchange="onChange">
-  <view class="category-select" aria-label="地点分类">
-    <image class="category-select-icon" src="/assets/provided/category-{{options[selectedIndex].value || 'all'}}.png" mode="aspectFit" aria-hidden="true" />
-    <text class="category-select-label">{{labels[selectedIndex]}}</text>
-    <view class="category-select-chevron" aria-hidden="true"></view>
+<scroll-view class="category-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+  <view class="category-tabs-track">
+    <view wx:for="{{options}}" wx:key="value" class="category-tab {{selectedValue === item.value ? 'is-active' : ''}} {{item.value === 'culture' ? 'is-wide' : ''}}" data-category="{{item.value}}" bindtap="onTabTap" aria-role="button" aria-label="按{{item.label}}筛选">
+      <image class="category-tab-icon" src="/assets/provided/category-{{item.value || 'all'}}.png" mode="aspectFit" aria-hidden="true" />
+      <text class="category-tab-label">{{item.label}}</text>
+    </view>
   </view>
-</picker>
+</scroll-view>

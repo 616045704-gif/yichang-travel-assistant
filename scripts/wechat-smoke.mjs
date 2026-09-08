@@ -104,10 +104,20 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     await page.waitFor('#categories');
     const filter = await page.$('#categories');
     assert.ok(filter);
-    const filterSelect = await filter.$('.category-select');
-    assert.ok(filterSelect);
-    await filterSelect.tap();
-    await filter.callMethod('onChange', { detail: { value: '1' } });
+    const categoryTabs = await filter.$$('.category-tab');
+    assert.equal(categoryTabs.length, 5);
+    const searchTrigger = await page.$('.search-trigger');
+    assert.ok(searchTrigger);
+    assert.equal(await page.$('.search-input'), null);
+    await searchTrigger.tap();
+    const searchInput = await page.$('.search-input');
+    const searchSend = await page.$('.search-send');
+    assert.ok(searchInput);
+    assert.ok(searchSend);
+    await searchInput.input('三峡');
+    assert.equal(await page.data('keyword'), '三峡');
+    await searchSend.tap();
+    await filter.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } });
     await page.waitFor(400);
     assert.equal(await page.data('category'), 'scenic');
     state = await page.$('#content-state');
@@ -140,9 +150,8 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(await overlay.style('box-shadow'), 'none');
     assert.equal(await overlay.style('pointer-events'), 'auto');
     const mapFilters = await mapPage.$('#categories');
-    const mapFilterSelect = await mapFilters.$('.category-select');
-    assert.ok(mapFilterSelect);
-    await mapFilterSelect.tap();
+    const mapCategoryTabs = await mapFilters.$$('.category-tab');
+    assert.equal(mapCategoryTabs.length, 5);
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
     await mapPage.callMethod('setPlaces', [
@@ -150,7 +159,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
     ]);
     assert.equal((await mapPage.data('markers')).length, 2);
-    await mapFilters.callMethod('onChange', { detail: { value: '1' } });
+    await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: 'scenic' } } });
     await mapPage.waitFor(400);
     assert.equal(await mapPage.data('category'), 'scenic');
     assert.equal((await mapPage.data('markers')).length, 1);
@@ -159,7 +168,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       wx.createSelectorQuery().select('#city-map').fields({ properties: ['markers'] }, resolve).exec();
     }));
     assert.deepEqual(nativeMarkers.markers, await mapPage.data('markers'));
-    await mapFilters.callMethod('onChange', { detail: { value: '0' } });
+    await mapFilters.callMethod('onTabTap', { currentTarget: { dataset: { category: '' } } });
     await mapPage.waitFor(400);
     assert.equal((await mapPage.data('markers')).length, 2);
     assert.deepEqual(await mapPage.data('center'), center);

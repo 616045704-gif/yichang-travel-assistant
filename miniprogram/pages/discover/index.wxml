@@ -5,8 +5,11 @@
     <view class="discover-hero-copy"><text class="discover-hero-title">发现宜昌</text><text class="discover-hero-note">把下一次出发，放进今天。</text></view>
   </view>
   <view class="discover-tools">
+    <view class="discover-search {{searchExpanded ? 'is-expanded' : ''}}">
+      <button wx:if="{{!searchExpanded}}" class="search-trigger" bindtap="expandSearch" aria-label="打开搜索"><view class="search-glyph" aria-hidden="true"></view></button>
+      <view wx:else class="search-panel"><input class="search-input" value="{{keyword}}" focus="{{searchExpanded}}" placeholder="搜索地点" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" /><button class="search-send" bindtap="onSearch" aria-label="发送搜索"><view class="send-glyph" aria-hidden="true"></view></button></view>
+    </view>
     <view class="discover-category"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
-    <view class="search-panel"><input class="search-input" value="{{keyword}}" placeholder="搜索地点名称或简介" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" /><button size="mini" class="search-icon" bindtap="onSearch" aria-label="确认搜索"><view class="search-glyph"></view></button></view>
   </view>
   <view class="section-heading"><text class="section-title">地点清单</text><text class="badge">云端资料</text></view>
   <view wx:if="{{status === 'ready'}}" class="place-list"><place-card wx:for="{{items}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view>

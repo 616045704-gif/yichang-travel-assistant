@@ -7,14 +7,16 @@ const viewModel = new PlaceListViewModel(listPlaces);
 type TravelApp = { globalData: { pendingDiscoverCategory: Category | '' } };
 
 Page({
-  data: { ...viewModel.state, feedback: { visible: false, tone: 'info', message: '' } },
+  data: { ...viewModel.state, searchExpanded: false, feedback: { visible: false, tone: 'info', message: '' } },
   onShow() {
+    this.setData({ searchExpanded: false });
     const app = getApp<TravelApp>();
     const category = app.globalData.pendingDiscoverCategory;
     app.globalData.pendingDiscoverCategory = '';
     if (category) { void viewModel.setFilters({ category }).then(() => this.sync()); return; }
     void this.refresh();
   },
+  expandSearch() { this.setData({ searchExpanded: true }); },
   sync() { this.setData(viewModel.state); },
   async refresh() { await viewModel.reload(); this.sync(); },
   onCategoryChange(event: WechatMiniprogram.CustomEvent<{ category: Category | '' }>) {
