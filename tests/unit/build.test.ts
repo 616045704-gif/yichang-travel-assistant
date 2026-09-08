@@ -73,6 +73,9 @@ describe('deployable build boundary', () => {
     expect(developmentRunbook).toContain('`dist`');
     expect(developmentRunbook).toContain('`dist-dev`');
     expect(developmentRunbook).toContain('`npm run build:dev`');
+
+    const eslintConfig = await readFile(path.join(process.cwd(), 'eslint.config.mjs'), 'utf8');
+    expect(eslintConfig).toContain("'dist-dev/**'");
   });
 
   it('builds a minimal client without sources or tests', async () => {
