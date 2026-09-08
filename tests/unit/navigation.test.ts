@@ -154,6 +154,7 @@ describe('four-tab application', () => {
     expect(smoke).toContain('AI cards must have equal visible widths');
     expect(smoke).toContain('Map preview must preserve its 280rpx minimum height');
     expect(smoke).toContain("await categoryTabs[0].tap()");
+    expect(smoke).toContain('await waitForSettledStatus(page)');
     expect(smoke).toContain('state component visibility must match its branch');
     expect(smoke).toContain('every personal entry respond to real taps');
     expect(smoke).not.toContain("page.$('.hero')");

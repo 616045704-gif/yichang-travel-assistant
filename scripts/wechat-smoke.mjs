@@ -28,6 +28,26 @@ async function waitForPageData(page, key, expected, timeout = 6000) {
   return actual;
 }
 
+async function waitForSettledStatus(page, timeout = 6000) {
+  const deadline = Date.now() + timeout;
+  let status;
+  let previousStatus;
+  let stableReads = 0;
+  while (Date.now() < deadline) {
+    status = await page.data('status');
+    if (status === 'ready' || status === 'empty' || status === 'error') {
+      stableReads = status === previousStatus ? stableReads + 1 : 1;
+      if (stableReads >= 2) return status;
+    } else {
+      stableReads = 0;
+    }
+    previousStatus = status;
+    await wait(100);
+  }
+  assert.ok(['ready', 'empty', 'error'].includes(status), `Expected a settled page status, received ${status}`);
+  return status;
+}
+
 async function elementBox(element) {
   const [offset, size] = await Promise.all([element.offset(), element.size()]);
   return { left: Number(offset.left), top: Number(offset.top), width: Number(size.width), height: Number(size.height) };
@@ -173,6 +193,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(categoryTabs.length, 5);
     await categoryTabs[0].tap();
     await waitForPageData(page, 'category', '');
+    await waitForSettledStatus(page);
     const searchTrigger = await page.$('.search-trigger');
     assert.ok(searchTrigger);
     assert.equal(await page.$('.search-input'), null);
