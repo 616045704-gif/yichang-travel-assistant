@@ -17,6 +17,7 @@ Page({
     void this.refresh();
   },
   expandSearch() { this.setData({ searchExpanded: true }); },
+  collapseSearch() { this.setData({ searchExpanded: false }); },
   sync() { this.setData(viewModel.state); },
   async refresh() { await viewModel.reload(); this.sync(); },
   onCategoryChange(event: WechatMiniprogram.CustomEvent<{ category: Category | '' }>) {

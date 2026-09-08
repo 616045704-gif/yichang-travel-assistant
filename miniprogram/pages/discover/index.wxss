@@ -8,16 +8,24 @@
 .discover-hero-note { max-width: 310rpx; margin-top: 10rpx; color: rgba(255, 255, 255, .9); font-size: 24rpx; line-height: 1.55; }
 .discover-tools { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 14rpx; margin-top: 24rpx; overflow: hidden; }
 .discover-search { flex: 0 0 88rpx; min-width: 0; height: 112rpx; transition: flex-basis .2s ease; }
-.discover-search.is-expanded { flex-basis: 400rpx; }
-.discover-category { flex: 1; min-width: 0; overflow: hidden; }
+.discover-search.is-expanded { flex-basis: 324rpx; }
+.discover-category { flex: 1; min-width: 300rpx; overflow: hidden; }
 .search-trigger-shell, .search-panel { box-sizing: border-box; width: 100%; height: 112rpx; border: 1rpx solid rgba(116, 84, 216, .12); border-radius: 24rpx; background: rgba(255, 255, 255, .98); box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .06); }
 .search-trigger-shell { position: relative; display: flex; align-items: center; justify-content: center; min-width: 88rpx; border-color: #d9ceff; background: #fff; }
-.search-trigger-icon { display: block; width: 46rpx; height: 46rpx; pointer-events: none; }
+.search-line-icon { position: relative; width: 28rpx; height: 28rpx; border: 3rpx solid #4d4858; border-radius: 50%; pointer-events: none; }
+.search-line-icon::after { position: absolute; right: -11rpx; bottom: -7rpx; width: 14rpx; height: 3rpx; border-radius: 999rpx; background: #4d4858; content: ''; transform: rotate(45deg); transform-origin: center; }
 .search-trigger { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; }
-.search-trigger.search-trigger-pressed { background: rgba(116, 84, 216, .10); }
-.search-trigger::after, .search-send::after { border: 0; }
-.search-panel { display: flex; align-items: center; gap: 8rpx; min-width: 0; padding: 0 10rpx 0 18rpx; }
-.search-input { flex: 1; min-width: 0; height: 92rpx; padding: 0; border: 0; background: transparent; color: var(--color-text); font-size: 25rpx; }
-.search-send { flex: 0 0 92rpx; width: 92rpx; min-width: 92rpx; height: 88rpx; margin: 0; padding: 0; border-radius: 18rpx; background: var(--color-brand); color: #fff; font-size: 22rpx; font-weight: 700; line-height: 88rpx; }
-.search-send.search-send-pressed { opacity: .82; }
+.search-trigger::after, .search-close::after, .search-send::after { border: 0; }
+.search-panel { display: flex; align-items: center; gap: 8rpx; min-width: 0; padding: 0 10rpx; }
+.search-close-shell, .search-send-shell { position: relative; display: flex; flex: 0 0 auto; align-items: center; justify-content: center; height: 68rpx; border-radius: 50%; }
+.search-close-shell { width: 58rpx; }
+.search-send-shell { width: 68rpx; }
+.search-close, .search-send { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; line-height: 1; }
+.search-trigger.search-control-pressed, .search-close.search-control-pressed, .search-send.search-control-pressed { background: rgba(116, 84, 216, .09); }
+.close-glyph { position: relative; width: 26rpx; height: 26rpx; pointer-events: none; }
+.close-glyph::before, .close-glyph::after { position: absolute; top: 12rpx; left: 1rpx; width: 24rpx; height: 3rpx; border-radius: 999rpx; background: #726a80; content: ''; }
+.close-glyph::before { transform: rotate(45deg); }
+.close-glyph::after { transform: rotate(-45deg); }
+.search-input { flex: 1; min-width: 0; height: 92rpx; padding: 0; border: 0; background: transparent; color: var(--color-text); font-size: 24rpx; }
+.send-glyph { width: 30rpx; height: 30rpx; background: var(--color-brand); clip-path: polygon(0 7%, 100% 50%, 0 93%, 22% 58%, 63% 50%, 22% 42%); pointer-events: none; transform: rotate(-7deg); }
 .place-list { border-top: 1rpx solid var(--color-border); }.discovery-note { margin-top: 34rpx; padding: 24rpx 0; border-top: 1rpx solid var(--color-border); border-bottom: 1rpx solid var(--color-border); background: transparent; }.discovery-note-title { display: block; margin-bottom: 8rpx; color: var(--color-brand); font-size: 26rpx; font-weight: 700; }

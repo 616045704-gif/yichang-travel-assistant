@@ -142,6 +142,8 @@ describe('four-tab application', () => {
     expect(smoke).toContain('await mapCategoryTabs[1].tap()');
     expect(smoke).toContain("await page.$('.search-trigger')");
     expect(smoke).toContain("await page.$('.search-input')");
+    expect(smoke).toContain("await page.$('.search-close')");
+    expect(smoke).toContain("assert.equal(await page.$('.search-input'), null)");
     expect(smoke).toContain("Typing must not start a request");
     expect(smoke).toContain("searchInput.trigger('confirm'");
     expect(smoke).toContain("map.trigger('markertap'");

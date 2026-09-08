@@ -23,11 +23,17 @@ describe('place discovery view model', () => {
     expect(discover).toContain('wx:if="{{!searchExpanded}}"');
     expect(discover).toContain('bindtap="expandSearch"');
     expect(discover).toContain('aria-label="打开搜索"');
+    expect(discover).toContain('bindtap="collapseSearch"');
+    expect(discover).toContain('aria-label="关闭搜索"');
+    expect(discover).toContain('class="search-line-icon"');
+    expect(discover).toContain('class="send-glyph"');
     expect(discover).toContain('focus="{{searchExpanded}}"');
     expect(discover).toContain('aria-label="发送搜索"');
     expect(discover).not.toContain('bindinput="onSearch"');
     expect(discoverStyle).toContain('height: 340rpx');
-    expect(discoverStyle).toContain('flex-basis: 400rpx');
+    expect(discoverStyle).toContain('flex-basis: 324rpx');
+    expect(discover).not.toContain('/assets/icons/discover-active.png');
+    expect(discover).not.toContain('>发送</button>');
     expect(discover).not.toContain('discover-riverside.jpg');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('bindtap="onFavorite"');
@@ -38,6 +44,7 @@ describe('place discovery view model', () => {
       data: { searchExpanded: boolean; keyword: string };
       setData(value: Record<string, unknown>): void;
       expandSearch(): void;
+      collapseSearch(): void;
       onKeywordInput(event: { detail: { value: string } }): void;
       onSearch(): void;
     };
@@ -54,8 +61,11 @@ describe('place discovery view model', () => {
     expect(page!.data.searchExpanded).toBe(true);
     page!.onKeywordInput({ detail: { value: '三峡' } });
     expect(page!.data.keyword).toBe('三峡');
+    page!.collapseSearch();
+    expect(page!.data).toMatchObject({ searchExpanded: false, keyword: '三峡' });
     expect(callFunction).not.toHaveBeenCalled();
 
+    page!.expandSearch();
     page!.onSearch();
     await vi.waitFor(() => expect(callFunction).toHaveBeenCalledWith({
       name: 'placeService',

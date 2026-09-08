@@ -6,8 +6,12 @@
   </view>
   <view class="discover-tools">
     <view class="discover-search {{searchExpanded ? 'is-expanded' : ''}}">
-      <view wx:if="{{!searchExpanded}}" class="search-trigger-shell"><image class="search-trigger-icon" src="/assets/icons/discover-active.png" mode="aspectFit" aria-hidden="true" /><button class="search-trigger" hover-class="search-trigger-pressed" bindtap="expandSearch" aria-label="打开搜索"></button></view>
-      <view wx:else class="search-panel"><input class="search-input" value="{{keyword}}" focus="{{searchExpanded}}" placeholder="搜索地点" aria-label="搜索地点" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" /><button class="search-send" hover-class="search-send-pressed" bindtap="onSearch" aria-label="发送搜索">发送</button></view>
+      <view wx:if="{{!searchExpanded}}" class="search-trigger-shell"><view class="search-line-icon" aria-hidden="true"></view><button class="search-trigger" hover-class="search-control-pressed" bindtap="expandSearch" aria-label="打开搜索"></button></view>
+      <view wx:else class="search-panel">
+        <view class="search-close-shell"><view class="close-glyph" aria-hidden="true"></view><button class="search-close" hover-class="search-control-pressed" bindtap="collapseSearch" aria-label="关闭搜索"></button></view>
+        <input class="search-input" value="{{keyword}}" focus="{{searchExpanded}}" placeholder="搜索地点" aria-label="搜索地点" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" />
+        <view class="search-send-shell"><view class="send-glyph" aria-hidden="true"></view><button class="search-send" hover-class="search-control-pressed" bindtap="onSearch" aria-label="发送搜索"></button></view>
+      </view>
     </view>
     <view class="discover-category"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
   </view>
