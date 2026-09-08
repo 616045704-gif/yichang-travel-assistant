@@ -6,9 +6,10 @@ import { buildMarkers, findPlaceByMarkerId, type MapPlace, type TravelMarker } f
 
 let requestSerial = 0;
 let nearbyLocation: { latitude: number; longitude: number } | null = null;
+const MAP_CATEGORIES: Array<{ value: Category | ''; label: string }> = [{ value: '', label: '全部分类' }, ...CATEGORIES];
 
 Page({
-  data: { center: YICHANG_CENTER, places: [] as MapPlace[], markers: [] as TravelMarker[], category: '' as Category | '', selectedPlace: null as MapPlace | null, notice: '', locating: false, nearbyMode: false, showLocation: false, showSettings: false },
+  data: { center: YICHANG_CENTER, places: [] as MapPlace[], markers: [] as TravelMarker[], mapCategories: MAP_CATEGORIES, category: '' as Category | '', selectedPlace: null as MapPlace | null, notice: '', locating: false, nearbyMode: false, showLocation: false, showSettings: false },
   onShow() { if (!this.data.nearbyMode) void this.loadPublicMarkers(); },
   onHide() { requestSerial += 1; nearbyLocation = null; this.setData({ center: YICHANG_CENTER, nearbyMode: false, showLocation: false, selectedPlace: null, locating: false, showSettings: false }); },
   onUnload() { this.onHide(); },
@@ -23,9 +24,14 @@ Page({
     this.setData({ places: [...places], markers: buildMarkers(places, this.data.category), selectedPlace: null });
   },
   onCategoryChange(event: WechatMiniprogram.CustomEvent<{ category: Category | '' }>) {
-    const category = event.detail.category;
+    this.applyCategory(event.detail.category);
+  },
+  onMapCategoryTap(event: WechatMiniprogram.TouchEvent) {
+    this.applyCategory(event.currentTarget.dataset.category);
+  },
+  applyCategory(category: unknown) {
     if (category !== '' && !CATEGORIES.some(item => item.value === category)) return;
-    this.setData({ category, markers: buildMarkers(this.data.places, category), selectedPlace: null });
+    this.setData({ category: category as Category | '', markers: buildMarkers(this.data.places, category as Category | ''), selectedPlace: null });
     if (this.data.nearbyMode && nearbyLocation) void this.loadNearby(nearbyLocation);
   },
   async locateNearby() {

@@ -75,6 +75,9 @@ describe('travel visual presentation', () => {
       readFile('miniprogram/pages/map/index.wxss', 'utf8'),
     ]);
     expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
+    expect(markup).toContain('<cover-view class="map-filters"');
+    expect(markup).toContain('<cover-image class="map-filter-icon"');
+    expect(markup).toContain('bindtap="onMapCategoryTap"');
     expect(markup).toContain('hover-class="detail-button-pressed"');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
     expect(css).toMatch(/\.marker-card\s*\{[^}]*min-height:\s*280rpx[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
@@ -135,6 +138,8 @@ describe('travel visual presentation', () => {
     expect(overlay).toContain('box-shadow: 0 12rpx 30rpx');
     expect(overlay).toContain('border: 1rpx solid');
     expect(overlay).toContain('pointer-events: auto');
+    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*width:\s*100rpx[^}]*height:\s*112rpx/);
+    expect(css).toMatch(/\.map-filter-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
     expect(buttons).toMatch(/\.category-tabs\s*\{[^}]*pointer-events:\s*auto/);
     expect(buttons).toMatch(/\.category-tab\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*height:\s*112rpx/);

@@ -9,6 +9,7 @@ type MapPage = {
   locateNearby(): Promise<void>;
   onOpenSettings(): Promise<void>;
   onCategoryChange(event: { detail: { category: string } }): void;
+  onMapCategoryTap(event: { currentTarget: { dataset: { category: string } } }): void;
 };
 const publicPlace = { placeId: 'public-place', name: '公共地点', category: 'scenic', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' };
 
@@ -31,6 +32,11 @@ describe('nearby map page', () => {
     ]);
     expect(markup).toContain('<map id="city-map"');
     expect(markup).toContain('bindmarkertap="onMarkerTap"');
+    expect(markup).toContain('<cover-view class="map-filters"');
+    expect(markup).toContain('<cover-image class="map-filter-icon"');
+    expect(markup).toContain('class="map-filter-tab');
+    expect(markup).toContain('bindtap="onMapCategoryTap"');
+    expect(markup).not.toContain('<category-filter');
     expect(markup).toContain('bindtap="locateNearby"');
     expect(markup).toContain('bindtap="openSelectedPlace"');
     expect(markup).toContain('class="detail-button marker-hit-target"');
@@ -80,6 +86,13 @@ describe('nearby map page', () => {
     page.onCategoryChange({ detail: { category: 'scenic' } });
     await vi.waitFor(() => expect(callFunction).toHaveBeenCalledWith({ name: 'placeService', data: { action: 'nearby', latitude: 30.71, longitude: 111.31, category: 'scenic' } }));
     expect(getLocation).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies a cover-view category tap through the existing category state contract', async () => {
+    const page = await loadPage({ cloud: { callFunction: vi.fn() } });
+    page.onMapCategoryTap({ currentTarget: { dataset: { category: 'culture' } } });
+    expect(page.data.category).toBe('culture');
+    expect(page.data.selectedPlace).toBeNull();
   });
 
   it('keeps the map usable after denial and lets the user explicitly retry from settings', async () => {

@@ -16,7 +16,8 @@ describe('place discovery view model', () => {
     expect(discover).toContain('<category-filter');
     expect(discover).toContain('bindcategorychange="onCategoryChange"');
     const map = await readFile('miniprogram/pages/map/index.wxml', 'utf8');
-    expect(map).toContain('bindcategorychange="onCategoryChange"');
+    expect(map).toContain('<cover-view class="map-filters"');
+    expect(map).toContain('bindtap="onMapCategoryTap"');
     expect(discover).toContain('bindinput="onKeywordInput"');
     expect(discover).toContain('bindconfirm="onSearch"');
     expect(discover).toContain('<place-card');

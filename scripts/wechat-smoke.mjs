@@ -126,7 +126,8 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     page = await miniProgram.switchTab('/pages/me/index');
     const heroBox = await elementBox(await page.$('.travel-hero'));
     const profileBox = await elementBox(await page.$('.profile-card'));
-    assert.ok(heroBox.height >= 200, `Me Hero must be at least 200px tall, received ${heroBox.height}`);
+    const meScale = (await page.size()).width / 750;
+    assert.ok(heroBox.height >= (420 * meScale) - 2, `Me Hero must preserve its 420rpx height, received ${heroBox.height}px`);
     assert.ok(profileBox.left >= heroBox.left && profileBox.left + profileBox.width <= heroBox.left + heroBox.width, 'Profile card must stay inside the Hero horizontally');
     assert.ok(profileBox.top >= heroBox.top && profileBox.top + profileBox.height <= heroBox.top + heroBox.height, 'Profile card must stay inside the Hero vertically');
     const meDestinations = [
@@ -170,6 +171,8 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.ok(filter);
     const categoryTabs = await filter.$$('.category-tab');
     assert.equal(categoryTabs.length, 5);
+    await categoryTabs[0].tap();
+    await waitForPageData(page, 'category', '');
     const searchTrigger = await page.$('.search-trigger');
     assert.ok(searchTrigger);
     assert.equal(await page.$('.search-input'), null);
@@ -207,12 +210,16 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     await categoryTabs[1].tap();
     await waitForPageData(page, 'category', 'scenic');
     assert.equal(await page.data('category'), 'scenic');
-    state = await page.$('#content-state');
-    assert.ok(state);
     for (const status of ['loading', 'error', 'empty', 'ready']) {
       await page.setData({ status });
       await page.waitFor(100);
       state = await page.$('#content-state');
+      assert.equal(Boolean(state), status !== 'ready', `${status} state component visibility must match its branch`);
+      if (!state) {
+        await miniProgram.screenshot({ path: path.resolve('.local', `wechat-discover-${status}.png`) });
+        console.log(`PASS: ${status}`);
+        continue;
+      }
       const title = await state.$('.state-title');
       assert.equal(Boolean(title), status !== 'ready', `${status} title visibility must match its branch`);
       if (title) assert.ok(await title.text());
@@ -236,8 +243,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.notEqual(await overlay.style('background-color'), 'rgba(0, 0, 0, 0)');
     assert.notEqual(await overlay.style('box-shadow'), 'none');
     assert.equal(await overlay.style('pointer-events'), 'auto');
-    const mapFilters = await mapPage.$('#categories');
-    const mapCategoryTabs = await mapFilters.$$('.category-tab');
+    const mapCategoryTabs = await mapPage.$$('.map-filter-tab');
     assert.equal(mapCategoryTabs.length, 5);
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
@@ -282,7 +288,8 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const markerCoverBox = await elementBox(await markerCard.$('.marker-cover'));
     const markerCopyBox = await elementBox(await markerCard.$('.marker-copy'));
     const detailButtonBox = await elementBox(await markerCard.$('.detail-button'));
-    assert.ok(markerCardBox.height >= 120, `Map preview must be at least 120px tall, received ${markerCardBox.height}`);
+    const mapScale = pageSize.width / 750;
+    assert.ok(markerCardBox.height >= (280 * mapScale) - 2, `Map preview must preserve its 280rpx minimum height, received ${markerCardBox.height}px`);
     assertNear(markerCoverBox.top, markerCopyBox.top, 2, 'Map preview columns must share one top edge');
     assertNear(detailButtonBox.left, markerCopyBox.left, 2, 'Map detail button must align to the copy column left edge');
     assertNear(detailButtonBox.width, markerCopyBox.width, 2, 'Map detail button must fill the copy column width');

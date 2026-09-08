@@ -1,6 +1,13 @@
 <view class="page map-page">
   <map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="11" markers="{{markers}}" show-location="{{showLocation}}" bindmarkertap="onMarkerTap" enable-scroll="{{true}}" enable-zoom="{{true}}" />
-  <view class="map-filters"><category-filter id="categories" value="{{category}}" bindcategorychange="onCategoryChange" /></view>
+  <cover-view class="map-filters">
+    <cover-view class="map-filter-track">
+      <cover-view wx:for="{{mapCategories}}" wx:key="value" class="map-filter-tab {{category === item.value ? 'is-active' : ''}} {{item.value === 'culture' ? 'is-wide' : ''}}" data-category="{{item.value}}" bindtap="onMapCategoryTap" aria-role="button" aria-label="按{{item.label}}筛选">
+        <cover-image class="map-filter-icon" src="/assets/provided/category-{{item.value || 'all'}}.png" />
+        <cover-view class="map-filter-label">{{item.label}}</cover-view>
+      </cover-view>
+    </cover-view>
+  </cover-view>
   <view class="map-bottom-stack">
     <view class="map-actions"><button class="nearby-button" loading="{{locating}}" disabled="{{locating}}" bindtap="locateNearby">定位我的附近</button><text wx:if="{{notice}}" class="map-notice">{{notice}}</text><button wx:if="{{showSettings}}" class="settings-button" bindtap="onOpenSettings">打开设置</button></view>
     <view wx:if="{{selectedPlace}}" class="marker-card">

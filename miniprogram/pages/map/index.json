@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "地图", "disableScroll": true, "usingComponents": { "category-filter": "/components/category-filter/index" } }
+{ "navigationBarTitleText": "地图", "disableScroll": true }
