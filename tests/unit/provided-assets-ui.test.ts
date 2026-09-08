@@ -104,6 +104,40 @@ describe('provided visual assets and UI boundary', () => {
     }
   });
 
+  it('ships transparent bold-gradient category artwork from the deterministic renderer', async () => {
+    const renderer = await readFile('scripts/render-modern-icons.mjs', 'utf8');
+    expect(renderer).toContain('gradientCategoryIcon');
+    expect(renderer).toContain('providedRoot');
+    for (const name of ['all', 'scenic', 'restaurant', 'culture', 'camping']) {
+      const bytes = await readFile(`${root}/category-${name}.png`);
+      expect(bytes[24]).toBe(8);
+      expect(bytes[25]).toBe(6);
+      const chunks: Buffer[] = [];
+      let offset = 8;
+      while (offset < bytes.length) {
+        const size = bytes.readUInt32BE(offset);
+        if (bytes.subarray(offset + 4, offset + 8).toString() === 'IDAT') chunks.push(bytes.subarray(offset + 8, offset + 8 + size));
+        offset += size + 12;
+      }
+      const pixels = inflateSync(Buffer.concat(chunks));
+      const colors = new Set<string>();
+      let opaque = 0;
+      for (let row = 0; row < 128; row += 1) {
+        expect(pixels[row * 513]).toBe(0);
+        for (let column = 0; column < 128; column += 1) {
+          const pixel = row * 513 + 1 + column * 4;
+          if (pixels[pixel + 3] > 0) {
+            opaque += 1;
+            colors.add(`${pixels[pixel]},${pixels[pixel + 1]},${pixels[pixel + 2]}`);
+          }
+        }
+      }
+      expect(pixels[4]).toBe(0);
+      expect(opaque).toBeGreaterThan(900);
+      expect(colors.size).toBeGreaterThan(24);
+    }
+  });
+
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {
     const [app, home, map, me] = await Promise.all([
       readFile('miniprogram/app.json', 'utf8'),
@@ -129,7 +163,10 @@ describe('provided visual assets and UI boundary', () => {
   });
 
   it('places the supplied Home Hero before one paired set of existing AI actions', async () => {
-    const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
+    const [home, homeStyle] = await Promise.all([
+      readFile('miniprogram/pages/home/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/home/index.wxss', 'utf8'),
+    ]);
     expect(home).toContain('class="home-hero"');
     expect(home).toContain('/assets/provided/home-hero.jpg');
     expect(home).toContain('class="ai-quick-grid"');
@@ -139,6 +176,9 @@ describe('provided visual assets and UI boundary', () => {
     expect((home.match(/bindtap="openTripForm"/g) ?? []).length).toBe(1);
     expect(home).toContain('/assets/provided/ai-chat.png');
     expect(home).toContain('/assets/provided/trip-plan.png');
+    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*gap:\s*24rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*90%/);
+    expect(homeStyle).toMatch(/\.category-label\s*\{[^}]*color:\s*var\(--color-brand\)/);
     for (const retiredCopy of ['旅行助手', '从哪里开始', '从灵感到行程', '四类地点', '值得停留', '精选地点', '内容仅供出行参考，请以景区、交通等官方公告为准']) {
       expect(home).not.toContain(retiredCopy);
     }

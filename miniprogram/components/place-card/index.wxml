@@ -1,7 +1,9 @@
 <view wx:if="{{place}}" class="place-card">
-  <view class="open-area" bindtap="onOpen" aria-role="button" aria-label="{{'查看' + place.name}}">
-    <view class="cover-wrap"><image wx:if="{{place.coverUrl && !imageFailed}}" class="cover" src="{{place.coverUrl}}" mode="aspectFill" binderror="onImageError" /><view wx:else class="cover placeholder">图片暂不可用</view><view class="category-pill" aria-hidden="true"><text wx:if="{{place.category === 'scenic'}}">景区</text><text wx:elif="{{place.category === 'restaurant'}}">餐馆</text><text wx:elif="{{place.category === 'culture'}}">博物馆</text><text wx:else>露营地</text></view></view>
-    <view class="body"><text class="name">{{place.name}}</text></view>
+  <view class="open-area cover-wrap" bindtap="onOpen" aria-role="button" aria-label="{{'查看' + place.name}}">
+    <image wx:if="{{place.coverUrl && !imageFailed}}" class="cover" src="{{place.coverUrl}}" mode="aspectFill" binderror="onImageError" /><view wx:else class="cover placeholder">图片暂不可用</view><view class="category-pill" aria-hidden="true"><text wx:if="{{place.category === 'scenic'}}">景区</text><text wx:elif="{{place.category === 'restaurant'}}">餐馆</text><text wx:elif="{{place.category === 'culture'}}">博物馆</text><text wx:else>露营地</text></view>
   </view>
-  <button class="favorite-action {{pending ? 'is-pending' : ''}}" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}"><image class="favorite-image" src="{{place.isFavorite ? '/assets/provided/favorite-active.png' : '/assets/provided/favorite.png'}}" mode="aspectFit" /><text class="favorite-label">{{place.isFavorite ? '已收藏' : '收藏'}}</text></button>
+  <view class="card-meta">
+    <view class="body" bindtap="onOpen" aria-role="button" aria-label="{{'查看' + place.name}}"><text class="name">{{place.name}}</text></view>
+    <button class="favorite-action {{pending ? 'is-pending' : ''}}" loading="{{pending}}" disabled="{{pending}}" catchtap="onFavorite" aria-label="{{place.isFavorite ? '取消收藏' : '收藏地点'}}"><image class="favorite-image" src="{{place.isFavorite ? '/assets/provided/favorite-active.png' : '/assets/provided/favorite.png'}}" mode="aspectFit" /><text class="favorite-label">{{place.isFavorite ? '已收藏' : '收藏'}}</text></button>
+  </view>
 </view>

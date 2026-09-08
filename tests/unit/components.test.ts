@@ -33,6 +33,8 @@ describe('reusable travel components', () => {
     expect(filters).toContain('bindchange="onChange"');
     expect(filters).toContain('class="category-select"');
     expect(card).toContain('favorite-action');
+    expect(card).toContain('class="card-meta"');
+    expect(card).toContain('class="body" bindtap="onOpen"');
     expect(card).toContain('/assets/provided/favorite.png');
     expect(card).toContain('category-pill');
     expect(card.indexOf('class="name"')).toBeLessThan(card.indexOf('class="favorite-action '));
@@ -42,6 +44,8 @@ describe('reusable travel components', () => {
     expect(card).not.toContain('class="tags"');
     expect(cardStyle).toContain('height: 336rpx');
     expect(cardStyle).toContain('font-weight: 750');
+    expect(cardStyle).toMatch(/\.card-meta\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/);
+    expect(cardStyle).toMatch(/\.body\s*\{[^}]*flex:\s*1/);
     expect(cardStyle).toMatch(/\.favorite-action\s*\{[^}]*min-height:\s*80rpx/);
     expect(cardStyle).not.toMatch(/\.favorite\s+text/);
     expect(feedbackStyle).toContain('var(--color-brand-deep)');
