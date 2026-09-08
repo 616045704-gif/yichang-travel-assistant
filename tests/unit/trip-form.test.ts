@@ -54,6 +54,10 @@ describe('trip input validation', () => {
     expect(markup).not.toContain('应用调整并重新生成完整行程');
     expect(markup).not.toContain('生成最终行程');
     expect(markup).not.toContain('wx:for="{{results}}"');
+
+    const adjustmentTextarea = markup.match(/<textarea[^>]*bindinput="onAdjustment"[^>]*\/>/)?.[0] ?? '';
+    expect(adjustmentTextarea).toContain('adjust-position="false"');
+    expect((markup.match(/adjust-position="false"/g) ?? [])).toHaveLength(1);
   });
 
   it('accepts only a valid five-field trip input', () => {
