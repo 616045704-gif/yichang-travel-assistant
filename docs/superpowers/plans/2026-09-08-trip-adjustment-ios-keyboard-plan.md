@@ -25,7 +25,7 @@
 
 **Interfaces:**
 - 行程调整框保留 `value="{{adjustment}}"`、`maxlength="1000"`、`bindinput="onAdjustment"`。
-- 该元素额外具有静态属性 `adjust-position="false"`。
+- 该元素额外绑定布尔属性 `adjust-position="{{false}}"`，不能使用字符串值 `"false"`。
 - 其他 `input` 或 `textarea` 不获得该属性。
 
 - [ ] **Step 1: 写入失败回归测试**
@@ -34,8 +34,9 @@
 
 ```ts
 const adjustmentTextarea = markup.match(/<textarea[^>]*bindinput="onAdjustment"[^>]*\/>/)?.[0] ?? '';
-expect(adjustmentTextarea).toContain('adjust-position="false"');
-expect((markup.match(/adjust-position="false"/g) ?? [])).toHaveLength(1);
+expect(adjustmentTextarea).toContain('adjust-position="{{false}}"');
+expect((markup.match(/adjust-position="{{false}}"/g) ?? [])).toHaveLength(1);
+expect(markup).not.toContain('adjust-position="false"');
 ```
 
 - [ ] **Step 2: 运行定向测试确认失败**
@@ -46,14 +47,14 @@ Run:
 node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts
 ```
 
-Expected: FAIL，因为当前调整 `textarea` 没有 `adjust-position="false"`。
+Expected: FAIL，因为当前调整 `textarea` 没有绑定布尔值 `adjust-position="{{false}}"`。
 
 - [ ] **Step 3: 最小实现**
 
 把行程调整框改为：
 
 ```xml
-<textarea value="{{adjustment}}" maxlength="1000" adjust-position="false" placeholder="例如：第二天安排轻松一些；推荐具体餐馆，要吃鱼和热干面" bindinput="onAdjustment" />
+<textarea value="{{adjustment}}" maxlength="1000" adjust-position="{{false}}" placeholder="例如：第二天安排轻松一些；推荐具体餐馆，要吃鱼和热干面" bindinput="onAdjustment" />
 ```
 
 不新增 `bindfocus`、`bindblur`、`pageScrollTo`、`cursor-spacing` 或 CSS 定位规则。

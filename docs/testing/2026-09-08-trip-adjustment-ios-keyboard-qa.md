@@ -7,16 +7,16 @@
 
 iPhone 微信二维码预览中，行程生成后的调整 `textarea` 在键盘出现后会触发原生自动页面顶起，并错误滚动到“当前计划”开头。开发者工具不复现该 iPhone 原生键盘行为。
 
-调整框现设置 `adjust-position="false"`，使微信不再接管整页滚动。保留原有输入事件、1000 字限制、调整提交、重新规划、行程生成、Dify 和云函数边界。初始表单输入框及其他页面未改动。
+首次修复使用了静态字符串 `adjust-position="false"`，iPhone 复测后行为没有变化。根因是该值没有以 WXML 布尔表达式传入；修正版本改为 `adjust-position="{{false}}"`，并新增测试拒绝旧字符串写法。保留原有输入事件、1000 字限制、调整提交、重新规划、行程生成、Dify 和云函数边界。初始表单输入框及其他页面未改动。
 
 ## 实际执行
 
 | 项目 | 实际执行 | 结果 |
 | --- | --- | --- |
-| 输入框属性回归 | `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts` | 7/7 通过；断言该属性仅出现在调整输入框。 |
+| 输入框属性回归 | `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts` | 7/7 通过；断言真正的布尔绑定仅出现在调整输入框，并拒绝静态字符串写法。 |
 | 类型检查 | `node node_modules\typescript\bin\tsc --noEmit` | 通过。 |
 | 定向静态检查 | `node node_modules\eslint\bin\eslint.js miniprogram\pages\trip-form\index.wxml tests\unit\trip-form.test.ts` | 通过。 |
-| 真实体验包 | `node scripts\build.mjs --mode=demo` | 通过；当前 `dist` 是真实 AI 包。 |
+| 当前真实体验包 | 比对源码和 `dist/miniprogram/pages/trip-form/index.wxml` SHA-256，并执行 `node scripts\check-package.mjs --mode=demo` | 通过；两者一致，当前 `dist` 已包含 `adjust-position="{{false}}"`。为避免混入另一个对话尚未完成的品牌改名，本次修正未重建其余文件。 |
 | 包边界 | `node scripts\check-package.mjs --mode=demo` | 通过。 |
 | 文档与空白 | `node scripts\verify-docs.mjs`、`git diff --check` | 通过。 |
 | 全量测试 | `node node_modules\vitest\vitest.mjs run` | 本次功能相关 7 项通过；全量为 281 通过、1 跳过、1 失败。失败来自用户工作区中另一个未提交的 `tests/unit/visual-style.test.ts` 品牌改名断言，当前产品源码尚未完成该独立改动；未修改、未回退或混入本次提交。 |

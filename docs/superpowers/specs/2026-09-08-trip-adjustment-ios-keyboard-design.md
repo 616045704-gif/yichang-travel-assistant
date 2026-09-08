@@ -8,14 +8,14 @@
 
 ## 方案比较
 
-1. **关闭该输入框的自动页面顶起（采用）**：仅对行程调整 `textarea` 设置 `adjust-position="false"`。键盘仍可弹出，但微信不再接管整页滚动，用户保留自己点击时的位置。
+1. **关闭该输入框的自动页面顶起（采用）**：仅对行程调整 `textarea` 绑定布尔值 `adjust-position="{{false}}"`。键盘仍可弹出，但微信不再接管整页滚动，用户保留自己点击时的位置。不能使用静态字符串 `adjust-position="false"`，否则真机仍可能按开启处理。
 2. **只增加 `cursor-spacing`**：仍依赖 iPhone 的自动顶起，仅改变保留距离，不能消除错误滚动，未采用。
 3. **在焦点事件中手动滚动页面**：需要与微信原生键盘滚动竞争，容易在不同设备上反复跳动，未采用。
 
 ## 已确认实现
 
 - 只修改 `miniprogram/pages/trip-form/index.wxml` 中的行程调整 `textarea`。
-- 使用 `adjust-position="false"`，不修改初始行程表单的四个输入框或其他页面输入行为。
+- 使用 `adjust-position="{{false}}"`，不修改初始行程表单的四个输入框或其他页面输入行为。
 - 保持现有 `bindinput="onAdjustment"`、长度限制、错误提示、确认调整、重新规划和完整行程生成逻辑。
 - 单元测试检查该属性存在且只应用于调整 `textarea`；本地构建生成真实 `dist` 包。
 
