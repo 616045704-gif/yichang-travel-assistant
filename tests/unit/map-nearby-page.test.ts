@@ -49,8 +49,10 @@ describe('nearby map page', () => {
     expect(css).toContain('gap: 16rpx');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*pointer-events:\s*auto/);
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
-    expect(css).toMatch(/\.map-filter-track\s*\{[^}]*gap:\s*12rpx[^}]*justify-content:\s*flex-start/);
-    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*width:\s*100rpx[^}]*height:\s*112rpx[^}]*padding:\s*8rpx 8rpx 7rpx[^}]*border-radius:\s*24rpx[^}]*line-height:\s*normal/);
+    expect(css).toMatch(/\.map-filter-track\s*\{[^}]*display:\s*flex[^}]*width:\s*100%[^}]*gap:\s*8rpx/);
+    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*flex:\s*1\s+1\s+0[^}]*min-width:\s*0[^}]*width:\s*auto[^}]*height:\s*112rpx[^}]*padding:\s*8rpx 4rpx 7rpx[^}]*border-radius:\s*24rpx[^}]*line-height:\s*normal/);
+    expect(css).not.toContain('.map-filter-tab.is-wide');
+    expect(css).toMatch(/\.map-filter-label\s*\{[^}]*text-align:\s*center[^}]*white-space:\s*normal/);
     expect(css).toMatch(/\.map-filter-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
     expect(css).toMatch(/\.marker-card\s*\{[^}]*min-height:\s*280rpx[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
     expect(css).toMatch(/\.marker-cover\s*\{[^}]*width:\s*224rpx[^}]*height:\s*224rpx/);
