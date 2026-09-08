@@ -135,6 +135,8 @@ describe('four-tab application', () => {
     expect(smoke).toContain('async function waitForPagePath');
     expect(smoke).toContain("await page.$$('.ai-quick-card')");
     expect(smoke).toContain("assert.equal(aiPage.path, 'pages/ai-chat/index')");
+    expect(smoke).toContain("assert.equal(aiPage.path, 'pages/trip-form/index')");
+    expect(smoke).toContain("Home CTA, both AI cards, and all category icons respond to real taps");
     expect(smoke).toContain("assert.equal(detailPage.path, 'pages/place-detail/index')");
     expect(smoke).toContain("await filter.$$('.category-tab')");
     expect(smoke).toContain('await categoryTabs[1].tap()');
@@ -148,7 +150,10 @@ describe('four-tab application', () => {
     expect(smoke).toContain("searchInput.trigger('confirm'");
     expect(smoke).toContain("map.trigger('markertap'");
     expect(smoke).toContain('/assets/provided/map-marker-camping.png');
-    expect(smoke).toContain("assert.equal(recordsPage.query.type, 'favorites')");
+    expect(smoke).toContain('if (queryType) assert.equal(destinationPage.query.type, queryType)');
+    expect(smoke).toContain('AI cards must have equal visible widths');
+    expect(smoke).toContain('Map preview must be at least 120px tall');
+    expect(smoke).toContain('every personal entry respond to real taps');
     expect(smoke).not.toContain("page.$('.hero')");
     expect(smoke).not.toContain("filter.$$('.filter')");
     expect(smoke).not.toContain("mapFilters.$$('.filter')");

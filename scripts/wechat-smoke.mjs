@@ -28,6 +28,15 @@ async function waitForPageData(page, key, expected, timeout = 6000) {
   return actual;
 }
 
+async function elementBox(element) {
+  const [offset, size] = await Promise.all([element.offset(), element.size()]);
+  return { left: Number(offset.left), top: Number(offset.top), width: Number(size.width), height: Number(size.height) };
+}
+
+function assertNear(actual, expected, tolerance, message) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: expected ${expected}±${tolerance}, received ${actual}`);
+}
+
 // The user starts the official CLI for this project before running this check.
 const endpoint = process.env.WECHAT_AUTOMATION_ENDPOINT;
 if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
@@ -55,6 +64,19 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
         assert.ok(await page.$('.home-hero'));
         const aiCards = await page.$$('.ai-quick-card');
         assert.equal(aiCards.length, 2);
+        const firstCardBox = await elementBox(aiCards[0]);
+        const secondCardBox = await elementBox(aiCards[1]);
+        assertNear(firstCardBox.width, secondCardBox.width, 2, 'AI cards must have equal visible widths');
+        assertNear(firstCardBox.height, secondCardBox.height, 2, 'AI cards must have equal visible heights');
+        assertNear(firstCardBox.top, secondCardBox.top, 2, 'AI cards must share one top edge');
+        const firstImageBox = await elementBox(await aiCards[0].$('.ai-quick-image'));
+        const secondImageBox = await elementBox(await aiCards[1].$('.ai-quick-image'));
+        for (const [cardBox, imageBox] of [[firstCardBox, firstImageBox], [secondCardBox, secondImageBox]]) {
+          assertNear(imageBox.left, cardBox.left, 2, 'AI artwork must fill the card from the left edge');
+          assertNear(imageBox.top, cardBox.top, 2, 'AI artwork must fill the card from the top edge');
+          assertNear(imageBox.width, cardBox.width, 2, 'AI artwork must fill the card width');
+          assertNear(imageBox.height, cardBox.height, 2, 'AI artwork must fill the card height');
+        }
         const icons = await page.$$('.category-icon');
         assert.equal(icons.length, 4);
         const viewport = await page.size();
@@ -68,11 +90,26 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       console.log(`PASS: ${name}`);
     }
     let page = await miniProgram.switchTab('/pages/home/index');
-    const aiCards = await page.$$('.ai-quick-card');
+    let aiCards = await page.$$('.ai-quick-card');
     await aiCards[0].tap();
-    const aiPage = await waitForPagePath(miniProgram, 'pages/ai-chat/index');
+    let aiPage = await waitForPagePath(miniProgram, 'pages/ai-chat/index');
     assert.equal(aiPage.path, 'pages/ai-chat/index');
-    console.log('PASS: Home AI card opens its secondary page');
+    page = await miniProgram.switchTab('/pages/home/index');
+    aiCards = await page.$$('.ai-quick-card');
+    await aiCards[1].tap();
+    aiPage = await waitForPagePath(miniProgram, 'pages/trip-form/index');
+    assert.equal(aiPage.path, 'pages/trip-form/index');
+    page = await miniProgram.switchTab('/pages/home/index');
+    await (await page.$('.home-hero-action')).tap();
+    await waitForPagePath(miniProgram, 'pages/discover/index');
+    for (const [index, category] of ['scenic', 'restaurant', 'culture', 'camping'].entries()) {
+      page = await miniProgram.switchTab('/pages/home/index');
+      const categoryTiles = await page.$$('.category-tile');
+      await categoryTiles[index].tap();
+      const discoverFromCategory = await waitForPagePath(miniProgram, 'pages/discover/index');
+      await waitForPageData(discoverFromCategory, 'category', category);
+    }
+    console.log('PASS: Home CTA, both AI cards, and all category icons respond to real taps');
     page = await miniProgram.switchTab('/pages/home/index');
     await page.setData({
       featuredStatus: 'ready',
@@ -87,14 +124,29 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(detailPage.path, 'pages/place-detail/index');
     console.log('PASS: Home place card opens its detail page');
     page = await miniProgram.switchTab('/pages/me/index');
-    const menuRows = await page.$$('.menu-row');
-    assert.ok(menuRows.length >= 1);
-    assert.equal(await (await menuRows[0].$('.menu-title')).text(), '我的收藏');
-    await menuRows[0].tap();
-    const recordsPage = await waitForPagePath(miniProgram, 'pages/records/index');
-    assert.equal(recordsPage.path, 'pages/records/index');
-    assert.equal(recordsPage.query.type, 'favorites');
-    console.log('PASS: Me menu opens its secondary page');
+    const heroBox = await elementBox(await page.$('.travel-hero'));
+    const profileBox = await elementBox(await page.$('.profile-card'));
+    assert.ok(heroBox.height >= 200, `Me Hero must be at least 200px tall, received ${heroBox.height}`);
+    assert.ok(profileBox.left >= heroBox.left && profileBox.left + profileBox.width <= heroBox.left + heroBox.width, 'Profile card must stay inside the Hero horizontally');
+    assert.ok(profileBox.top >= heroBox.top && profileBox.top + profileBox.height <= heroBox.top + heroBox.height, 'Profile card must stay inside the Hero vertically');
+    const meDestinations = [
+      ['我的收藏', 'pages/records/index', 'favorites'],
+      ['浏览记录', 'pages/records/index', 'browse'],
+      ['AI 问答记录', 'pages/ai-history/index', null],
+      ['旅行偏好', 'pages/preferences/index', null],
+    ];
+    for (const [index, [title, destination, queryType]] of meDestinations.entries()) {
+      page = await miniProgram.switchTab('/pages/me/index');
+      const menuRows = await page.$$('.menu-row');
+      assert.equal(await (await menuRows[index].$('.menu-title')).text(), title);
+      await menuRows[index].tap();
+      const destinationPage = await waitForPagePath(miniProgram, destination);
+      if (queryType) assert.equal(destinationPage.query.type, queryType);
+    }
+    page = await miniProgram.switchTab('/pages/me/index');
+    await (await page.$('.privacy-button')).tap();
+    await waitForPagePath(miniProgram, 'pages/privacy/index');
+    console.log('PASS: Me Hero geometry and every personal entry respond to real taps');
     const pageScreens = [
       ['place-detail', '/pages/place-detail/index?placeId=smoke-place'],
       ['records-favorites', '/pages/records/index?type=favorites'],
@@ -226,6 +278,14 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(await (await markerCard.$('.marker-name')).text(), selectedPlace.name);
     assert.ok(await markerCard.$('.marker-cover'));
     assert.ok(await markerCard.$('.marker-category-icon'));
+    const markerCardBox = await elementBox(markerCard);
+    const markerCoverBox = await elementBox(await markerCard.$('.marker-cover'));
+    const markerCopyBox = await elementBox(await markerCard.$('.marker-copy'));
+    const detailButtonBox = await elementBox(await markerCard.$('.detail-button'));
+    assert.ok(markerCardBox.height >= 120, `Map preview must be at least 120px tall, received ${markerCardBox.height}`);
+    assertNear(markerCoverBox.top, markerCopyBox.top, 2, 'Map preview columns must share one top edge');
+    assertNear(detailButtonBox.left, markerCopyBox.left, 2, 'Map detail button must align to the copy column left edge');
+    assertNear(detailButtonBox.width, markerCopyBox.width, 2, 'Map detail button must fill the copy column width');
     await (await markerCard.$('.detail-button')).tap();
     const mapDetailPage = await waitForPagePath(miniProgram, 'pages/place-detail/index');
     assert.equal(mapDetailPage.query.placeId, selectedPlace.placeId);
