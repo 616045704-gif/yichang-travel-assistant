@@ -56,8 +56,9 @@ describe('trip input validation', () => {
     expect(markup).not.toContain('wx:for="{{results}}"');
 
     const adjustmentTextarea = markup.match(/<textarea[^>]*bindinput="onAdjustment"[^>]*\/>/)?.[0] ?? '';
-    expect(adjustmentTextarea).toContain('adjust-position="false"');
-    expect((markup.match(/adjust-position="false"/g) ?? [])).toHaveLength(1);
+    expect(adjustmentTextarea).toContain('adjust-position="{{false}}"');
+    expect((markup.match(/adjust-position="{{false}}"/g) ?? [])).toHaveLength(1);
+    expect(markup).not.toContain('adjust-position="false"');
   });
 
   it('accepts only a valid five-field trip input', () => {
