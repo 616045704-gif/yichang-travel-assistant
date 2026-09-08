@@ -6,8 +6,8 @@
   </view>
 
   <view class="ai-quick-grid">
-    <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="widthFix" /></button>
-    <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="widthFix" /></button>
+    <view class="ai-quick-card" hover-class="ai-quick-card-pressed" bindtap="openAiChat" aria-role="button" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="aspectFill" /></view>
+    <view class="ai-quick-card" hover-class="ai-quick-card-pressed" bindtap="openTripForm" aria-role="button" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="aspectFill" /></view>
   </view>
 
   <view class="category-separator"></view>

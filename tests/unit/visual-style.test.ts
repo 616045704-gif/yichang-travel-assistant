@@ -118,11 +118,12 @@ describe('travel visual presentation', () => {
     expect(home).toContain('bind:open="openPlace"');
     expect(home).toContain('bindtap="openDiscover"');
     expect(home).toContain('<button class="home-hero-action" catchtap="openDiscover">');
-    expect(homeStyle).toMatch(/\.home-hero-action\s*\{[^}]*top:\s*50%[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*\.94\)[^}]*color:\s*var\(--color-brand\)/);
+    expect(homeStyle).toMatch(/\.home-hero-action\s*\{[^}]*top:\s*50%[^}]*width:\s*336rpx[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*\.30\)[^}]*color:\s*var\(--color-brand\)/);
     expect(homeStyle).toMatch(/\.home-hero-shade\s*\{[^}]*display:\s*none/);
-    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*288rpx\)[^}]*justify-content:\s*center[^}]*gap:\s*20rpx/);
-    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*288rpx/);
-    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%/);
+    expect(home).toContain('<view class="ai-quick-card" hover-class="ai-quick-card-pressed" bindtap="openAiChat"');
+    expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*gap:\s*16rpx[^}]*padding:\s*0\s+16rpx/);
+    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*100%[^}]*aspect-ratio:\s*1\s*\/\s*1[^}]*overflow:\s*hidden/);
+    expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
   it('keeps the map visible and the horizontal category tabs interactive', async () => {
