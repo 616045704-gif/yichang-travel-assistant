@@ -10,6 +10,7 @@
     "pages/privacy/index",
     "pages/ai-chat/index",
     "pages/trip-form/index",
+    "pages/trip-adjustment/index",
     "pages/ai-history/index"
   ],
   "window": {

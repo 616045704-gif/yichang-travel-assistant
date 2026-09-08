@@ -20,8 +20,7 @@ type TripPage = {
   onDays(event: { detail: { value: string } }): void;
   onTogglePreference(event: { currentTarget: { dataset: { value: string } } }): void;
   submit(): Promise<void>;
-  onAdjustment(event: { detail: { value: string } }): void;
-  onAdjustmentKeyboardHeightChange(event: { detail: { height: number; duration: number } }): void;
+  openAdjustmentPage(): void;
   submitAdjustment(): Promise<void>;
   restartTrip(): Promise<void>;
   retry(): Promise<void>;
@@ -30,7 +29,7 @@ type TripPage = {
 async function loadTripPage(options: {
   submitAi?: ReturnType<typeof vi.fn>;
   resetAiConversation?: ReturnType<typeof vi.fn>;
-  pageScrollTo?: ReturnType<typeof vi.fn>;
+  navigateTo?: ReturnType<typeof vi.fn>;
 } = {}) {
   let page: TripPage;
   if (options.submitAi || options.resetAiConversation) {
@@ -42,7 +41,7 @@ async function loadTripPage(options: {
   vi.stubGlobal('Page', (value: TripPage) => { page = value; });
   vi.stubGlobal('wx', {
     showToast: vi.fn(),
-    pageScrollTo: options.pageScrollTo ?? vi.fn(),
+    navigateTo: options.navigateTo ?? vi.fn(),
   });
   await import('../../miniprogram/pages/trip-form/index');
   page!.setData = function (value) { Object.assign(this.data, value); };
@@ -58,35 +57,13 @@ describe('trip input validation', () => {
     expect(markup).toContain('当前计划（可继续调整）');
     expect(markup).toContain('当前完整行程（已应用调整）');
     expect(markup).toContain('已确认要求（每次都会用于完整重新生成）');
-    expect(markup).toContain('确认调整');
     expect(markup).not.toContain('应用调整并重新生成完整行程');
     expect(markup).not.toContain('生成最终行程');
     expect(markup).not.toContain('wx:for="{{results}}"');
 
-    const adjustmentTextarea = markup.match(/<textarea[^>]*bindinput="onAdjustment"[^>]*\/>/)?.[0] ?? '';
-    expect(adjustmentTextarea).toContain('value="{{adjustment}}"');
-    expect(adjustmentTextarea).toContain('maxlength="1000"');
-    expect(adjustmentTextarea).toContain('adjust-position="{{false}}"');
-    expect(adjustmentTextarea).toContain('id="trip-adjustment-input"');
-    expect(adjustmentTextarea).toContain('bindkeyboardheightchange="onAdjustmentKeyboardHeightChange"');
-    expect(markup).toContain('<view class="adjustment-field"><text>对行程还有什么想调整的？</text><textarea');
-    expect(markup).not.toContain('<label class="adjustment-field">');
-    expect((markup.match(/adjust-position="{{false}}"/g) ?? [])).toHaveLength(1);
-    expect(markup).not.toContain('adjust-position="false"');
-  });
-
-  it('returns the focused trip adjustment field to view when the keyboard opens', async () => {
-    const pageScrollTo = vi.fn();
-    const page = await loadTripPage({ pageScrollTo });
-
-    page.onAdjustmentKeyboardHeightChange({ detail: { height: 320, duration: 0 } });
-
-    expect(pageScrollTo).toHaveBeenCalledTimes(1);
-    expect(pageScrollTo).toHaveBeenCalledWith({ selector: '#trip-adjustment-input', duration: 0 });
-
-    pageScrollTo.mockClear();
-    page.onAdjustmentKeyboardHeightChange({ detail: { height: 0, duration: 0 } });
-    expect(pageScrollTo).not.toHaveBeenCalled();
+    expect(markup).toContain('bindtap="openAdjustmentPage">调整行程</button>');
+    expect(markup).not.toContain('<textarea');
+    expect(markup).not.toContain('onAdjustmentKeyboardHeightChange');
   });
 
   it('accepts only a valid five-field trip input', () => {
@@ -154,7 +131,7 @@ describe('trip input validation', () => {
     page.onDays({ detail: { value: '4' } });
     page.onTogglePreference({ currentTarget: { dataset: { value: '自然风景' } } });
     await page.submit();
-    page.onAdjustment({ detail: { value: '第一天吃热干面，第二天吃鱼，推荐具体餐馆' } });
+    page.data.adjustment = '第一天吃热干面，第二天吃鱼，推荐具体餐馆';
     await page.submitAdjustment();
 
     expect(submitAi).toHaveBeenCalledTimes(2);
@@ -167,7 +144,7 @@ describe('trip input validation', () => {
     expect(page.data.results.map(item => item.answer)).toEqual(['第 1 天至第 4 天的完整餐饮行程', '首版行程']);
     expect(page.data.confirmedRequirements).toEqual(['第一天吃热干面，第二天吃鱼，推荐具体餐馆']);
 
-    page.onAdjustment({ detail: { value: '安排去三峡人家' } });
+    page.data.adjustment = '安排去三峡人家';
     await page.submitAdjustment();
 
     expect(submitAi.mock.calls[2][0]).toMatchObject({ kind: 'trip', question: expect.stringContaining('第 1 天至第 4 天') });
@@ -176,6 +153,35 @@ describe('trip input validation', () => {
     expect(submitAi.mock.calls[2][0]).not.toHaveProperty('trip');
     expect(page.data.confirmedRequirements).toEqual(['第一天吃热干面，第二天吃鱼，推荐具体餐馆', '安排去三峡人家']);
     expect(page.data.results.map(item => item.answer)).toEqual(['第 1 天至第 4 天的三峡人家完整行程', '第 1 天至第 4 天的完整餐饮行程', '首版行程']);
+  });
+
+  it('opens a short editor and applies its confirmed text to full regeneration', async () => {
+    const navigateTo = vi.fn();
+    const submitAi = vi.fn().mockResolvedValue({
+      requestId: 'trip-adjusted',
+      status: 'succeeded',
+      answer: '完整调整行程',
+      mode: 'mock',
+      error: null,
+      localFacts: [],
+      references: [],
+    });
+    const page = await loadTripPage({ navigateTo, submitAi });
+    page.data.form = { destination: '宜昌', people: '2', totalBudgetCny: '3000', days: '2', preferences: ['美食探索'] };
+    page.data.result = { answer: '原行程' };
+    page.data.results = [{ answer: '原行程' }];
+
+    page.openAdjustmentPage();
+
+    expect(navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: '/pages/trip-adjustment/index' }));
+    const options = navigateTo.mock.calls[0][0] as { events: { confirmAdjustment(payload: { adjustment: string }): void } };
+    options.events.confirmAdjustment({ adjustment: '第一天晚上吃鱼' });
+
+    expect(page.data.adjustment).toBe('第一天晚上吃鱼');
+    expect(submitAi).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'trip',
+      question: expect.stringContaining('第一天晚上吃鱼'),
+    }));
   });
 
   it('restarts only the trip conversation and retains the editable form fields', async () => {

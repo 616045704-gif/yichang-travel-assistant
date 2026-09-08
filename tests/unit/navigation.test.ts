@@ -100,6 +100,7 @@ describe('four-tab application', () => {
     expect(app.pages).toEqual(expect.arrayContaining([
       'pages/ai-chat/index',
       'pages/trip-form/index',
+      'pages/trip-adjustment/index',
       'pages/ai-history/index',
     ]));
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');

@@ -1,0 +1,6 @@
+.adjustment-page { display: flex; flex-direction: column; gap: 22rpx; min-height: 100vh; }
+.editor-card { display: flex; flex-direction: column; gap: 10rpx; padding: 24rpx; }
+.adjustment-input { width: 100%; min-height: 260rpx; padding: 20rpx; border: 1rpx solid var(--color-border); border-radius: 18rpx; background: var(--color-page); font-size: 28rpx; line-height: 1.7; }
+.input-meta { color: var(--color-muted); font-size: 22rpx; text-align: right; }
+.adjustment-error { color: var(--color-danger); font-size: 24rpx; }
+.confirm-button { width: 100%; }

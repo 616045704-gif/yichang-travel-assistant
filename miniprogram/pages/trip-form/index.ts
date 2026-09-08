@@ -80,12 +80,18 @@ Page({
     const request: AiRequest = { requestId: `trip-${Date.now()}-${++tripSequence}`, kind: 'trip', trip };
     await this.send(request);
   },
-  onAdjustment(event: WechatMiniprogram.Input) {
-    this.setData({ adjustment: event.detail.value, adjustmentError: '', error: '' });
-  },
-  onAdjustmentKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
-    if (event.detail.height <= 0) return;
-    void wx.pageScrollTo({ selector: '#trip-adjustment-input', duration: 0 });
+  openAdjustmentPage() {
+    if (this.data.isSubmitting) return;
+    wx.navigateTo({
+      url: '/pages/trip-adjustment/index',
+      events: {
+        confirmAdjustment: (payload: { adjustment?: unknown }) => {
+          if (typeof payload.adjustment !== 'string') return;
+          this.setData({ adjustment: payload.adjustment, adjustmentError: '', error: '' });
+          void this.submitAdjustment();
+        },
+      },
+    });
   },
   async submitAdjustment() {
     if (this.data.isSubmitting) return;

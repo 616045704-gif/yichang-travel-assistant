@@ -1,0 +1,10 @@
+<view class="page adjustment-page">
+  <view class="chapter-heading"><view><text class="eyebrow">TRIP ADJUSTMENT</text><text class="page-title">调整行程</text></view></view>
+  <text class="subtitle">写下需要修改的内容，确认后会返回并重新生成完整行程。</text>
+  <view class="editor-card card">
+    <textarea class="adjustment-input" value="{{adjustment}}" maxlength="1000" placeholder="例如：第二天安排轻松一些；推荐具体餐馆，要吃鱼和热干面" bindinput="onInput" />
+    <text class="input-meta">{{adjustment.length}}/1000</text>
+  </view>
+  <text wx:if="{{error}}" class="adjustment-error">{{error}}</text>
+  <button class="button-primary confirm-button" bindtap="confirmAdjustment">确认调整</button>
+</view>
