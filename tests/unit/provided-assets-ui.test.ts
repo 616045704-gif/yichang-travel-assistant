@@ -178,7 +178,7 @@ describe('provided visual assets and UI boundary', () => {
     expect(home).toContain('/assets/provided/ai-chat.png');
     expect(home).toContain('/assets/provided/trip-plan.png');
     expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*gap:\s*16rpx/);
-    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*100%[^}]*aspect-ratio:\s*1\s*\/\s*1/);
+    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*100%[^}]*height:\s*319rpx[^}]*aspect-ratio:\s*1\s*\/\s*1/);
     expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
     expect(homeStyle).toMatch(/\.category-icon\s*\{[^}]*width:\s*128rpx[^}]*height:\s*128rpx/);
     expect(homeStyle).toMatch(/\.category-label\s*\{[^}]*color:\s*var\(--color-text\)/);

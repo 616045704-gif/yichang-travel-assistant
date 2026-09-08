@@ -123,8 +123,9 @@ describe('travel visual presentation', () => {
     expect(homeStyle).toMatch(/\.home-hero-shade\s*\{[^}]*display:\s*none/);
     expect(home).toContain('<view class="ai-quick-card" hover-class="ai-quick-card-pressed" bindtap="openAiChat"');
     expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*gap:\s*16rpx[^}]*padding:\s*0\s+16rpx/);
-    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*100%[^}]*aspect-ratio:\s*1\s*\/\s*1[^}]*overflow:\s*hidden/);
+    expect(homeStyle).toMatch(/\.ai-quick-card\s*\{[^}]*width:\s*100%[^}]*height:\s*319rpx[^}]*aspect-ratio:\s*1\s*\/\s*1[^}]*overflow:\s*hidden/);
     expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*100%[^}]*height:\s*100%/);
+    expect(homeStyle).not.toContain('backdrop-filter');
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
   it('keeps the map visible and the horizontal category tabs interactive', async () => {
@@ -261,6 +262,7 @@ describe('travel visual presentation', () => {
     expect(style).toMatch(/\.travel-illustration\s*\{[^}]*pointer-events:\s*none/);
     expect(style).toMatch(/\.profile-card\s*\{[^}]*position:\s*absolute[^}]*left:\s*22rpx[^}]*right:\s*22rpx[^}]*bottom:\s*22rpx[^}]*min-height:\s*148rpx[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*\.92\)[^}]*box-shadow:/);
     expect(style).toMatch(/\.profile-avatar-art\s*\{[^}]*width:\s*108rpx[^}]*height:\s*108rpx/);
+    expect(style).not.toContain('backdrop-filter');
     expect(style).toMatch(/\.menu\s*\{[^}]*border:[^}]*border-radius:[^}]*background:\s*var\(--color-surface\)/);
     expect(style).toMatch(/\.menu-icon\s*\{[^}]*width:\s*72rpx[^}]*height:\s*72rpx/);
     for (const name of ['favorite', 'history', 'ai', 'preferences']) expect(style).toContain(`.menu-icon-shell-${name}`);
