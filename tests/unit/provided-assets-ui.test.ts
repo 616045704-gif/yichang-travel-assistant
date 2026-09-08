@@ -1,4 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
+import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 const root = 'miniprogram/assets/provided';
@@ -15,6 +16,40 @@ const assets = [
 ] as const;
 
 function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE(offset); }
+function pngCornerPaletteIndexes(bytes: Buffer) {
+  const width = pngDimension(bytes, 16);
+  const height = pngDimension(bytes, 20);
+  if (bytes[24] !== 8 || bytes[25] !== 3) throw new Error('Expected an 8-bit indexed PNG');
+  const chunks: Buffer[] = [];
+  let offset = 8;
+  while (offset < bytes.length) {
+    const size = bytes.readUInt32BE(offset);
+    const type = bytes.subarray(offset + 4, offset + 8).toString();
+    if (type === 'IDAT') chunks.push(bytes.subarray(offset + 8, offset + 8 + size));
+    offset += size + 12;
+  }
+  const rows = inflateSync(Buffer.concat(chunks));
+  const result = Buffer.alloc(width * height);
+  let source = 0;
+  for (let y = 0; y < height; y += 1) {
+    const filter = rows[source++];
+    for (let x = 0; x < width; x += 1) {
+      const raw = rows[source++];
+      const left = x ? result[y * width + x - 1] : 0;
+      const up = y ? result[(y - 1) * width + x] : 0;
+      const upperLeft = x && y ? result[(y - 1) * width + x - 1] : 0;
+      const predictor = left + up - upperLeft;
+      const pa = Math.abs(predictor - left);
+      const pb = Math.abs(predictor - up);
+      const pc = Math.abs(predictor - upperLeft);
+      const predicted = pa <= pb && pa <= pc ? left : pb <= pc ? up : upperLeft;
+      const value = filter === 0 ? raw : filter === 1 ? raw + left : filter === 2 ? raw + up : filter === 3 ? raw + Math.floor((left + up) / 2) : filter === 4 ? raw + predicted : NaN;
+      if (!Number.isFinite(value)) throw new Error(`Unsupported PNG filter: ${filter}`);
+      result[y * width + x] = value & 0xff;
+    }
+  }
+  return [result[0], result[width - 1], result[(height - 1) * width], result[result.length - 1]];
+}
 function jpegDimensions(bytes: Buffer) {
   if (bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error('Invalid JPEG');
   let offset = 2;
@@ -56,6 +91,17 @@ describe('provided visual assets and UI boundary', () => {
     expect(total + placeholderInfo.size).toBeLessThanOrEqual(1_000_000);
     expect(heroTotal).toBeLessThanOrEqual(450_000);
     expect(iconTotal + placeholderInfo.size).toBeLessThanOrEqual(610_000);
+  });
+
+  it('keeps the trip card artwork filled through every outer corner', async () => {
+    const bytes = await readFile(`${root}/trip-plan.png`);
+    const paletteIndexes = pngCornerPaletteIndexes(bytes);
+    const paletteOffset = bytes.indexOf(Buffer.from('PLTE'));
+    expect(paletteOffset).toBeGreaterThan(0);
+    for (const index of paletteIndexes) {
+      const rgb = bytes.subarray(paletteOffset + 4 + index * 3, paletteOffset + 7 + index * 3);
+      expect([...rgb]).not.toEqual([0, 0, 0]);
+    }
   });
 
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {

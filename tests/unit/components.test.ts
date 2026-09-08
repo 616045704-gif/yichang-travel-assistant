@@ -42,6 +42,7 @@ describe('reusable travel components', () => {
     expect(card).not.toContain('class="tags"');
     expect(cardStyle).toContain('height: 336rpx');
     expect(cardStyle).toContain('font-weight: 750');
+    expect(cardStyle).toMatch(/\.favorite-action\s*\{[^}]*min-height:\s*80rpx/);
     expect(cardStyle).not.toMatch(/\.favorite\s+text/);
     expect(feedbackStyle).toContain('var(--color-brand-deep)');
     expect(feedbackStyle).toContain('var(--color-action)');
@@ -54,19 +55,31 @@ describe('reusable travel components', () => {
     expect(detail).toContain('local_reference');
     expect(detail).toContain('价格、营业时间、交通和预约请以官方公告为准。');
   });
-  it('maps picker indexes to valid categories and rejects unknown indexes', async () => {
+  it('maps every picker index to the existing category contract and rejects unknown indexes', async () => {
     const definition = await component('category-filter');
     const options = definition.data.options as Array<{ value: string; label: string }>;
     expect(options.map(item => item.label)).toEqual(['全部分类', '景区', '餐馆', '文化馆/博物馆', '露营地']);
     const ctx = instance({ value: '', selectedIndex: 0, options });
-    definition.methods.onChange.call(ctx, { detail: { value: '3' } });
-    expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category: 'culture' });
-    expect(ctx.data.selectedIndex).toBe(3);
+    for (const [index, category] of ['', 'scenic', 'restaurant', 'culture', 'camping'].entries()) {
+      ctx.triggerEvent.mockClear();
+      definition.methods.onChange.call(ctx, { detail: { value: String(index) } });
+      expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category });
+      expect(ctx.data.selectedIndex).toBe(index);
+    }
     ctx.triggerEvent.mockClear();
     definition.methods.onChange.call(ctx, { detail: { value: '99' } });
     expect(ctx.triggerEvent).not.toHaveBeenCalled();
     definition.methods.onChange.call(ctx, { detail: { value: '-1' } });
     expect(ctx.triggerEvent).not.toHaveBeenCalled();
+  });
+  it('keeps the picker label synchronized with valid and invalid external values', async () => {
+    const definition = await component('category-filter');
+    const observer = definition.properties.value.observer!;
+    const ctx = instance({ selectedIndex: 4 });
+    observer.call(ctx, 'restaurant');
+    expect(ctx.data.selectedIndex).toBe(2);
+    observer.call(ctx, 'unknown');
+    expect(ctx.data.selectedIndex).toBe(0);
   });
   it('only exposes retry from an error state', async () => {
     const definition = await component('async-state');
