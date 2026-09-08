@@ -5,22 +5,15 @@
     <button class="home-hero-action" catchtap="openDiscover">浏览所有地点<view class="hero-arrow" aria-hidden="true"></view></button>
   </view>
 
-  <view class="assistant-section">
-    <view class="section-heading compact-heading"><text class="section-title">旅行助手</text><text class="section-note">从灵感到行程</text></view>
-    <view class="ai-quick-grid">
-      <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="aspectFit" /><view class="ai-quick-copy"><text class="ai-quick-title">自由问答</text><text class="ai-quick-note">景点与出行建议</text></view></button>
-      <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="aspectFit" /><view class="ai-quick-copy"><text class="ai-quick-title">行程定制</text><text class="ai-quick-note">按偏好规划旅程</text></view></button>
-    </view>
+  <view class="ai-quick-grid">
+    <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="aspectFit" /><text class="ai-quick-title">自由问答</text></button>
+    <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="aspectFit" /><text class="ai-quick-title">行程定制</text></button>
   </view>
 
-  <view class="section-heading compact-heading"><text class="section-title">从哪里开始</text><text class="section-note">四类地点</text></view>
   <view class="category-grid">
     <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/provided/category-{{item.value}}.png" class="category-icon" mode="aspectFit" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>
   </view>
 
-  <view class="section-heading"><text class="section-title">值得停留</text><text class="section-note">精选地点</text></view>
   <view wx:if="{{featuredStatus === 'ready'}}" class="featured-list"><place-card wx:for="{{featured}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view>
-  <view wx:else class="state-shell"><async-state status="{{featuredStatus}}" title="精选地点暂不可用" message="请稍后重试。" /></view>
-
-  <text class="disclaimer">内容仅供出行参考，请以景区、交通等官方公告为准</text>
+  <view wx:else class="state-shell"><async-state status="{{featuredStatus}}" title="地点暂不可用" message="请稍后重试。" /></view>
 </view><feedback-toast visible="{{feedback.visible}}" tone="{{feedback.tone}}" message="{{feedback.message}}" bind:dismiss="onFeedbackDismiss" />

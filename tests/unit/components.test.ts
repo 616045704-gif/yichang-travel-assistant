@@ -34,6 +34,12 @@ describe('reusable travel components', () => {
     expect(filters).toContain('/assets/provided/category-');
     expect(card).toContain('cover-favorite');
     expect(card).toContain('/assets/provided/favorite.png');
+    expect(card).toContain('category-pill');
+    expect(card).not.toContain('class="district"');
+    expect(card).not.toContain('class="intro"');
+    expect(card).not.toContain('class="tags"');
+    expect(cardStyle).toContain('height: 336rpx');
+    expect(cardStyle).toContain('font-weight: 750');
     expect(cardStyle).not.toMatch(/\.favorite\s+text/);
     expect(feedbackStyle).toContain('var(--color-brand-deep)');
     expect(feedbackStyle).toContain('var(--color-action)');

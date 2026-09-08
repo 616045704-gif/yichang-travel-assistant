@@ -73,6 +73,8 @@ describe('provided visual assets and UI boundary', () => {
     expect((home.match(/bindtap="openTripForm"/g) ?? []).length).toBe(1);
     expect(home).toContain('/assets/provided/ai-chat.png');
     expect(home).toContain('/assets/provided/trip-plan.png');
-    expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
+    for (const retiredCopy of ['旅行助手', '从哪里开始', '从灵感到行程', '四类地点', '值得停留', '精选地点', '内容仅供出行参考，请以景区、交通等官方公告为准']) {
+      expect(home).not.toContain(retiredCopy);
+    }
   });
 });

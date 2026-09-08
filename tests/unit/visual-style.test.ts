@@ -69,7 +69,7 @@ describe('travel visual presentation', () => {
     expect(scenic.readUInt32BE(16)).toBe(96);
     expect(scenic.readUInt32BE(20)).toBe(96);
   });
-  it('renders the provided Home Hero with paired AI actions and the disclaimer', async () => {
+  it('renders the provided Home Hero with clean paired AI actions', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
     const homeStyle = await readFile('miniprogram/pages/home/index.wxss', 'utf8');
     const chat = await readFile('miniprogram/pages/ai-chat/index.wxml', 'utf8');
@@ -91,7 +91,13 @@ describe('travel visual presentation', () => {
     expect(homeStyle).not.toContain('background: var(--color-brand-deep)');
     expect(chat).not.toContain('我要定制行程');
     expect(chat).not.toContain('bindtap="openTripForm"');
-    expect(home).toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
+    expect(home).not.toContain('旅行助手');
+    expect(home).not.toContain('从哪里开始');
+    expect(home).not.toContain('从灵感到行程');
+    expect(home).not.toContain('四类地点');
+    expect(home).not.toContain('值得停留');
+    expect(home).not.toContain('精选地点');
+    expect(home).not.toContain('内容仅供出行参考，请以景区、交通等官方公告为准');
     expect(home).toContain('featuredStatus');
     expect(home).toContain('place-card');
     expect(home).toContain('bind:open="openPlace"');
@@ -123,7 +129,11 @@ describe('travel visual presentation', () => {
     expect(card).toContain('cover-favorite');
     expect(card).toContain('/assets/provided/favorite-active.png');
     expect(cardStyle).toContain('.cover-wrap');
-    expect(cardStyle).toContain('flex: 0 0 40%');
+    expect(card).toContain('category-pill');
+    expect(card).not.toContain('class="district"');
+    expect(card).not.toContain('class="intro"');
+    expect(card).not.toContain('class="tags"');
+    expect(cardStyle).toContain('height: 336rpx');
     expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
