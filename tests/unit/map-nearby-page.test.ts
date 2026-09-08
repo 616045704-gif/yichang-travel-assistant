@@ -49,9 +49,13 @@ describe('nearby map page', () => {
     expect(css).toContain('gap: 16rpx');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*pointer-events:\s*auto/);
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
+    expect(css).toMatch(/\.map-filter-track\s*\{[^}]*gap:\s*12rpx[^}]*justify-content:\s*flex-start/);
+    expect(css).toMatch(/\.map-filter-tab\s*\{[^}]*width:\s*100rpx[^}]*height:\s*112rpx[^}]*border-radius:\s*24rpx/);
+    expect(css).toMatch(/\.map-filter-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
     expect(css).toMatch(/\.marker-card\s*\{[^}]*min-height:\s*280rpx[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
     expect(css).toMatch(/\.marker-cover\s*\{[^}]*width:\s*224rpx[^}]*height:\s*224rpx/);
     expect(css).toMatch(/\.marker-copy\s*\{[^}]*min-height:\s*224rpx[^}]*justify-content:\s*space-between/);
+    expect(css).toMatch(/\.nearby-button, \.settings-button, \.detail-button\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*height:\s*72rpx[^}]*line-height:\s*1/);
     expect(css).toMatch(/\.detail-button\s*\{[^}]*width:\s*100%[^}]*align-self:\s*stretch/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*-webkit-line-clamp:\s*2/);
     expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
