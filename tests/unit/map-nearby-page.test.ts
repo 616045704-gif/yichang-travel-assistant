@@ -8,6 +8,7 @@ type MapPage = {
   onHide(): void;
   locateNearby(): Promise<void>;
   onOpenSettings(): Promise<void>;
+  onCategoryChange(event: { detail: { category: string } }): void;
 };
 const publicPlace = { placeId: 'public-place', name: '公共地点', category: 'scenic', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' };
 
@@ -31,7 +32,12 @@ describe('nearby map page', () => {
     expect(markup).toContain('<map id="city-map"');
     expect(markup).toContain('bindtap="locateNearby"');
     expect(markup).toContain('bindtap="openSelectedPlace"');
-    expect(css).toContain('pointer-events: none');
+    expect(markup).toContain('class="map-bottom-stack"');
+    expect(markup).toContain('/assets/provided/place-placeholder.jpg');
+    expect(markup.indexOf('class="map-actions"')).toBeLessThan(markup.indexOf('class="marker-card"'));
+    expect(css).toContain('.map-bottom-stack');
+    expect(css).toContain('gap: 16rpx');
+    expect(css).toMatch(/\.map-filters\s*\{[^}]*pointer-events:\s*auto/);
     expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');
   });
 
@@ -53,6 +59,16 @@ describe('nearby map page', () => {
     expect(page.data.nearbyMode).toBe(true);
     expect(page.data.showLocation).toBe(true);
     expect(page.data.notice).toBe('');
+  });
+
+  it('reuses cached nearby coordinates for category changes without requesting location again', async () => {
+    const callFunction = vi.fn(async ({ data }: { data: { action: string } }) => ({ result: { code: 'OK', data: { items: data.action === 'nearby' ? [publicPlace] : [] } } }));
+    const getLocation = vi.fn(({ success }: { success: (result: { latitude: number; longitude: number }) => void }) => success({ latitude: 30.71, longitude: 111.31 }));
+    const page = await loadPage({ cloud: { callFunction }, getSetting: ({ success }: { success: (result: { authSetting: Record<string, boolean> }) => void }) => success({ authSetting: { 'scope.userLocation': true } }), getLocation });
+    await page.locateNearby();
+    page.onCategoryChange({ detail: { category: 'scenic' } });
+    await vi.waitFor(() => expect(callFunction).toHaveBeenCalledWith({ name: 'placeService', data: { action: 'nearby', latitude: 30.71, longitude: 111.31, category: 'scenic' } }));
+    expect(getLocation).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the map usable after denial and lets the user explicitly retry from settings', async () => {

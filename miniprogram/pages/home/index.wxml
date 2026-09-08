@@ -2,14 +2,16 @@
   <view class="home-hero" bindtap="openDiscover" aria-role="button" aria-label="浏览宜昌地点">
     <image class="home-hero-image" src="/assets/provided/home-hero.jpg" mode="aspectFill" />
     <view class="home-hero-shade"></view>
-    <button class="home-hero-action" catchtap="openDiscover">浏览所有地点<view class="hero-arrow" aria-hidden="true"></view></button>
+    <button class="home-hero-action" catchtap="openDiscover">出发吧</button>
   </view>
 
   <view class="ai-quick-grid">
-    <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="aspectFit" /><text class="ai-quick-title">自由问答</text></button>
-    <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="aspectFit" /><text class="ai-quick-title">行程定制</text></button>
+    <button class="ai-quick-card" bindtap="openAiChat" aria-label="自由问答"><image class="ai-quick-image" src="/assets/provided/ai-chat.png" mode="widthFix" /></button>
+    <button class="ai-quick-card" bindtap="openTripForm" aria-label="行程定制"><image class="ai-quick-image" src="/assets/provided/trip-plan.png" mode="widthFix" /></button>
   </view>
 
+  <view class="category-separator"></view>
+  <view class="category-heading"><view class="category-heading-mark" aria-hidden="true"></view><text class="category-heading-title">分类</text></view>
   <view class="category-grid">
     <view wx:for="{{categories}}" wx:key="value" class="category-tile" data-category="{{item.value}}" bindtap="onCategoryTap" aria-role="button" aria-label="{{'查看' + item.label}}"><image src="/assets/provided/category-{{item.value}}.png" class="category-icon" mode="aspectFit" aria-hidden="true" /><text class="category-label">{{item.label}}</text></view>
   </view>

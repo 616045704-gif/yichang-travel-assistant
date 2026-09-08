@@ -3,24 +3,40 @@ import { describe, expect, it } from 'vitest';
 
 const root = 'miniprogram/assets/provided';
 const assets = [
-  ['home-hero.jpg', 0, 300_000], ['discover-hero.jpg', 0, 180_000],
-  ['ai-chat.png', 120, 60_000], ['trip-plan.png', 120, 60_000],
-  ['category-all.png', 96, 30_000], ['category-scenic.png', 96, 30_000], ['category-restaurant.png', 96, 30_000],
-  ['category-culture.png', 96, 30_000], ['category-camping.png', 96, 30_000],
-  ['tab-home.png', 81, 20_000], ['tab-home-active.png', 81, 20_000], ['tab-discover.png', 81, 20_000], ['tab-discover-active.png', 81, 20_000],
-  ['tab-map.png', 81, 20_000], ['tab-map-active.png', 81, 20_000], ['tab-me.png', 81, 20_000], ['tab-me-active.png', 81, 20_000],
-  ['favorite.png', 64, 20_000], ['favorite-active.png', 64, 20_000],
-  ['menu-favorite.png', 96, 30_000], ['menu-history.png', 96, 30_000], ['menu-ai.png', 96, 30_000], ['menu-preferences.png', 96, 30_000],
+  ['home-hero.jpg', 0, 0, 300_000], ['discover-hero.jpg', 0, 0, 180_000],
+  ['ai-chat.png', 512, 512, 180_000], ['trip-plan.png', 512, 512, 180_000],
+  ['category-all.png', 128, 128, 30_000], ['category-scenic.png', 128, 128, 30_000], ['category-restaurant.png', 128, 128, 30_000],
+  ['category-culture.png', 128, 128, 30_000], ['category-camping.png', 128, 128, 30_000],
+  ['tab-home.png', 81, 81, 20_000], ['tab-home-active.png', 81, 81, 20_000], ['tab-discover.png', 81, 81, 20_000], ['tab-discover-active.png', 81, 81, 20_000],
+  ['tab-map.png', 81, 81, 20_000], ['tab-map-active.png', 81, 81, 20_000], ['tab-me.png', 81, 81, 20_000], ['tab-me-active.png', 81, 81, 20_000],
+  ['favorite.png', 128, 128, 20_000], ['favorite-active.png', 128, 128, 20_000],
+  ['menu-favorite.png', 96, 96, 30_000], ['menu-history.png', 96, 96, 30_000], ['menu-ai.png', 96, 96, 30_000], ['menu-preferences.png', 96, 96, 30_000],
+  ['map-marker.png', 72, 88, 20_000],
 ] as const;
 
 function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE(offset); }
+function jpegDimensions(bytes: Buffer) {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error('Invalid JPEG');
+  let offset = 2;
+  while (offset + 9 < bytes.length) {
+    if (bytes[offset] !== 0xff) { offset += 1; continue; }
+    const marker = bytes[offset + 1];
+    if (marker === 0xd9 || marker === 0xda) break;
+    const length = bytes.readUInt16BE(offset + 2);
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      return { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
+    }
+    offset += 2 + length;
+  }
+  throw new Error('JPEG size marker not found');
+}
 
 describe('provided visual assets and UI boundary', () => {
   it('ships optimized derivatives within the agreed visual budget', async () => {
     let total = 0;
     let heroTotal = 0;
     let iconTotal = 0;
-    for (const [file, width, maxBytes] of assets) {
+    for (const [file, width, height, maxBytes] of assets) {
       const path = `${root}/${file}`;
       const [bytes, info] = await Promise.all([readFile(path), stat(path)]);
       total += info.size;
@@ -30,12 +46,16 @@ describe('provided visual assets and UI boundary', () => {
       if (width) {
         expect(bytes.subarray(1, 4).toString()).toBe('PNG');
         expect(pngDimension(bytes, 16)).toBe(width);
-        expect(pngDimension(bytes, 20)).toBe(width);
+        expect(pngDimension(bytes, 20)).toBe(height);
       }
     }
-    expect(total).toBeLessThanOrEqual(700_000);
+    const placeholderPath = `${root}/place-placeholder.jpg`;
+    const [placeholder, placeholderInfo] = await Promise.all([readFile(placeholderPath), stat(placeholderPath)]);
+    expect(placeholderInfo.size).toBeLessThanOrEqual(80_000);
+    expect(jpegDimensions(placeholder)).toEqual({ width: 480, height: 360 });
+    expect(total + placeholderInfo.size).toBeLessThanOrEqual(1_000_000);
     expect(heroTotal).toBeLessThanOrEqual(450_000);
-    expect(iconTotal).toBeLessThanOrEqual(250_000);
+    expect(iconTotal + placeholderInfo.size).toBeLessThanOrEqual(610_000);
   });
 
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {

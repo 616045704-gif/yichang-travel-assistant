@@ -15,14 +15,15 @@ describe('category map markers', () => {
   it.each(['scenic', 'restaurant', 'culture', 'camping'] as Category[])('shows only %s markers', category => {
     const result = buildMarkers(places, category);
     expect(result).toHaveLength(1);
-    expect(result[0].callout.content).toBe(places.find(place => place.category === category)!.name);
+    expect(result[0]).toMatchObject({ iconPath: '/assets/provided/map-marker.png', width: 36, height: 44 });
+    expect(result[0]).not.toHaveProperty('callout');
   });
   it('restores all markers with stable numeric IDs across category and input ordering', () => {
     const all = buildMarkers(places, '');
     const scenic = buildMarkers(places, 'scenic')[0];
     expect(all).toHaveLength(4);
     expect(new Set(all.map(marker => marker.id)).size).toBe(4);
-    expect(all.find(marker => marker.callout.content === scenic.callout.content)!.id).toBe(scenic.id);
+    expect(all.find(marker => marker.latitude === scenic.latitude && marker.longitude === scenic.longitude)!.id).toBe(scenic.id);
     expect(buildMarkers([...places].reverse(), '')).toEqual(all);
     expect(places[0].placeId).toBe('test-b');
   });

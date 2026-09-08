@@ -5,8 +5,9 @@ import { culturePlace, scenicPlace } from '../fixtures/places';
 
 describe('place discovery view model', () => {
   it('keeps existing discovery bindings while using the supplied Hero and shared card', async () => {
-    const [discover, detail] = await Promise.all([
+    const [discover, discoverStyle, detail] = await Promise.all([
       readFile('miniprogram/pages/discover/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/discover/index.wxss', 'utf8'),
       readFile('miniprogram/pages/place-detail/index.wxml', 'utf8'),
     ]);
     expect(discover).toContain('/assets/provided/discover-hero.jpg');
@@ -16,6 +17,9 @@ describe('place discovery view model', () => {
     expect(discover).toContain('bindinput="onKeywordInput"');
     expect(discover).toContain('bindconfirm="onSearch"');
     expect(discover).toContain('<place-card');
+    expect(discover).toContain('class="discover-tools"');
+    expect(discoverStyle).toContain('height: 340rpx');
+    expect(discoverStyle).toContain('width: 214rpx');
     expect(discover).not.toContain('discover-riverside.jpg');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('bindtap="onFavorite"');

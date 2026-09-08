@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type Instance = { data: Record<string, unknown>; triggerEvent: ReturnType<typeof vi.fn>; setData(value: Record<string, unknown>): void };
-type Definition = { methods: Record<string, (this: Instance, event?: unknown) => void>; properties: Record<string, { value: unknown; observer?: (this: Instance) => void }> };
+type Definition = { data: Record<string, unknown>; methods: Record<string, (this: Instance, event?: unknown) => void>; properties: Record<string, { value: unknown; observer?: (this: Instance, value?: unknown) => void }> };
 async function component(name: string) {
   let definition: Definition;
   vi.stubGlobal('Component', (value: Definition) => { definition = value; });
@@ -29,12 +29,14 @@ describe('reusable travel components', () => {
     expect(feedback).toContain('bindtap="dismiss"');
     expect(feedback).toContain('feedback-close-mark');
     expect(feedbackStyle).not.toMatch(/\.feedback-close\s+view/);
-    expect(filters).toContain('data-value="{{item.value}}"');
-    expect(filters).toContain('bindtap="onSelect"');
-    expect(filters).toContain('/assets/provided/category-');
-    expect(card).toContain('cover-favorite');
+    expect(filters).toContain('<picker');
+    expect(filters).toContain('bindchange="onChange"');
+    expect(filters).toContain('class="category-select"');
+    expect(card).toContain('favorite-action');
     expect(card).toContain('/assets/provided/favorite.png');
     expect(card).toContain('category-pill');
+    expect(card.indexOf('class="name"')).toBeLessThan(card.indexOf('class="favorite-action '));
+    expect(card).not.toContain('cover-favorite');
     expect(card).not.toContain('class="district"');
     expect(card).not.toContain('class="intro"');
     expect(card).not.toContain('class="tags"');
@@ -52,13 +54,18 @@ describe('reusable travel components', () => {
     expect(detail).toContain('local_reference');
     expect(detail).toContain('价格、营业时间、交通和预约请以官方公告为准。');
   });
-  it('emits a valid category selection and rejects unknown values', async () => {
+  it('maps picker indexes to valid categories and rejects unknown indexes', async () => {
     const definition = await component('category-filter');
-    const ctx = instance({ value: '' });
-    definition.methods.onSelect.call(ctx, { currentTarget: { dataset: { value: 'culture' } } });
+    const options = definition.data.options as Array<{ value: string; label: string }>;
+    expect(options.map(item => item.label)).toEqual(['全部分类', '景区', '餐馆', '文化馆/博物馆', '露营地']);
+    const ctx = instance({ value: '', selectedIndex: 0, options });
+    definition.methods.onChange.call(ctx, { detail: { value: '3' } });
     expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category: 'culture' });
+    expect(ctx.data.selectedIndex).toBe(3);
     ctx.triggerEvent.mockClear();
-    definition.methods.onSelect.call(ctx, { currentTarget: { dataset: { value: 'unknown' } } });
+    definition.methods.onChange.call(ctx, { detail: { value: '99' } });
+    expect(ctx.triggerEvent).not.toHaveBeenCalled();
+    definition.methods.onChange.call(ctx, { detail: { value: '-1' } });
     expect(ctx.triggerEvent).not.toHaveBeenCalled();
   });
   it('only exposes retry from an error state', async () => {

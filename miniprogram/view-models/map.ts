@@ -9,7 +9,6 @@ export interface TravelMarker {
   iconPath: string;
   width: number;
   height: number;
-  callout: { content: string; display: 'BYCLICK'; fontSize: number; color: string; bgColor: string; borderRadius: number; padding: number };
 }
 
 function isMapPlace(value: unknown): value is MapPlace {
@@ -35,10 +34,9 @@ export function buildMarkers(places: readonly unknown[], category: Category | ''
       id,
       latitude: place.latitude,
       longitude: place.longitude,
-      iconPath: '/assets/icons/location.png',
-      width: 30,
-      height: 38,
-      callout: { content: place.name, display: 'BYCLICK', fontSize: 13, color: '#30254a', bgColor: '#ffffff', borderRadius: 14, padding: 10 },
+      iconPath: '/assets/provided/map-marker.png',
+      width: 36,
+      height: 44,
     }));
 }
 

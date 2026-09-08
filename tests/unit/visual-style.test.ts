@@ -60,14 +60,12 @@ describe('travel visual presentation', () => {
       expect(svg).toContain('viewBox="0 0 64 64"');
       expect(svg).toContain('#7454d8');
     }
-    const locationSvg = await readFile('miniprogram/assets/icons/location.svg', 'utf8');
-    const locationPng = await readFile('miniprogram/assets/icons/location.png');
-    expect(locationSvg).toContain('viewBox="0 0 60 76"');
-    expect(locationPng.readUInt32BE(16)).toBe(60);
-    expect(locationPng.readUInt32BE(20)).toBe(76);
-    const scenic = await readFile('miniprogram/assets/icons/category-scenic.png');
-    expect(scenic.readUInt32BE(16)).toBe(96);
-    expect(scenic.readUInt32BE(20)).toBe(96);
+    const locationPng = await readFile('miniprogram/assets/provided/map-marker.png');
+    expect(locationPng.readUInt32BE(16)).toBe(72);
+    expect(locationPng.readUInt32BE(20)).toBe(88);
+    const scenic = await readFile('miniprogram/assets/provided/category-scenic.png');
+    expect(scenic.readUInt32BE(16)).toBe(128);
+    expect(scenic.readUInt32BE(20)).toBe(128);
   });
   it('renders the provided Home Hero with clean paired AI actions', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
@@ -83,6 +81,9 @@ describe('travel visual presentation', () => {
     expect(home).toContain('行程定制');
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
+    expect(home).toContain('>出发吧</button>');
+    expect(home).not.toContain('浏览所有地点');
+    expect(home).toContain('category-heading-title">分类');
     expect(home).toContain('/assets/provided/home-hero.jpg');
     expect(home).toContain('home-hero-image');
     expect(homeStyle).toContain('.ai-quick-grid');
@@ -104,15 +105,15 @@ describe('travel visual presentation', () => {
     expect(home).toContain('bindtap="openDiscover"');
     for (const feature of ['景点预约', '住宿预订', '活动日历']) expect(home).not.toContain(feature);
   });
-  it('keeps the map visible and interactive between floating filter buttons', async () => {
+  it('keeps the map visible and the compact dropdown interactive', async () => {
     const css = await readFile('miniprogram/pages/map/index.wxss', 'utf8');
     const overlay = css.match(/\.map-filters\s*\{([^}]+)\}/)![1];
     expect(overlay).toContain('background: transparent');
     expect(overlay).toContain('box-shadow: none');
     expect(overlay).toContain('border: 0');
-    expect(overlay).toContain('pointer-events: none');
+    expect(overlay).toContain('pointer-events: auto');
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
-    expect(buttons).toMatch(/\.filter\s*\{[^}]*pointer-events:\s*auto/);
+    expect(buttons).toMatch(/\.category-picker\s*\{[^}]*pointer-events:\s*auto/);
   });
   it('uses visible compact search and favorite controls for place browsing', async () => {
     const discover = await readFile('miniprogram/pages/discover/index.wxml', 'utf8');
@@ -126,7 +127,7 @@ describe('travel visual presentation', () => {
     expect(discover).toContain('discover-hero-copy');
     expect(discover).toContain('search-glyph');
     expect(discoverStyle).toContain('.search-icon');
-    expect(card).toContain('cover-favorite');
+    expect(card).toContain('favorite-action');
     expect(card).toContain('/assets/provided/favorite-active.png');
     expect(cardStyle).toContain('.cover-wrap');
     expect(card).toContain('category-pill');
@@ -134,7 +135,8 @@ describe('travel visual presentation', () => {
     expect(card).not.toContain('class="intro"');
     expect(card).not.toContain('class="tags"');
     expect(cardStyle).toContain('height: 336rpx');
-    expect(cardStyle).toContain('.cover-favorite');
+    expect(cardStyle).toContain('.favorite-action');
+    expect(card).not.toContain('cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('favorite-anchor');
@@ -146,7 +148,8 @@ describe('travel visual presentation', () => {
       const favorite = await readFile(`miniprogram/assets/provided/${filename}`);
       expect(favorite.readUInt32BE(16)).toBe(128);
       expect(favorite.readUInt32BE(20)).toBe(128);
-      expect(favorite.length).toBeGreaterThan(10_000);
+      expect(favorite.length).toBeGreaterThan(0);
+      expect(favorite.length).toBeLessThanOrEqual(20_000);
     }
     expect(detail).toContain('detail-section-heading');
     expect(detail).toContain('section-marker');

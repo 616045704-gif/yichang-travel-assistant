@@ -130,11 +130,12 @@ describe('four-tab application', () => {
     expect(smoke).toContain('Boolean(title), status !== \'ready\'');
     expect(smoke).toContain('Boolean(retry), status === \'error\'');
   });
-  it('lets category buttons fit their labels instead of the native fixed width', async () => {
+  it('uses the approved compact category dropdown without changing the event binding', async () => {
     const css = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
-    expect(css).toMatch(/\.filter\s*\{[^}]*width:\s*auto/);
-    expect(css).toContain('flex-wrap: wrap');
+    expect(css).toMatch(/\.category-select\s*\{[^}]*width:\s*100%/);
+    expect(css).toContain('height: 80rpx');
     const template = await readFile('miniprogram/components/category-filter/index.wxml', 'utf8');
-    expect(template).toContain('size="mini"');
+    expect(template).toContain('<picker');
+    expect(template).toContain('bindchange="onChange"');
   });
 });

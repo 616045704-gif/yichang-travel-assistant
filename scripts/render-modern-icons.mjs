@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { deflateSync } from 'node:zlib';
 
 const root = new URL('../miniprogram/assets/icons/', import.meta.url);
+const providedRoot = new URL('../miniprogram/assets/provided/', import.meta.url);
 const palette = { purple: [116, 84, 216, 255], yellow: [246, 198, 68, 255], lilac: [155, 147, 166, 255], clear: [0, 0, 0, 0] };
 
 function crc32(bytes) { let crc = 0xffffffff; for (const byte of bytes) { crc ^= byte; for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1)); } return (crc ^ 0xffffffff) >>> 0; }
@@ -65,6 +66,18 @@ function locationPin() {
     if ((px - 30) ** 2 + (py - 25) ** 2 <= 3 ** 2) set(palette.yellow);
   });
 }
+function mapMarker() {
+  return png(72, 88, (x, y, set) => {
+    const px = x + .5; const py = y + .5;
+    const head = ((px - 36) / 27) ** 2 + ((py - 31) / 27) ** 2 <= 1 && py <= 42;
+    const tail = py >= 31 && py <= 82 && Math.abs(px - 36) <= 25 * (82 - py) / 51;
+    if (head || tail) set(palette.purple);
+    if ((px - 36) ** 2 + (py - 30) ** 2 <= 12 ** 2) set([255, 255, 255, 255]);
+    if ((px - 36) ** 2 + (py - 27) ** 2 <= 4 ** 2) set(palette.yellow);
+    const wave = Math.abs(py - (34 + Math.sin((px - 23) / 5) * 2)) <= 1.3 && px >= 23 && px <= 49;
+    if (wave) set(palette.purple);
+  });
+}
 
 const tabs = ['home', 'discover', 'map', 'me'];
 for (const name of tabs) {
@@ -73,3 +86,4 @@ for (const name of tabs) {
 }
 for (const name of ['scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, root), icon(name, 96, palette.purple, true));
 await writeFile(new URL('location.png', root), locationPin());
+await writeFile(new URL('map-marker.png', providedRoot), mapMarker());
