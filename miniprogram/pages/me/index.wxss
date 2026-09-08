@@ -1,27 +1,17 @@
 .me-page { min-height: 100vh; padding-top: 24rpx; background: var(--color-page); }
-.travel-hero { position: relative; box-sizing: border-box; height: 420rpx; margin-bottom: 30rpx; overflow: hidden; padding: 40rpx 36rpx; border: 1rpx solid rgba(116, 84, 216, .08); border-radius: 34rpx; background: linear-gradient(135deg, #dce3ff 0%, #eeeaff 52%, #eef8ff 100%); box-shadow: 0 12rpx 32rpx rgba(69, 56, 118, .08); }
-.travel-copy { position: relative; z-index: 3; width: 440rpx; }
+.travel-hero { position: relative; box-sizing: border-box; height: 420rpx; margin-right: -10rpx; margin-bottom: 30rpx; margin-left: -10rpx; overflow: hidden; padding: 40rpx 36rpx; border: 1rpx solid rgba(116, 84, 216, .08); border-radius: 32rpx; background: #e6e7ff; box-shadow: 0 12rpx 32rpx rgba(69, 56, 118, .08); }
+.travel-hero-art { position: absolute; z-index: 1; top: 0; right: 0; bottom: 0; left: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.travel-copy { position: relative; z-index: 2; width: 440rpx; }
 .travel-kicker { display: block; color: var(--color-brand); font-size: 23rpx; font-weight: 750; letter-spacing: .5rpx; line-height: 1.4; }
 .travel-title { display: block; margin-top: 8rpx; color: var(--color-text-strong); font-size: 44rpx; font-weight: 800; letter-spacing: -1rpx; line-height: 1.2; }
 .travel-subtitle { display: block; margin-top: 12rpx; color: #7a7391; font-size: 22rpx; line-height: 1.5; }
-.travel-illustration { position: absolute; z-index: 1; top: 14rpx; right: 0; width: 350rpx; height: 250rpx; pointer-events: none; }
-.travel-motif { position: absolute; display: block; opacity: .26; }
-.travel-motif-scenic { right: -4rpx; bottom: -8rpx; width: 230rpx; height: 230rpx; transform: rotate(-4deg); }
-.travel-motif-camping { top: 18rpx; right: 194rpx; width: 92rpx; height: 92rpx; opacity: .18; transform: rotate(7deg); }
-.travel-route { position: absolute; right: 58rpx; bottom: 64rpx; width: 224rpx; border-top: 4rpx dotted rgba(116, 84, 216, .40); transform: rotate(-12deg); }
-.travel-route-dot { position: absolute; top: -10rpx; width: 14rpx; height: 14rpx; border: 3rpx solid rgba(116, 84, 216, .58); border-radius: 50%; background: #f7f6ff; }
-.route-dot-start { left: -4rpx; }
-.route-dot-end { right: -4rpx; }
-.travel-plane { position: absolute; top: 22rpx; right: 54rpx; width: 48rpx; height: 18rpx; border-radius: 80% 15% 60% 20%; background: linear-gradient(90deg, #8c74e7, #6a9ce8); transform: rotate(-24deg); }
-.travel-plane::before { position: absolute; top: -14rpx; left: 15rpx; width: 22rpx; height: 32rpx; border-radius: 90% 10% 70% 20%; background: inherit; content: ''; transform: rotate(20deg); }
-.travel-plane::after { position: absolute; top: 2rpx; left: -8rpx; width: 16rpx; height: 13rpx; border-radius: 4rpx; background: #8971e5; content: ''; transform: rotate(28deg); }
-.profile-card { position: absolute; z-index: 4; left: 22rpx; right: 22rpx; bottom: 22rpx; display: flex; box-sizing: border-box; align-items: center; gap: 20rpx; min-height: 148rpx; padding: 18rpx 24rpx; border: 1rpx solid rgba(255, 255, 255, .72); border-radius: 28rpx; background: rgba(255, 255, 255, .92); box-shadow: 0 14rpx 34rpx rgba(53, 39, 92, .10); }
+.profile-card { position: absolute; z-index: 3; left: 22rpx; right: 22rpx; bottom: 22rpx; display: flex; box-sizing: border-box; align-items: center; gap: 20rpx; min-height: 148rpx; padding: 18rpx 24rpx; border: 1rpx solid rgba(255, 255, 255, .72); border-radius: 28rpx; background: rgba(255, 255, 255, .92); box-shadow: 0 14rpx 34rpx rgba(53, 39, 92, .10); }
 .profile-avatar-art { position: relative; display: flex; flex: 0 0 108rpx; align-items: center; justify-content: center; width: 108rpx; height: 108rpx; border-radius: 50%; background: linear-gradient(145deg, #dcecff, #fff3ef); box-shadow: inset 0 0 0 8rpx rgba(255, 255, 255, .74); }
 .profile-avatar-halo { display: flex; align-items: center; justify-content: center; width: 92rpx; height: 92rpx; overflow: hidden; border-radius: 50%; background: #fff; }
 .profile-icon { width: 86rpx; height: 86rpx; }
 .profile-flight-badge { position: absolute; right: -2rpx; bottom: 2rpx; width: 36rpx; height: 36rpx; border: 4rpx solid #fff; border-radius: 50%; background: var(--color-brand); }
 .profile-flight-badge::before { position: absolute; top: 12rpx; left: 8rpx; width: 19rpx; height: 8rpx; border-radius: 70% 20% 60% 20%; background: #fff; content: ''; transform: rotate(-25deg); }
-.profile-copy { flex: 1; min-width: 0; }
+.profile-copy { flex: 1; min-width: 0; padding-right: 96rpx; }
 .profile-title { display: block; color: var(--color-text-strong); font-size: 31rpx; font-weight: 750; }
 .profile-subtitle { display: block; margin-top: 6rpx; color: var(--color-muted); font-size: 22rpx; }
 .profile-script { position: absolute; right: 24rpx; bottom: 18rpx; color: rgba(116, 84, 216, .28); font-family: 'Segoe Script', cursive; font-size: 27rpx; font-style: italic; font-weight: 700; transform: rotate(-6deg); }
