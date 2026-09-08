@@ -142,7 +142,8 @@ describe('travel visual presentation', () => {
     expect(discover).toContain('>发送</button>');
     expect(discover).toContain('/assets/provided/discover-hero.jpg');
     expect(discover).toContain('discover-hero-copy');
-    expect(discover).toContain('aria-label="打开搜索">⌕</button>');
+    expect(discover).toContain('/assets/icons/discover-active.png');
+    expect(discover).toContain('search-trigger-icon');
     expect(discoverStyle).toContain('.search-trigger');
     expect(discoverStyle).toContain('.search-send');
     expect(discoverStyle).toMatch(/\.discover-tools\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/);
