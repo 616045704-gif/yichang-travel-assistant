@@ -33,7 +33,9 @@ describe('reusable travel components', () => {
     expect(filters).toContain('scroll-x');
     expect(filters).toContain('class="category-tabs"');
     expect(filters).toContain('wx:for="{{options}}"');
+    expect(filters).toContain('<button wx:for="{{options}}"');
     expect(filters).toContain('bindtap="onTabTap"');
+    expect(filters).toContain('hover-class="category-tab-pressed"');
     expect(filters).not.toContain('<picker');
     expect(card).toContain('favorite-action');
     expect(card).toContain('class="card-meta"');

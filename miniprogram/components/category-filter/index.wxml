@@ -1,8 +1,8 @@
 <scroll-view class="category-tabs" scroll-x enhanced show-scrollbar="{{false}}">
   <view class="category-tabs-track">
-    <view wx:for="{{options}}" wx:key="value" class="category-tab {{selectedValue === item.value ? 'is-active' : ''}} {{item.value === 'culture' ? 'is-wide' : ''}}" data-category="{{item.value}}" bindtap="onTabTap" aria-role="button" aria-label="按{{item.label}}筛选">
+    <button wx:for="{{options}}" wx:key="value" class="category-tab {{selectedValue === item.value ? 'is-active' : ''}} {{item.value === 'culture' ? 'is-wide' : ''}}" hover-class="category-tab-pressed" data-category="{{item.value}}" bindtap="onTabTap" aria-label="按{{item.label}}筛选">
       <image class="category-tab-icon" src="/assets/provided/category-{{item.value || 'all'}}.png" mode="aspectFit" aria-hidden="true" />
       <text class="category-tab-label">{{item.label}}</text>
-    </view>
+    </button>
   </view>
 </scroll-view>

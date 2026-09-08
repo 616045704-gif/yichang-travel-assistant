@@ -33,6 +33,7 @@ describe('nearby map page', () => {
     expect(markup).toContain('bindmarkertap="onMarkerTap"');
     expect(markup).toContain('bindtap="locateNearby"');
     expect(markup).toContain('bindtap="openSelectedPlace"');
+    expect(markup).toContain('class="detail-button marker-hit-target"');
     expect(markup).toContain('class="map-bottom-stack"');
     expect(markup).toContain('/assets/provided/place-placeholder.jpg');
     expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
@@ -42,7 +43,10 @@ describe('nearby map page', () => {
     expect(css).toContain('gap: 16rpx');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*pointer-events:\s*auto/);
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
-    expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-card\s*\{[^}]*min-height:\s*280rpx[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-cover\s*\{[^}]*width:\s*224rpx[^}]*height:\s*224rpx/);
+    expect(css).toMatch(/\.marker-copy\s*\{[^}]*min-height:\s*224rpx[^}]*justify-content:\s*space-between/);
+    expect(css).toMatch(/\.detail-button\s*\{[^}]*width:\s*100%[^}]*align-self:\s*stretch/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*-webkit-line-clamp:\s*2/);
     expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
     expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');

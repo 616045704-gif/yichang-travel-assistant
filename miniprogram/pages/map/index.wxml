@@ -8,7 +8,7 @@
       <view class="marker-copy">
         <view class="marker-category-row"><image class="marker-category-icon" src="/assets/provided/category-{{selectedPlace.category}}.png" mode="aspectFit" aria-hidden="true" /><text class="marker-category" wx:if="{{selectedPlace.category === 'scenic'}}">景区</text><text class="marker-category" wx:elif="{{selectedPlace.category === 'restaurant'}}">餐馆</text><text class="marker-category" wx:elif="{{selectedPlace.category === 'culture'}}">文化馆/博物馆</text><text class="marker-category" wx:else>露营地</text></view>
         <text class="marker-name">{{selectedPlace.name}}</text>
-        <button class="detail-button" hover-class="detail-button-pressed" bindtap="openSelectedPlace">查看详情</button>
+        <button class="detail-button marker-hit-target" hover-class="detail-button-pressed" bindtap="openSelectedPlace">查看详情</button>
       </view>
     </view>
   </view>

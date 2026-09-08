@@ -77,7 +77,8 @@ describe('travel visual presentation', () => {
     expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
     expect(markup).toContain('hover-class="detail-button-pressed"');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
-    expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-card\s*\{[^}]*min-height:\s*280rpx[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-copy\s*\{[^}]*min-height:\s*224rpx[^}]*justify-content:\s*space-between/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*display:\s*-webkit-box[^}]*-webkit-line-clamp:\s*2/);
     expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
   });
@@ -136,6 +137,8 @@ describe('travel visual presentation', () => {
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
     expect(buttons).toMatch(/\.category-tabs\s*\{[^}]*pointer-events:\s*auto/);
     expect(buttons).toMatch(/\.category-tab\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*height:\s*112rpx/);
+    expect(buttons).toContain('.category-tab::after');
+    expect(buttons).toContain('.category-tab.category-tab-pressed');
     expect(buttons).toMatch(/\.category-tab-icon\s*\{[^}]*width:\s*56rpx[^}]*height:\s*56rpx/);
     expect(buttons).toContain('.category-tab.is-active');
     expect(buttons).not.toMatch(/(^|[},]\s*)(?:picker|scroll-view|view|image|text|#|\[)[^{]*\{/m);
