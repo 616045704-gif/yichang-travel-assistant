@@ -1,7 +1,7 @@
 # 行程调整输入框 iPhone 键盘定位验收记录
 
 日期：2026-09-08
-功能被测提交：`82f1783`（`fix: keep trip adjustment input in place`）
+功能被测提交：`e679c61`（`fix: bind trip keyboard adjustment as boolean`）
 
 ## 变更范围与根因
 
@@ -16,10 +16,10 @@ iPhone 微信二维码预览中，行程生成后的调整 `textarea` 在键盘�
 | 输入框属性回归 | `node node_modules\vitest\vitest.mjs run tests\unit\trip-form.test.ts` | 7/7 通过；断言真正的布尔绑定仅出现在调整输入框，并拒绝静态字符串写法。 |
 | 类型检查 | `node node_modules\typescript\bin\tsc --noEmit` | 通过。 |
 | 定向静态检查 | `node node_modules\eslint\bin\eslint.js miniprogram\pages\trip-form\index.wxml tests\unit\trip-form.test.ts` | 通过。 |
-| 当前真实体验包 | 比对源码和 `dist/miniprogram/pages/trip-form/index.wxml` SHA-256，并执行 `node scripts\check-package.mjs --mode=demo` | 通过；两者一致，当前 `dist` 已包含 `adjust-position="{{false}}"`。为避免混入另一个对话尚未完成的品牌改名，本次修正未重建其余文件。 |
+| 真实体验包 | `node scripts\build.mjs --mode=demo` | 通过；当前完整 `dist` 已重新生成并包含 `adjust-position="{{false}}"`。 |
 | 包边界 | `node scripts\check-package.mjs --mode=demo` | 通过。 |
 | 文档与空白 | `node scripts\verify-docs.mjs`、`git diff --check` | 通过。 |
-| 全量测试 | `node node_modules\vitest\vitest.mjs run` | 本次功能相关 7 项通过；全量为 281 通过、1 跳过、1 失败。失败来自用户工作区中另一个未提交的 `tests/unit/visual-style.test.ts` 品牌改名断言，当前产品源码尚未完成该独立改动；未修改、未回退或混入本次提交。 |
+| 全量测试 | `node node_modules\vitest\vitest.mjs run` | 282 通过、1 跳过；全部可运行测试通过。 |
 
 ## 待验项
 
@@ -29,4 +29,4 @@ iPhone 微信二维码预览中，行程生成后的调整 `textarea` 在键盘�
 
 ## 阶段结论
 
-本次修复的自动化、构建和包边界检查已通过，真实 `dist` 包已生成。iPhone 真机二维码验证是本次唯一决定性外部验收步骤；在该未完成的独立品牌工作区改动完成前，不能声称全仓全量测试通过。
+本次修复的自动化、全量回归、构建和包边界检查已通过，真实 `dist` 包已生成。iPhone 真机二维码验证是本次唯一决定性外部验收步骤。
