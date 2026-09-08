@@ -276,16 +276,25 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
       '/assets/provided/map-marker-culture.png',
       '/assets/provided/map-marker-camping.png',
     ]));
-    await mapCategoryTabs[1].tap();
+    for (const [index, category] of ['scenic', 'restaurant', 'culture', 'camping'].entries()) {
+      const currentTabs = await mapPage.$$('.map-filter-tab');
+      await currentTabs[index + 1].tap();
+      await waitForPageData(mapPage, 'category', category);
+      const filteredMarkers = await mapPage.data('markers');
+      assert.equal(filteredMarkers.length, 1, `${category} must show only its marker fixture`);
+      assert.equal(await mapPage.data('selectedPlace'), null, 'Changing category must clear the old preview card');
+    }
+    const resetTabs = await mapPage.$$('.map-filter-tab');
+    await resetTabs[1].tap();
     await waitForPageData(mapPage, 'category', 'scenic');
-    assert.equal(await mapPage.data('category'), 'scenic');
     assert.equal((await mapPage.data('markers')).length, 1);
     // Element.property stringifies object arrays; query the actual component properties instead.
     const nativeMarkers = await miniProgram.evaluate(() => new Promise(resolve => {
       wx.createSelectorQuery().select('#city-map').fields({ properties: ['markers'] }, resolve).exec();
     }));
     assert.deepEqual(nativeMarkers.markers, await mapPage.data('markers'));
-    await mapCategoryTabs[0].tap();
+    const allCategoryTabs = await mapPage.$$('.map-filter-tab');
+    await allCategoryTabs[0].tap();
     await waitForPageData(mapPage, 'category', '');
     assert.equal((await mapPage.data('markers')).length, 4);
     assert.deepEqual(await mapPage.data('center'), center);
@@ -303,11 +312,15 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const markerCoverBox = await elementBox(await markerCard.$('.marker-cover'));
     const markerCopyBox = await elementBox(await markerCard.$('.marker-copy'));
     const detailButtonBox = await elementBox(await markerCard.$('.detail-button'));
+    const nearbyButtonBox = await elementBox(await mapPage.$('.nearby-button'));
     const mapScale = pageSize.width / 750;
     assert.ok(markerCardBox.height >= (280 * mapScale) - 2, `Map preview must preserve its 280rpx minimum height, received ${markerCardBox.height}px`);
     assertNear(markerCoverBox.top, markerCopyBox.top, 2, 'Map preview columns must share one top edge');
     assertNear(detailButtonBox.left, markerCopyBox.left, 2, 'Map detail button must align to the copy column left edge');
     assertNear(detailButtonBox.width, markerCopyBox.width, 2, 'Map detail button must fill the copy column width');
+    assertNear(nearbyButtonBox.left + nearbyButtonBox.width / 2, markerCardBox.left + markerCardBox.width / 2, 2, 'Nearby button and preview card must share one center line');
+    assertNear(nearbyButtonBox.height, detailButtonBox.height, 2, 'Map action buttons must share one visible height');
+    assert.ok(detailButtonBox.left >= markerCoverBox.left + markerCoverBox.width, 'Map detail button must not enter the cover column');
     await (await markerCard.$('.detail-button')).tap();
     const mapDetailPage = await waitForPagePath(miniProgram, 'pages/place-detail/index');
     assert.equal(mapDetailPage.query.placeId, selectedPlace.placeId);

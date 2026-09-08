@@ -141,7 +141,8 @@ describe('four-tab application', () => {
     expect(smoke).toContain("await filter.$$('.category-tab')");
     expect(smoke).toContain('await categoryTabs[1].tap()');
     expect(smoke).toContain("await mapPage.$$('.map-filter-tab')");
-    expect(smoke).toContain('await mapCategoryTabs[1].tap()');
+    expect(smoke).toContain("['scenic', 'restaurant', 'culture', 'camping'].entries()");
+    expect(smoke).toContain('Changing category must clear the old preview card');
     expect(smoke).toContain("await page.$('.search-trigger')");
     expect(smoke).toContain("await page.$('.search-input')");
     expect(smoke).toContain("await page.$('.search-close')");
@@ -153,6 +154,8 @@ describe('four-tab application', () => {
     expect(smoke).toContain('if (queryType) assert.equal(destinationPage.query.type, queryType)');
     expect(smoke).toContain('AI cards must have equal visible widths');
     expect(smoke).toContain('Map preview must preserve its 280rpx minimum height');
+    expect(smoke).toContain('Nearby button and preview card must share one center line');
+    expect(smoke).toContain('Map action buttons must share one visible height');
     expect(smoke).toContain("await categoryTabs[0].tap()");
     expect(smoke).toContain('await waitForItemsChange(page, itemsBeforeCategoryReset)');
     expect(smoke).toContain('state component visibility must match its branch');
