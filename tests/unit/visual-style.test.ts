@@ -213,6 +213,23 @@ describe('travel visual presentation', () => {
     }
   });
 
+  it('gives the me page a pale travel identity and one aligned menu panel', async () => {
+    const [markup, style] = await Promise.all([
+      readFile('miniprogram/pages/me/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/me/index.wxss', 'utf8'),
+    ]);
+    expect(markup).toContain('class="travel-hero"');
+    expect(markup).toContain('/assets/provided/tab-me-active.png');
+    expect(style).toMatch(/\.me-page\s*\{[^}]*background:\s*var\(--color-page\)/);
+    expect(style).toMatch(/\.travel-hero\s*\{[^}]*position:\s*relative[^}]*overflow:\s*hidden[^}]*linear-gradient/);
+    expect(style).toMatch(/\.travel-motif\s*\{[^}]*opacity:\s*\.1[0-9][^}]*pointer-events:\s*none/);
+    expect(style).toMatch(/\.profile-card\s*\{[^}]*margin-top:\s*-\d+rpx[^}]*background:\s*var\(--color-surface\)[^}]*box-shadow:/);
+    expect(style).toMatch(/\.menu\s*\{[^}]*border:[^}]*border-radius:[^}]*background:\s*var\(--color-surface\)/);
+    expect(style).toMatch(/\.menu-icon\s*\{[^}]*width:\s*72rpx[^}]*height:\s*72rpx/);
+    for (const name of ['favorite', 'history', 'ai', 'preferences']) expect(style).toContain(`.menu-icon-shell-${name}`);
+    expect(style).not.toContain('background: var(--color-brand-deep)');
+  });
+
   it('uses the shared feedback component instead of platform-specific toast styling', async () => {
     for (const page of ['home', 'discover', 'place-detail', 'records', 'preferences']) {
       const markup = await readFile(`miniprogram/pages/${page}/index.wxml`, 'utf8');

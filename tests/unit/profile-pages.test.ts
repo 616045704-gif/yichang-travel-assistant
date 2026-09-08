@@ -9,6 +9,12 @@ describe('personal pages', () => {
       readFile('miniprogram/pages/me/index.ts', 'utf8'),
     ]);
     expect(markup).toContain('src="/assets/provided/menu-{{item.icon}}.png"');
+    expect(markup).toContain('class="travel-hero"');
+    expect(markup).toContain('/assets/provided/category-scenic.png');
+    expect(markup).toContain('/assets/provided/category-camping.png');
+    expect(markup).toContain('/assets/provided/tab-me-active.png');
+    expect(markup).toContain('menu-icon-shell menu-icon-shell-{{item.icon}}');
+    expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('bindtap="openEntry"');
     expect(markup).toContain('data-url="{{item.url}}"');
     expect(markup).not.toContain('意见反馈');
@@ -16,18 +22,35 @@ describe('personal pages', () => {
     expect(logic).toContain("icon: 'history'");
     expect(logic).toContain("icon: 'ai'");
     expect(logic).toContain("icon: 'preferences'");
+    expect(logic).not.toContain('parking');
   });
 
   it('navigates only to implemented personal pages and privacy details', async () => {
-    let page: { openEntry(event: unknown): void; showPrivacy(): void };
+    type PersonalPage = {
+      data: { entries: Array<{ title: string; icon: string; url: string }> };
+      openEntry(event: unknown): void;
+      showPrivacy(): void;
+    };
+    let page: PersonalPage;
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
     const navigateTo = vi.fn();
     vi.stubGlobal('wx', { navigateTo });
     await import('../../miniprogram/pages/me/index');
-    page!.openEntry({ currentTarget: { dataset: { url: '/pages/records/index?type=favorites' } } });
+    expect(page!.data.entries.map(entry => [entry.title, entry.icon, entry.url])).toEqual([
+      ['我的收藏', 'favorite', '/pages/records/index?type=favorites'],
+      ['浏览记录', 'history', '/pages/records/index?type=browse'],
+      ['AI 问答记录', 'ai', '/pages/ai-history/index'],
+      ['旅行偏好', 'preferences', '/pages/preferences/index'],
+    ]);
+    for (const entry of page!.data.entries) page!.openEntry({ currentTarget: { dataset: { url: entry.url } } });
+    page!.openEntry({ currentTarget: { dataset: {} } });
     page!.showPrivacy();
     expect(navigateTo).toHaveBeenNthCalledWith(1, { url: '/pages/records/index?type=favorites' });
-    expect(navigateTo).toHaveBeenNthCalledWith(2, { url: '/pages/privacy/index' });
+    expect(navigateTo).toHaveBeenNthCalledWith(2, { url: '/pages/records/index?type=browse' });
+    expect(navigateTo).toHaveBeenNthCalledWith(3, { url: '/pages/ai-history/index' });
+    expect(navigateTo).toHaveBeenNthCalledWith(4, { url: '/pages/preferences/index' });
+    expect(navigateTo).toHaveBeenNthCalledWith(5, { url: '/pages/privacy/index' });
+    expect(navigateTo).toHaveBeenCalledTimes(5);
   });
   it('links private AI history from my page without calling userService', async () => {
     const me = await readFile('miniprogram/pages/me/index.ts', 'utf8');
