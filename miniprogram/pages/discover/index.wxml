@@ -13,7 +13,7 @@
         <view class="search-send-shell"><view class="send-glyph" aria-hidden="true"></view><button class="search-send" hover-class="search-control-pressed" bindtap="onSearch" aria-label="发送搜索"></button></view>
       </view>
     </view>
-    <view class="discover-category"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
+    <view class="discover-category"><category-filter id="categories" value="{{category}}" bindcategorychange="onCategoryChange" /></view>
   </view>
   <view class="section-heading"><text class="section-title">地点清单</text><text class="badge">云端资料</text></view>
   <view wx:if="{{status === 'ready'}}" class="place-list"><place-card wx:for="{{items}}" wx:key="placeId" place="{{item}}" bind:open="openPlace" bind:favoritechange="onFavorite" /></view>

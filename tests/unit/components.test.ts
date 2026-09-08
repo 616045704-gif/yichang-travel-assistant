@@ -82,7 +82,7 @@ describe('reusable travel components', () => {
     for (const category of ['', 'scenic', 'restaurant', 'culture', 'camping']) {
       ctx.triggerEvent.mockClear();
       definition.methods.onTabTap.call(ctx, { currentTarget: { dataset: { category } } });
-      expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category });
+      expect(ctx.triggerEvent).toHaveBeenCalledWith('categorychange', { category }, { bubbles: true, composed: true });
       expect(ctx.data.selectedValue).toBe(category);
     }
     for (const category of ['parking', 'unknown', undefined]) {

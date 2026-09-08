@@ -14,7 +14,9 @@ describe('place discovery view model', () => {
     expect(discover).toContain('/assets/provided/discover-hero.jpg');
     expect(discover).toContain('class="discover-hero-copy"');
     expect(discover).toContain('<category-filter');
-    expect(discover).toContain('bind:categorychange="onCategoryChange"');
+    expect(discover).toContain('bindcategorychange="onCategoryChange"');
+    const map = await readFile('miniprogram/pages/map/index.wxml', 'utf8');
+    expect(map).toContain('bindcategorychange="onCategoryChange"');
     expect(discover).toContain('bindinput="onKeywordInput"');
     expect(discover).toContain('bindconfirm="onSearch"');
     expect(discover).toContain('<place-card');

@@ -1,6 +1,6 @@
 <view class="page map-page">
   <map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="11" markers="{{markers}}" show-location="{{showLocation}}" bindmarkertap="onMarkerTap" enable-scroll="{{true}}" enable-zoom="{{true}}" />
-  <view class="map-filters"><category-filter id="categories" value="{{category}}" bind:categorychange="onCategoryChange" /></view>
+  <view class="map-filters"><category-filter id="categories" value="{{category}}" bindcategorychange="onCategoryChange" /></view>
   <view class="map-bottom-stack">
     <view class="map-actions"><button class="nearby-button" loading="{{locating}}" disabled="{{locating}}" bindtap="locateNearby">定位我的附近</button><text wx:if="{{notice}}" class="map-notice">{{notice}}</text><button wx:if="{{showSettings}}" class="settings-button" bindtap="onOpenSettings">打开设置</button></view>
     <view wx:if="{{selectedPlace}}" class="marker-card">

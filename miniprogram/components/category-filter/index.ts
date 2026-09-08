@@ -26,7 +26,7 @@ Component({
       const category = event.currentTarget.dataset.category;
       if (!isCategoryValue(category)) return;
       this.setData({ selectedValue: category });
-      this.triggerEvent('categorychange', { category });
+      this.triggerEvent('categorychange', { category }, { bubbles: true, composed: true });
     },
   },
 });
