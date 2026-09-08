@@ -1,7 +1,20 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { setTimeout as wait } from 'node:timers/promises';
 import automator from 'miniprogram-automator';
+
+async function waitForPagePath(miniProgram, expectedPath, timeout = 6000) {
+  const deadline = Date.now() + timeout;
+  let currentPage;
+  while (Date.now() < deadline) {
+    currentPage = await miniProgram.currentPage();
+    if (currentPage?.path === expectedPath) return currentPage;
+    await wait(100);
+  }
+  assert.equal(currentPage?.path, expectedPath);
+  return currentPage;
+}
 
 // The user starts the official CLI for this project before running this check.
 const endpoint = process.env.WECHAT_AUTOMATION_ENDPOINT;
@@ -45,7 +58,7 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     let page = await miniProgram.switchTab('/pages/home/index');
     const aiCards = await page.$$('.ai-quick-card');
     await aiCards[0].tap();
-    const aiPage = await miniProgram.currentPage();
+    const aiPage = await waitForPagePath(miniProgram, 'pages/ai-chat/index');
     assert.equal(aiPage.path, 'pages/ai-chat/index');
     console.log('PASS: Home AI card opens its secondary page');
     page = await miniProgram.switchTab('/pages/home/index');
@@ -58,15 +71,17 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const openArea = await placeCard.$('.open-area');
     assert.ok(openArea);
     await openArea.tap();
-    const detailPage = await miniProgram.currentPage();
+    const detailPage = await waitForPagePath(miniProgram, 'pages/place-detail/index');
     assert.equal(detailPage.path, 'pages/place-detail/index');
     console.log('PASS: Home place card opens its detail page');
     page = await miniProgram.switchTab('/pages/me/index');
     const menuRows = await page.$$('.menu-row');
     assert.ok(menuRows.length >= 1);
+    assert.equal(await (await menuRows[0].$('.menu-title')).text(), '我的收藏');
     await menuRows[0].tap();
-    const recordsPage = await miniProgram.currentPage();
+    const recordsPage = await waitForPagePath(miniProgram, 'pages/records/index');
     assert.equal(recordsPage.path, 'pages/records/index');
+    assert.equal(recordsPage.query.type, 'favorites');
     console.log('PASS: Me menu opens its secondary page');
     const pageScreens = [
       ['place-detail', '/pages/place-detail/index?placeId=smoke-place'],
@@ -89,7 +104,9 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     await page.waitFor('#categories');
     const filter = await page.$('#categories');
     assert.ok(filter);
-    assert.ok(await page.$('.category-select'));
+    const filterSelect = await filter.$('.category-select');
+    assert.ok(filterSelect);
+    await filterSelect.tap();
     await filter.callMethod('onChange', { detail: { value: '1' } });
     await page.waitFor(400);
     assert.equal(await page.data('category'), 'scenic');
@@ -123,7 +140,9 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.equal(await overlay.style('box-shadow'), 'none');
     assert.equal(await overlay.style('pointer-events'), 'auto');
     const mapFilters = await mapPage.$('#categories');
-    assert.ok(await mapPage.$('.category-select'));
+    const mapFilterSelect = await mapFilters.$('.category-select');
+    assert.ok(mapFilterSelect);
+    await mapFilterSelect.tap();
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
     await mapPage.callMethod('setPlaces', [

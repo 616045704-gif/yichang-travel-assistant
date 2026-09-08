@@ -17,11 +17,11 @@ function distanceToSegment(px, py, ax, ay, bx, by) { const vx = bx - ax; const v
 function mixColor(start, end, amount) { return start.map((value, index) => Math.round(value + (end[index] - value) * amount)); }
 function gradientCategoryIcon(name, size = 128) {
   const scale = size / 64;
-  const purple = [130, 78, 232, 255];
+  const purple = [130, 86, 232, 255];
   const teal = [73, 187, 196, 255];
   return png(size, size, (x, y, set) => {
     const px = (x + .5) / scale; const py = (y + .5) / scale;
-    const stroke = 3.35;
+    const stroke = 1.85;
     const line = (...segments) => segments.some(([ax, ay, bx, by]) => distanceToSegment(px, py, ax, ay, bx, by) <= stroke);
     const circle = (cx, cy, radius, width = stroke) => Math.abs(Math.hypot(px - cx, py - cy) - radius) <= width;
     const dot = (cx, cy, radius) => Math.hypot(px - cx, py - cy) <= radius;

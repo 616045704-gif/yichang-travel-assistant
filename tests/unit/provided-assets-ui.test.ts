@@ -108,6 +108,8 @@ describe('provided visual assets and UI boundary', () => {
     const renderer = await readFile('scripts/render-modern-icons.mjs', 'utf8');
     expect(renderer).toContain('gradientCategoryIcon');
     expect(renderer).toContain('providedRoot');
+    expect(renderer).toContain('const purple = [130, 86, 232, 255]');
+    expect(renderer).toContain('const stroke = 1.85');
     for (const name of ['all', 'scenic', 'restaurant', 'culture', 'camping']) {
       const bytes = await readFile(`${root}/category-${name}.png`);
       expect(bytes[24]).toBe(8);

@@ -132,11 +132,16 @@ describe('four-tab application', () => {
   });
   it('uses current selectors and asserts real secondary-page paths in the WeChat smoke check', async () => {
     const smoke = await readFile('scripts/wechat-smoke.mjs', 'utf8');
+    expect(smoke).toContain('async function waitForPagePath');
     expect(smoke).toContain("await page.$$('.ai-quick-card')");
     expect(smoke).toContain("assert.equal(aiPage.path, 'pages/ai-chat/index')");
     expect(smoke).toContain("assert.equal(detailPage.path, 'pages/place-detail/index')");
-    expect(smoke).toContain("await page.$('.category-select')");
+    expect(smoke).toContain("await filter.$('.category-select')");
+    expect(smoke).toContain('await filterSelect.tap()');
+    expect(smoke).toContain("await mapFilters.$('.category-select')");
+    expect(smoke).toContain('await mapFilterSelect.tap()');
     expect(smoke).toContain("await filter.callMethod('onChange', { detail: { value: '1' } })");
+    expect(smoke).toContain("assert.equal(recordsPage.query.type, 'favorites')");
     expect(smoke).not.toContain("page.$('.hero')");
     expect(smoke).not.toContain("filter.$$('.filter')");
     expect(smoke).not.toContain("mapFilters.$$('.filter')");
