@@ -137,11 +137,16 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
+    expect(detail).toContain('detail-section-heading');
+    expect(detail).toContain('section-marker');
+    expect(detail).toContain('card-headline');
     expect(detailStyle).toContain('height: 420rpx');
-    expect(detailStyle).toContain('padding-bottom: 48rpx');
-    expect(detailStyle).toContain('margin: 24rpx');
-    expect(detailStyle).toContain('padding: 28rpx');
-    expect(detailStyle).toContain('width: 136rpx');
+    expect(detailStyle).toContain('box-sizing: border-box');
+    expect(detailStyle).toContain('width: 100%');
+    expect(detailStyle).toContain('.section-marker.info');
+    expect(detailStyle).toContain('.detail-section-heading');
+    expect(detailStyle).toContain('font-size: 36rpx');
+    expect(detailStyle).toContain('width: 160rpx');
     expect(detailStyle).toContain('background: var(--color-action)');
   });
 
