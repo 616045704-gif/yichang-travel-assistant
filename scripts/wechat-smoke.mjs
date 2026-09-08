@@ -146,8 +146,8 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     assert.deepEqual(await map.offset(), { left: 0, top: 0 });
     assert.equal(await mapPage.$('.location-card'), null);
     const overlay = await mapPage.$('.map-filters');
-    assert.equal(await overlay.style('background-color'), 'rgba(0, 0, 0, 0)');
-    assert.equal(await overlay.style('box-shadow'), 'none');
+    assert.notEqual(await overlay.style('background-color'), 'rgba(0, 0, 0, 0)');
+    assert.notEqual(await overlay.style('box-shadow'), 'none');
     assert.equal(await overlay.style('pointer-events'), 'auto');
     const mapFilters = await mapPage.$('#categories');
     const mapCategoryTabs = await mapFilters.$$('.category-tab');

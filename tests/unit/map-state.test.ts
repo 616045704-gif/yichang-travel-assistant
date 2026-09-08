@@ -12,19 +12,32 @@ const places: MapPlace[] = [
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
 describe('category map markers', () => {
+  const expectedPaths: Record<Category, string> = {
+    scenic: '/assets/provided/map-marker-scenic.png',
+    restaurant: '/assets/provided/map-marker-restaurant.png',
+    culture: '/assets/provided/map-marker-culture.png',
+    camping: '/assets/provided/map-marker-camping.png',
+  };
   it.each(['scenic', 'restaurant', 'culture', 'camping'] as Category[])('shows only %s markers', category => {
     const result = buildMarkers(places, category);
     expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ iconPath: '/assets/provided/map-marker.png', width: 36, height: 44 });
+    expect(result[0]).toMatchObject({ iconPath: expectedPaths[category], width: 44, height: 54 });
     expect(result[0]).not.toHaveProperty('callout');
   });
   it('restores all markers with stable numeric IDs across category and input ordering', () => {
     const all = buildMarkers(places, '');
     const scenic = buildMarkers(places, 'scenic')[0];
     expect(all).toHaveLength(4);
+    expect(new Set(all.map(marker => marker.iconPath))).toEqual(new Set(Object.values(expectedPaths)));
     expect(new Set(all.map(marker => marker.id)).size).toBe(4);
     expect(all.find(marker => marker.latitude === scenic.latitude && marker.longitude === scenic.longitude)!.id).toBe(scenic.id);
     expect(buildMarkers([...places].reverse(), '')).toEqual(all);
+    for (const marker of all) {
+      const source = places.find(place => place.latitude === marker.latitude && place.longitude === marker.longitude);
+      expect(source).toBeTruthy();
+      expect(marker.latitude).toBe(source!.latitude);
+      expect(marker.longitude).toBe(source!.longitude);
+    }
     expect(places[0].placeId).toBe('test-b');
   });
   it('excludes invalid coordinates, unknown categories, empty names and duplicates', () => {

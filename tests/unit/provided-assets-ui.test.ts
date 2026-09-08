@@ -14,6 +14,8 @@ const assets = [
   ['favorite.png', 128, 128, 20_000], ['favorite-active.png', 128, 128, 20_000],
   ['menu-favorite.png', 96, 96, 30_000], ['menu-history.png', 96, 96, 30_000], ['menu-ai.png', 96, 96, 30_000], ['menu-preferences.png', 96, 96, 30_000],
   ['map-marker.png', 72, 88, 20_000],
+  ['map-marker-scenic.png', 88, 108, 24_000], ['map-marker-restaurant.png', 88, 108, 24_000],
+  ['map-marker-culture.png', 88, 108, 24_000], ['map-marker-camping.png', 88, 108, 24_000],
 ] as const;
 
 function pngDimension(bytes: Buffer, offset: number) { return bytes.readUInt32BE(offset); }
@@ -127,6 +129,14 @@ describe('provided visual assets and UI boundary', () => {
       const bytes = await readFile(`${root}/${name}`);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(expected);
     }
+  });
+
+  it('ships four visually distinct category marker derivatives', async () => {
+    const hashes = await Promise.all(['scenic', 'restaurant', 'culture', 'camping'].map(async category => {
+      const bytes = await readFile(`${root}/map-marker-${category}.png`);
+      return createHash('sha256').update(bytes).digest('hex');
+    }));
+    expect(new Set(hashes).size).toBe(4);
   });
 
   it('keeps routes, bindings and supported category values while replacing only presentation', async () => {

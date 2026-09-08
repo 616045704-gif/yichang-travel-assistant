@@ -30,14 +30,20 @@ describe('nearby map page', () => {
       readFile('miniprogram/pages/map/index.wxss', 'utf8'),
     ]);
     expect(markup).toContain('<map id="city-map"');
+    expect(markup).toContain('bindmarkertap="onMarkerTap"');
     expect(markup).toContain('bindtap="locateNearby"');
     expect(markup).toContain('bindtap="openSelectedPlace"');
     expect(markup).toContain('class="map-bottom-stack"');
     expect(markup).toContain('/assets/provided/place-placeholder.jpg');
+    expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
+    expect(markup).toContain('{{selectedPlace.name}}');
     expect(markup.indexOf('class="map-actions"')).toBeLessThan(markup.indexOf('class="marker-card"'));
     expect(css).toContain('.map-bottom-stack');
     expect(css).toContain('gap: 16rpx');
     expect(css).toMatch(/\.map-filters\s*\{[^}]*pointer-events:\s*auto/);
+    expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
+    expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-name\s*\{[^}]*-webkit-line-clamp:\s*2/);
     expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');
   });
 

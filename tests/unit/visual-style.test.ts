@@ -60,12 +60,24 @@ describe('travel visual presentation', () => {
       expect(svg).toContain('viewBox="0 0 64 64"');
       expect(svg).toContain('#7454d8');
     }
-    const locationPng = await readFile('miniprogram/assets/provided/map-marker.png');
-    expect(locationPng.readUInt32BE(16)).toBe(72);
-    expect(locationPng.readUInt32BE(20)).toBe(88);
+    for (const name of ['scenic', 'restaurant', 'culture', 'camping']) {
+      const locationPng = await readFile(`miniprogram/assets/provided/map-marker-${name}.png`);
+      expect(locationPng.readUInt32BE(16)).toBe(88);
+      expect(locationPng.readUInt32BE(20)).toBe(108);
+    }
     const scenic = await readFile('miniprogram/assets/provided/category-scenic.png');
     expect(scenic.readUInt32BE(16)).toBe(128);
     expect(scenic.readUInt32BE(20)).toBe(128);
+  });
+  it('uses a full-width category rail and a refined two-line map preview', async () => {
+    const [markup, css] = await Promise.all([
+      readFile('miniprogram/pages/map/index.wxml', 'utf8'),
+      readFile('miniprogram/pages/map/index.wxss', 'utf8'),
+    ]);
+    expect(markup).toContain('/assets/provided/category-{{selectedPlace.category}}.png');
+    expect(css).toMatch(/\.map-filters\s*\{[^}]*left:\s*20rpx[^}]*right:\s*20rpx/);
+    expect(css).toMatch(/\.marker-card\s*\{[^}]*border-radius:\s*30rpx[^}]*box-shadow:/);
+    expect(css).toMatch(/\.marker-name\s*\{[^}]*display:\s*-webkit-box[^}]*-webkit-line-clamp:\s*2/);
   });
   it('renders the provided Home Hero with clean paired AI actions', async () => {
     const home = await readFile('miniprogram/pages/home/index.wxml', 'utf8');
@@ -108,9 +120,9 @@ describe('travel visual presentation', () => {
   it('keeps the map visible and the horizontal category tabs interactive', async () => {
     const css = await readFile('miniprogram/pages/map/index.wxss', 'utf8');
     const overlay = css.match(/\.map-filters\s*\{([^}]+)\}/)![1];
-    expect(overlay).toContain('background: transparent');
-    expect(overlay).toContain('box-shadow: none');
-    expect(overlay).toContain('border: 0');
+    expect(overlay).toContain('background: rgba(255, 255, 255, .95)');
+    expect(overlay).toContain('box-shadow: 0 12rpx 30rpx');
+    expect(overlay).toContain('border: 1rpx solid');
     expect(overlay).toContain('pointer-events: auto');
     const buttons = await readFile('miniprogram/components/category-filter/index.wxss', 'utf8');
     expect(buttons).toMatch(/\.category-tabs\s*\{[^}]*pointer-events:\s*auto/);

@@ -11,6 +11,13 @@ export interface TravelMarker {
   height: number;
 }
 
+const MARKER_ICON_BY_CATEGORY: Record<Category, string> = {
+  scenic: '/assets/provided/map-marker-scenic.png',
+  restaurant: '/assets/provided/map-marker-restaurant.png',
+  culture: '/assets/provided/map-marker-culture.png',
+  camping: '/assets/provided/map-marker-camping.png',
+};
+
 function isMapPlace(value: unknown): value is MapPlace {
   if (!value || typeof value !== 'object') return false;
   const place = value as Record<string, unknown>;
@@ -34,9 +41,9 @@ export function buildMarkers(places: readonly unknown[], category: Category | ''
       id,
       latitude: place.latitude,
       longitude: place.longitude,
-      iconPath: '/assets/provided/map-marker.png',
-      width: 36,
-      height: 44,
+      iconPath: MARKER_ICON_BY_CATEGORY[place.category],
+      width: 44,
+      height: 54,
     }));
 }
 
