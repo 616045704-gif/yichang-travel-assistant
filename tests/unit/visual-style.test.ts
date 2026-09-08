@@ -138,6 +138,10 @@ describe('travel visual presentation', () => {
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
     expect(detail).toContain('favorite-anchor');
+    expect(detail).toContain("favorite-anchor {{favoritePending ? 'is-pending' : ''}}");
+    expect(detail).toContain('bindtap="onFavorite"');
+    expect(detail).toContain('aria-role="button"');
+    expect(detail).not.toContain('<button class="favorite-button"');
     for (const filename of ['favorite.png', 'favorite-active.png']) {
       const favorite = await readFile(`miniprogram/assets/provided/${filename}`);
       expect(favorite.readUInt32BE(16)).toBe(128);
@@ -163,7 +167,7 @@ describe('travel visual presentation', () => {
     expect(detailStyle).toContain('width: 88rpx');
     expect(detailStyle).toContain('width: 72rpx');
     expect(detailStyle).toContain('.place-name-heading { margin-top: 48rpx; }');
-    expect(detailStyle).toContain('.favorite-button text { display: none; }');
+    expect(detailStyle).toContain('.favorite-anchor.is-pending');
     expect(detailStyle).toContain('box-shadow: 0 8rpx 24rpx rgba(53, 39, 92, .08)');
   });
 
