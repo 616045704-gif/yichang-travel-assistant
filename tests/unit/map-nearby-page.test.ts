@@ -57,6 +57,7 @@ describe('nearby map page', () => {
     expect(css).toMatch(/\.marker-copy\s*\{[^}]*min-height:\s*224rpx[^}]*justify-content:\s*space-between/);
     expect(css).toMatch(/\.nearby-button, \.settings-button, \.detail-button\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*height:\s*72rpx[^}]*line-height:\s*1/);
     expect(css).toMatch(/\.detail-button\s*\{[^}]*width:\s*100%[^}]*align-self:\s*stretch/);
+    expect(css).not.toMatch(/\.detail-button\s*\{\s*width:[^}]*font-size:/);
     expect(css).toMatch(/\.marker-name\s*\{[^}]*-webkit-line-clamp:\s*2/);
     expect(css).toMatch(/\.map-actions\s*\{[^}]*align-items:\s*center/);
     expect(css).toContain('bottom: calc(48rpx + env(safe-area-inset-bottom))');
