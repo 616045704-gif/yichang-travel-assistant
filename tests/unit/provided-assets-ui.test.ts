@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
@@ -104,39 +105,27 @@ describe('provided visual assets and UI boundary', () => {
     }
   });
 
-  it('ships transparent bold-gradient category artwork from the deterministic renderer', async () => {
+  it('keeps the supplied category artwork and enlarged supplied tab artwork intact', async () => {
     const renderer = await readFile('scripts/render-modern-icons.mjs', 'utf8');
-    expect(renderer).toContain('gradientCategoryIcon');
-    expect(renderer).toContain('providedRoot');
-    expect(renderer).toContain('const purple = [130, 86, 232, 255]');
-    expect(renderer).toContain('const stroke = 1.85');
-    for (const name of ['all', 'scenic', 'restaurant', 'culture', 'camping']) {
-      const bytes = await readFile(`${root}/category-${name}.png`);
-      expect(bytes[24]).toBe(8);
-      expect(bytes[25]).toBe(6);
-      const chunks: Buffer[] = [];
-      let offset = 8;
-      while (offset < bytes.length) {
-        const size = bytes.readUInt32BE(offset);
-        if (bytes.subarray(offset + 4, offset + 8).toString() === 'IDAT') chunks.push(bytes.subarray(offset + 8, offset + 8 + size));
-        offset += size + 12;
-      }
-      const pixels = inflateSync(Buffer.concat(chunks));
-      const colors = new Set<string>();
-      let opaque = 0;
-      for (let row = 0; row < 128; row += 1) {
-        expect(pixels[row * 513]).toBe(0);
-        for (let column = 0; column < 128; column += 1) {
-          const pixel = row * 513 + 1 + column * 4;
-          if (pixels[pixel + 3] > 0) {
-            opaque += 1;
-            colors.add(`${pixels[pixel]},${pixels[pixel + 1]},${pixels[pixel + 2]}`);
-          }
-        }
-      }
-      expect(pixels[4]).toBe(0);
-      expect(opaque).toBeGreaterThan(900);
-      expect(colors.size).toBeGreaterThan(24);
+    expect(renderer).not.toContain('gradientCategoryIcon');
+    const fingerprints: Record<string, string> = {
+      'category-all.png': 'be305e0e86bfb0fb10d48b9ac7e8adaa436ace2a601b53689cc3d34a097b779a',
+      'category-scenic.png': '2844a863a3c27dd76586719b21189f7bd03976f2ed7a960e8d539274036bb0be',
+      'category-restaurant.png': '7b27f297b9b3497a9a8dcde492af6e2fb731d6de7450a2002aea4f337c093726',
+      'category-culture.png': '72119d9d7aafb93b00a8c32818e534710557048f08591a757c981c318c070229',
+      'category-camping.png': 'fa8b8ffa52be565ed4039e4534f6b3fb85772c8cbc93ca9bf324c73546e46c77',
+      'tab-home.png': '99f8c80691d79cbab099f58079b9c2688c8780a57a18ebf1bcc71b048dd4f415',
+      'tab-home-active.png': '4c9530bef566e230beb4c9064a3eac08b322d8d0d49022ddce3bf6f774006feb',
+      'tab-discover.png': '27d30c359b6e7a616167b106952e3e47097de94d7808b7194e0b2c4b45d93295',
+      'tab-discover-active.png': 'dd74d5899c6ab6fe7672b95f510b465a905e3d18b0664e3e5469230d8623a71a',
+      'tab-map.png': 'e70f144378a70ae2acbff69a4dcfd498a8403bb84097ded9c5e1aba17e185645',
+      'tab-map-active.png': '797e26beb4a013e566b3c43b2039c12015920e2458a6c724d9b9260bedfcfd16',
+      'tab-me.png': 'e89cf91ac3b8de304e73c56ef35601df65f93ef53b8ee4e829c67daf5923d446',
+      'tab-me-active.png': '5accc8ce78130af606ec8f161eec254d8be813cc907ba8a7f164a8eccf26852e',
+    };
+    for (const [name, expected] of Object.entries(fingerprints)) {
+      const bytes = await readFile(`${root}/${name}`);
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(expected);
     }
   });
 
@@ -180,7 +169,8 @@ describe('provided visual assets and UI boundary', () => {
     expect(home).toContain('/assets/provided/trip-plan.png');
     expect(homeStyle).toMatch(/\.ai-quick-grid\s*\{[^}]*gap:\s*24rpx/);
     expect(homeStyle).toMatch(/\.ai-quick-image\s*\{[^}]*width:\s*90%/);
-    expect(homeStyle).toMatch(/\.category-label\s*\{[^}]*color:\s*var\(--color-brand\)/);
+    expect(homeStyle).toMatch(/\.category-icon\s*\{[^}]*width:\s*128rpx[^}]*height:\s*128rpx/);
+    expect(homeStyle).toMatch(/\.category-label\s*\{[^}]*color:\s*var\(--color-text\)/);
     for (const retiredCopy of ['旅行助手', '从哪里开始', '从灵感到行程', '四类地点', '值得停留', '精选地点', '内容仅供出行参考，请以景区、交通等官方公告为准']) {
       expect(home).not.toContain(retiredCopy);
     }

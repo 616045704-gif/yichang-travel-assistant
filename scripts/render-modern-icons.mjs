@@ -14,35 +14,6 @@ function png(width, height, paint) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(pixels)), chunk('IEND', Buffer.alloc(0))]);
 }
 function distanceToSegment(px, py, ax, ay, bx, by) { const vx = bx - ax; const vy = by - ay; const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy))); return Math.hypot(px - (ax + vx * t), py - (ay + vy * t)); }
-function mixColor(start, end, amount) { return start.map((value, index) => Math.round(value + (end[index] - value) * amount)); }
-function gradientCategoryIcon(name, size = 128) {
-  const scale = size / 64;
-  const purple = [130, 86, 232, 255];
-  const teal = [73, 187, 196, 255];
-  return png(size, size, (x, y, set) => {
-    const px = (x + .5) / scale; const py = (y + .5) / scale;
-    const stroke = 1.85;
-    const line = (...segments) => segments.some(([ax, ay, bx, by]) => distanceToSegment(px, py, ax, ay, bx, by) <= stroke);
-    const circle = (cx, cy, radius, width = stroke) => Math.abs(Math.hypot(px - cx, py - cy) - radius) <= width;
-    const dot = (cx, cy, radius) => Math.hypot(px - cx, py - cy) <= radius;
-    let mark = false;
-    if (name === 'all') {
-      mark = circle(22, 22, 9) || circle(42, 22, 9) || circle(22, 42, 9) || circle(42, 42, 9)
-        || line([22, 31, 22, 33], [42, 31, 42, 33], [31, 22, 33, 22], [31, 42, 33, 42]);
-    } else if (name === 'scenic') {
-      mark = line([8, 47, 23, 27], [23, 27, 34, 39], [34, 39, 43, 30], [43, 30, 56, 47], [8, 50, 56, 50], [13, 56, 25, 53], [25, 53, 38, 56], [38, 56, 52, 53]);
-    } else if (name === 'restaurant') {
-      mark = line([11, 35, 53, 35], [13, 37, 18, 48], [18, 48, 27, 53], [27, 53, 39, 53], [39, 53, 48, 48], [48, 48, 53, 37], [18, 57, 47, 57], [46, 12, 35, 34], [53, 15, 42, 34], [22, 28, 19, 23], [19, 23, 22, 18], [31, 28, 28, 23], [28, 23, 31, 18]);
-    } else if (name === 'culture') {
-      mark = line([9, 26, 32, 12], [32, 12, 55, 26], [12, 28, 52, 28], [14, 51, 50, 51], [10, 56, 54, 56], [18, 30, 18, 49], [27, 30, 27, 49], [37, 30, 37, 49], [46, 30, 46, 49]);
-    } else {
-      mark = line([9, 52, 31, 17], [31, 17, 55, 52], [20, 52, 31, 34], [31, 34, 43, 52], [8, 55, 56, 55], [31, 17, 31, 34], [13, 20, 21, 20], [17, 16, 17, 24]);
-    }
-    if (mark) set(mixColor(purple, teal, Math.max(0, Math.min(1, (x + y) / (size * 1.65)))));
-    const accent = name === 'all' ? dot(32, 32, 3.2) : name === 'scenic' ? dot(48, 17, 4.3) : name === 'restaurant' ? dot(13, 18, 3.6) : name === 'culture' ? dot(49, 16, 3.8) : dot(49, 18, 3.6);
-    if (accent) set(palette.yellow);
-  });
-}
 function icon(name, size, color, isCategory = false) {
   const scale = size / 64;
   return png(size, size, (x, y, set) => {
@@ -114,6 +85,5 @@ for (const name of tabs) {
   await writeFile(new URL(`${name}-active.png`, root), icon(name, 81, palette.purple));
 }
 for (const name of ['scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, root), icon(name, 96, palette.purple, true));
-for (const name of ['all', 'scenic', 'restaurant', 'culture', 'camping']) await writeFile(new URL(`category-${name}.png`, providedRoot), gradientCategoryIcon(name));
 await writeFile(new URL('location.png', root), locationPin());
 await writeFile(new URL('map-marker.png', providedRoot), mapMarker());
