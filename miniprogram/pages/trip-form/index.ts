@@ -59,6 +59,7 @@ Page({
     isSubmitting: false,
     lastRequest: null as AiRequest | null,
     lastConfirmedRequirement: '',
+    feedback: { visible: false, tone: 'info', message: '' },
   },
   onDestination(event: WechatMiniprogram.Input) { this.updateForm({ destination: event.detail.value }); },
   onPeople(event: WechatMiniprogram.Input) { this.updateForm({ people: event.detail.value }); },
@@ -126,6 +127,7 @@ Page({
         results: [],
         lastRequest: null,
         lastConfirmedRequirement: '',
+        feedback: { visible: false, tone: 'info', message: '' },
       });
     } catch {
       this.setData({ error: '重新规划暂时无法开始，请重试' });
@@ -141,6 +143,9 @@ Page({
     const form = { ...this.data.form, ...change };
     this.setData({ form, preferenceOptions: visibleOptions(form.preferences), errors: [], error: '' });
   },
+  onFeedbackDismiss() {
+    this.setData({ 'feedback.visible': false });
+  },
   async send(request: AiRequest, options: SendOptions = {}) {
     const isFirstPlan = Boolean(request.trip);
     const existingResult = isFirstPlan ? null : this.data.result;
@@ -152,6 +157,7 @@ Page({
       results: isFirstPlan ? [] : this.data.results,
       lastRequest: request,
       lastConfirmedRequirement: options.confirmedRequirement ?? '',
+      feedback: { visible: false, tone: 'info', message: '' },
     });
     try {
       const result = await submitAi(request);
@@ -166,6 +172,10 @@ Page({
           adjustmentError: '',
           error: '',
         });
+        if (options.confirmedRequirement) {
+          this.setData({ feedback: { visible: true, tone: 'success', message: '新行程已生成' } });
+          void wx.pageScrollTo({ selector: '#current-trip-plan', duration: 300 });
+        }
       }
       else this.setData({ result: existingResult, error: networkError(result) });
     } catch (error) {

@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "定制行程", "usingComponents": { "message-bubble": "/components/message-bubble/index", "source-card": "/components/source-card/index" } }
+{ "navigationBarTitleText": "定制行程", "usingComponents": { "message-bubble": "/components/message-bubble/index", "source-card": "/components/source-card/index", "feedback-toast": "/components/feedback-toast/index" } }

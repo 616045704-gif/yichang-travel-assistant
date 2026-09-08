@@ -12,6 +12,8 @@ type TripPage = {
     results: Array<{ answer: string | null }>;
     adjustment: string;
     confirmedRequirements: string[];
+    isSubmitting: boolean;
+    feedback: { visible: boolean; tone: string; message: string };
   };
   setData(value: Record<string, unknown>): void;
   onDestination(event: { detail: { value: string } }): void;
@@ -30,6 +32,7 @@ async function loadTripPage(options: {
   submitAi?: ReturnType<typeof vi.fn>;
   resetAiConversation?: ReturnType<typeof vi.fn>;
   navigateTo?: ReturnType<typeof vi.fn>;
+  pageScrollTo?: ReturnType<typeof vi.fn>;
 } = {}) {
   let page: TripPage;
   if (options.submitAi || options.resetAiConversation) {
@@ -42,17 +45,24 @@ async function loadTripPage(options: {
   vi.stubGlobal('wx', {
     showToast: vi.fn(),
     navigateTo: options.navigateTo ?? vi.fn(),
+    pageScrollTo: options.pageScrollTo ?? vi.fn(),
   });
   await import('../../miniprogram/pages/trip-form/index');
   page!.setData = function (value) { Object.assign(this.data, value); };
   return page!;
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
+afterEach(() => {
+  vi.doUnmock('../../miniprogram/services/ai');
+  vi.unstubAllGlobals();
+  vi.resetModules();
+});
 
 describe('trip input validation', () => {
   it('marks one complete current trip and removes the redundant final-generation action', () => {
     const markup = readFileSync('miniprogram/pages/trip-form/index.wxml', 'utf8');
+    const style = readFileSync('miniprogram/pages/trip-form/index.wxss', 'utf8');
+    const config = readFileSync('miniprogram/pages/trip-form/index.json', 'utf8');
 
     expect(markup).toContain('当前计划（可继续调整）');
     expect(markup).toContain('当前完整行程（已应用调整）');
@@ -61,9 +71,46 @@ describe('trip input validation', () => {
     expect(markup).not.toContain('生成最终行程');
     expect(markup).not.toContain('wx:for="{{results}}"');
 
-    expect(markup).toContain('bindtap="openAdjustmentPage">调整行程</button>');
+    expect(markup).toContain('bindtap="openAdjustmentPage"');
     expect(markup).not.toContain('<textarea');
     expect(markup).not.toContain('onAdjustmentKeyboardHeightChange');
+    expect(markup).toContain('id="current-trip-plan"');
+    expect(markup).toContain('wx:if="{{isSubmitting}}" class="generation-status"');
+    expect(markup).toContain('正在重新生成完整行程');
+    expect(markup).toContain("{{isSubmitting ? '生成中…' : '调整行程'}}");
+    expect(markup).toContain('<feedback-toast');
+    expect(config).toContain('"feedback-toast": "/components/feedback-toast/index"');
+    expect(style).toMatch(/\.trip-action-button\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/);
+  });
+
+  it('shows adjustment progress beside the actions and reveals the completed plan', async () => {
+    const response = {
+      requestId: 'trip-adjusted',
+      status: 'succeeded',
+      answer: '已完成的新行程',
+      mode: 'mock',
+      error: null,
+      localFacts: [],
+      references: [],
+    } as const;
+    let finishRequest!: (value: typeof response) => void;
+    const submitAi = vi.fn(() => new Promise<typeof response>((resolve) => { finishRequest = resolve; }));
+    const pageScrollTo = vi.fn();
+    const page = await loadTripPage({ submitAi, pageScrollTo });
+    page.data.form = { destination: '宜昌', people: '2', totalBudgetCny: '3000', days: '2', preferences: ['美食探索'] };
+    page.data.result = { answer: '原行程' };
+    page.data.results = [{ answer: '原行程' }];
+    page.data.adjustment = '第二天安排轻松一些';
+
+    const submission = page.submitAdjustment();
+
+    expect(page.data.isSubmitting).toBe(true);
+    finishRequest(response);
+    await submission;
+
+    expect(page.data.isSubmitting).toBe(false);
+    expect(page.data.feedback).toEqual({ visible: true, tone: 'success', message: '新行程已生成' });
+    expect(pageScrollTo).toHaveBeenCalledWith({ selector: '#current-trip-plan', duration: 300 });
   });
 
   it('accepts only a valid five-field trip input', () => {

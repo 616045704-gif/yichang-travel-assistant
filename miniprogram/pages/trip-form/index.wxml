@@ -22,10 +22,10 @@
     <view wx:if="{{errors.length}}" class="validation-errors"><text wx:for="{{errors}}" wx:key="*this">{{item}}</text></view>
   </view>
 
-  <view wx:if="{{isSubmitting}}" class="waiting"><text>正在生成行程建议，请稍候…</text></view>
-  <view wx:if="{{error}}" class="error-panel"><text>{{error}}</text><button class="button-secondary retry-button" bindtap="retry">重试</button></view>
+  <view wx:if="{{isSubmitting && !results.length}}" class="waiting"><text>正在生成行程建议，请稍候…</text></view>
+  <view wx:if="{{error && !results.length}}" class="error-panel"><text>{{error}}</text><button class="button-secondary retry-button" bindtap="retry">重试</button></view>
 
-  <view wx:if="{{result}}" class="current-plan card">
+  <view wx:if="{{result}}" id="current-trip-plan" class="current-plan card">
     <text class="current-plan-title">{{confirmedRequirements.length ? '当前完整行程（已应用调整）' : '当前计划（可继续调整）'}}</text>
     <message-bubble role="assistant" content="{{result.answer}}" mode="{{result.mode}}" label="模拟回答，仅用于交互测试" />
     <source-card facts="{{result.localFacts}}" references="{{result.references}}" />
@@ -40,10 +40,19 @@
   </view>
 
   <view wx:if="{{results.length}}" class="adjustment-card card">
+    <view wx:if="{{isSubmitting}}" class="generation-status" role="status">
+      <view class="generation-mark" aria-hidden="true"><view class="generation-mark-core"></view></view>
+      <view class="generation-copy">
+        <text class="generation-title">正在重新生成完整行程</text>
+        <text class="generation-note">已收到调整内容，请稍候，完成后会自动展示新行程。</text>
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="error-panel"><text>{{error}}</text><button class="button-secondary retry-button" bindtap="retry">重试</button></view>
     <text wx:if="{{adjustmentError}}" class="adjustment-error">{{adjustmentError}}</text>
-    <button class="button-primary adjustment-button" disabled="{{isSubmitting}}" bindtap="openAdjustmentPage">调整行程</button>
-    <button class="button-secondary restart-button" disabled="{{isSubmitting}}" bindtap="restartTrip">重新规划</button>
+    <button class="button-primary trip-action-button adjustment-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="openAdjustmentPage">{{isSubmitting ? '生成中…' : '调整行程'}}</button>
+    <button class="button-secondary trip-action-button restart-button" disabled="{{isSubmitting}}" bindtap="restartTrip">重新规划</button>
   </view>
 
   <button wx:if="{{!results.length}}" class="button-primary submit-button" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="submit">生成行程</button>
+  <feedback-toast visible="{{feedback.visible}}" tone="{{feedback.tone}}" message="{{feedback.message}}" bind:dismiss="onFeedbackDismiss" />
 </view>
