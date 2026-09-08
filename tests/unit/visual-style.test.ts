@@ -137,6 +137,12 @@ describe('travel visual presentation', () => {
     expect(cardStyle).toContain('.cover-favorite');
     expect(detail).toContain('detail-favorite-image');
     expect(detail).toContain('/assets/provided/favorite-active.png');
+    for (const filename of ['favorite.png', 'favorite-active.png']) {
+      const favorite = await readFile(`miniprogram/assets/provided/${filename}`);
+      expect(favorite.readUInt32BE(16)).toBe(128);
+      expect(favorite.readUInt32BE(20)).toBe(128);
+      expect(favorite.length).toBeGreaterThan(10_000);
+    }
     expect(detail).toContain('detail-section-heading');
     expect(detail).toContain('section-marker');
     expect(detail).toContain('card-headline');
@@ -153,7 +159,7 @@ describe('travel visual presentation', () => {
     expect(detailStyle).toContain('top: 24rpx');
     expect(detailStyle).toContain('right: 24rpx');
     expect(detailStyle).toContain('width: 88rpx');
-    expect(detailStyle).toContain('width: 56rpx');
+    expect(detailStyle).toContain('width: 72rpx');
     expect(detailStyle).toContain('.place-name-heading { margin-top: 48rpx; }');
     expect(detailStyle).toContain('.favorite-button text { display: none; }');
   });
