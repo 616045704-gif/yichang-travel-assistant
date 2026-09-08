@@ -21,12 +21,17 @@ type TripPage = {
   onTogglePreference(event: { currentTarget: { dataset: { value: string } } }): void;
   submit(): Promise<void>;
   onAdjustment(event: { detail: { value: string } }): void;
+  onAdjustmentKeyboardHeightChange(event: { detail: { height: number; duration: number } }): void;
   submitAdjustment(): Promise<void>;
   restartTrip(): Promise<void>;
   retry(): Promise<void>;
 };
 
-async function loadTripPage(options: { submitAi?: ReturnType<typeof vi.fn>; resetAiConversation?: ReturnType<typeof vi.fn> } = {}) {
+async function loadTripPage(options: {
+  submitAi?: ReturnType<typeof vi.fn>;
+  resetAiConversation?: ReturnType<typeof vi.fn>;
+  pageScrollTo?: ReturnType<typeof vi.fn>;
+} = {}) {
   let page: TripPage;
   if (options.submitAi || options.resetAiConversation) {
     vi.doMock('../../miniprogram/services/ai', () => ({
@@ -35,7 +40,10 @@ async function loadTripPage(options: { submitAi?: ReturnType<typeof vi.fn>; rese
     }));
   }
   vi.stubGlobal('Page', (value: TripPage) => { page = value; });
-  vi.stubGlobal('wx', { showToast: vi.fn() });
+  vi.stubGlobal('wx', {
+    showToast: vi.fn(),
+    pageScrollTo: options.pageScrollTo ?? vi.fn(),
+  });
   await import('../../miniprogram/pages/trip-form/index');
   page!.setData = function (value) { Object.assign(this.data, value); };
   return page!;
@@ -59,10 +67,26 @@ describe('trip input validation', () => {
     expect(adjustmentTextarea).toContain('value="{{adjustment}}"');
     expect(adjustmentTextarea).toContain('maxlength="1000"');
     expect(adjustmentTextarea).toContain('adjust-position="{{false}}"');
+    expect(adjustmentTextarea).toContain('id="trip-adjustment-input"');
+    expect(adjustmentTextarea).toContain('bindkeyboardheightchange="onAdjustmentKeyboardHeightChange"');
     expect(markup).toContain('<view class="adjustment-field"><text>对行程还有什么想调整的？</text><textarea');
     expect(markup).not.toContain('<label class="adjustment-field">');
     expect((markup.match(/adjust-position="{{false}}"/g) ?? [])).toHaveLength(1);
     expect(markup).not.toContain('adjust-position="false"');
+  });
+
+  it('returns the focused trip adjustment field to view when the keyboard opens', async () => {
+    const pageScrollTo = vi.fn();
+    const page = await loadTripPage({ pageScrollTo });
+
+    page.onAdjustmentKeyboardHeightChange({ detail: { height: 320, duration: 0 } });
+
+    expect(pageScrollTo).toHaveBeenCalledTimes(1);
+    expect(pageScrollTo).toHaveBeenCalledWith({ selector: '#trip-adjustment-input', duration: 0 });
+
+    pageScrollTo.mockClear();
+    page.onAdjustmentKeyboardHeightChange({ detail: { height: 0, duration: 0 } });
+    expect(pageScrollTo).not.toHaveBeenCalled();
   });
 
   it('accepts only a valid five-field trip input', () => {

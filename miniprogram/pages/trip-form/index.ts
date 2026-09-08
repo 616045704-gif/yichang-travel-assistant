@@ -83,6 +83,10 @@ Page({
   onAdjustment(event: WechatMiniprogram.Input) {
     this.setData({ adjustment: event.detail.value, adjustmentError: '', error: '' });
   },
+  onAdjustmentKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
+    if (event.detail.height <= 0) return;
+    void wx.pageScrollTo({ selector: '#trip-adjustment-input', duration: 0 });
+  },
   async submitAdjustment() {
     if (this.data.isSubmitting) return;
     const question = this.data.adjustment.trim();
