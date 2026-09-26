@@ -24,11 +24,40 @@ export async function getHomePlaces(): Promise<{ featured: PlaceSummary[]; recom
 }
 
 export async function getMapMarkers(): Promise<PlaceMarker[]> {
-  return (await call<{ items: PlaceMarker[] }>('markers', {})).items;
+  const response = await call<{ items: unknown[] }>('markers', {});
+  if (Array.isArray(response.items) && response.items.every(isPlaceMarker)) return response.items;
+
+  const markers: PlaceMarker[] = [];
+  const seenCursors = new Set<string>();
+  let cursor: string | null = null;
+  do {
+    const page = await listPlaces({ category: '', keyword: '', tag: '', cursor, pageSize: 50 });
+    markers.push(...page.items.map(place => ({
+      placeId: place.placeId,
+      name: place.name,
+      category: place.category,
+      district: place.district,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      coordinateSystem: place.coordinateSystem,
+    })));
+    cursor = page.nextCursor;
+    if (cursor && seenCursors.has(cursor)) throw new Error('PLACE_PAGINATION_ERROR');
+    if (cursor) seenCursors.add(cursor);
+  } while (cursor);
+  return markers;
 }
 
-export async function getNearbyPlaces(location: { latitude: number; longitude: number }, category: Category | ''): Promise<PlaceMarker[]> {
-  return (await call<{ items: PlaceMarker[] }>('nearby', { ...location, ...(category ? { category } : {}) })).items;
+function isPlaceMarker(value: unknown): value is PlaceMarker {
+  if (!value || typeof value !== 'object') return false;
+  const marker = value as Record<string, unknown>;
+  return typeof marker.placeId === 'string' && marker.placeId.trim().length > 0
+    && typeof marker.name === 'string' && marker.name.trim().length > 0
+    && typeof marker.category === 'string' && isCategory(marker.category)
+    && typeof marker.district === 'string' && marker.district.trim().length > 0
+    && marker.coordinateSystem === 'GCJ-02'
+    && typeof marker.latitude === 'number' && Number.isFinite(marker.latitude) && Math.abs(marker.latitude) <= 90
+    && typeof marker.longitude === 'number' && Number.isFinite(marker.longitude) && Math.abs(marker.longitude) <= 180;
 }
 
 export function isCategory(value: string): value is Category {

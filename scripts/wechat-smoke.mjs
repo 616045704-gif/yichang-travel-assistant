@@ -263,10 +263,10 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const center = await mapPage.data('center');
     // Explicitly synthetic public-coordinate fixtures; never persisted or captured as real data.
     await mapPage.callMethod('setPlaces', [
-      { placeId: 'e2e-scenic', name: '自动化测试点（景区）', category: 'scenic', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' },
-      { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
-      { placeId: 'e2e-culture', name: '自动化测试点（文化馆）', category: 'culture', latitude: 30.72, longitude: 111.32, coordinateSystem: 'GCJ-02' },
-      { placeId: 'e2e-camping', name: '自动化测试点（露营地）', category: 'camping', latitude: 30.73, longitude: 111.33, coordinateSystem: 'GCJ-02' },
+       { placeId: 'e2e-scenic', name: '自动化测试点（景区）', category: 'scenic', district: '西陵区', latitude: 30.7, longitude: 111.3, coordinateSystem: 'GCJ-02' },
+       { placeId: 'e2e-restaurant', name: '自动化测试点（餐馆）', category: 'restaurant', district: '夷陵区', latitude: 30.71, longitude: 111.31, coordinateSystem: 'GCJ-02' },
+       { placeId: 'e2e-culture', name: '自动化测试点（文化馆）', category: 'culture', district: '秭归县', latitude: 30.72, longitude: 111.32, coordinateSystem: 'GCJ-02' },
+       { placeId: 'e2e-camping', name: '自动化测试点（露营地）', category: 'camping', district: '兴山县', latitude: 30.73, longitude: 111.33, coordinateSystem: 'GCJ-02' },
     ]);
     const allMarkers = await mapPage.data('markers');
     assert.equal(allMarkers.length, 4);
@@ -315,20 +315,20 @@ if (!endpoint || !/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(endpoint)) {
     const markerCoverBox = await elementBox(await markerCard.$('.marker-cover'));
     const markerCopyBox = await elementBox(await markerCard.$('.marker-copy'));
     const detailButtonBox = await elementBox(await markerCard.$('.detail-button'));
-    const nearbyButtonBox = await elementBox(await mapPage.$('.nearby-button'));
+    const regionButtonBox = await elementBox(await mapPage.$('.region-button'));
     const mapScale = pageSize.width / 750;
     assert.ok(markerCardBox.height >= (280 * mapScale) - 2, `Map preview must preserve its 280rpx minimum height, received ${markerCardBox.height}px`);
     assertNear(markerCoverBox.top, markerCopyBox.top, 2, 'Map preview columns must share one top edge');
     assertNear(detailButtonBox.left, markerCopyBox.left, 2, 'Map detail button must align to the copy column left edge');
     assertNear(detailButtonBox.width, markerCopyBox.width, 2, 'Map detail button must fill the copy column width');
-    assertNear(nearbyButtonBox.left + nearbyButtonBox.width / 2, markerCardBox.left + markerCardBox.width / 2, 2, 'Nearby button and preview card must share one center line');
-    assertNear(nearbyButtonBox.height, detailButtonBox.height, 2, 'Map action buttons must share one visible height');
+    assertNear(regionButtonBox.left + regionButtonBox.width / 2, markerCardBox.left + markerCardBox.width / 2, 2, 'Region selector and preview card must share one center line');
+    assertNear(regionButtonBox.height, detailButtonBox.height, 2, 'Map action buttons must share one visible height');
     assert.ok(detailButtonBox.left >= markerCoverBox.left + markerCoverBox.width, 'Map detail button must not enter the cover column');
     await (await markerCard.$('.detail-button')).tap();
     const mapDetailPage = await waitForPagePath(miniProgram, 'pages/place-detail/index');
     assert.equal(mapDetailPage.query.placeId, selectedPlace.placeId);
     console.log('PASS: full map viewport, category markers, preview card and detail route');
-    console.log('SKIP: location permission paths require explicit user interaction and are covered by unit tests');
+    console.log('PASS: manual region selector requires no location permission');
   } catch (error) {
     console.error(`WeChat smoke check failed: ${error.message}`);
     process.exitCode = 1;

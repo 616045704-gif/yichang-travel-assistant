@@ -1,10 +1,38 @@
 {
   "description": "三峡旅游小助手：原生微信小程序",
   "projectname": "sanxia-travel-assistant",
-  "appid": "touristappid",
+  "appid": "wx266dd8f36d10f4c9",
   "compileType": "miniprogram",
   "miniprogramRoot": "dist/miniprogram/",
   "cloudfunctionRoot": "dist/cloudfunctions/",
-  "setting": { "es6": true, "enhance": true, "minified": true, "urlCheck": true },
-  "condition": {}
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "minified": true,
+    "urlCheck": true,
+    "postcss": false,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {}
 }

@@ -1,29 +1,12 @@
 import { InvalidPlaceInputError, type PlaceRepository } from './repository';
 import { resolveCoverUrls, resolveSectionImageUrls } from './storage';
-import { distanceMeters, isCoordinate, NEARBY_RADIUS_METERS } from './distance';
-import type { Category, PlaceMarker } from '../../shared/contracts';
 
 type Storage = { getTempFileURL(input: { fileList: string[] }): Promise<{ fileList: Array<{ fileID: string; tempFileURL?: string }> }> };
-type Event = { action?: unknown; category?: unknown; keyword?: unknown; tags?: unknown; cursor?: unknown; pageSize?: unknown; placeId?: unknown; latitude?: unknown; longitude?: unknown };
+type Event = { action?: unknown; category?: unknown; keyword?: unknown; tags?: unknown; cursor?: unknown; pageSize?: unknown; placeId?: unknown };
 const categories = ['scenic', 'restaurant', 'culture', 'camping'];
 
 function ok(data: unknown) { return { code: 'OK', data, message: '', traceId: 'place-testable' }; }
 function fail(code: 'INVALID_INPUT' | 'NOT_FOUND' | 'INTERNAL_ERROR', message: string) { return { code, data: null, message, traceId: 'place-testable' }; }
-
-function nearbyInput(event: Event): { latitude: number; longitude: number; category?: Category } {
-  const coordinate = { latitude: event.latitude, longitude: event.longitude };
-  if (!isCoordinate(coordinate)) throw new InvalidPlaceInputError('当前位置无效，请重新定位。');
-  if (event.category !== undefined && (typeof event.category !== 'string' || !categories.includes(event.category))) throw new InvalidPlaceInputError('分类参数无效。');
-  return { latitude: coordinate.latitude, longitude: coordinate.longitude, category: event.category as Category | undefined };
-}
-
-function nearby(markers: readonly PlaceMarker[], input: { latitude: number; longitude: number; category?: Category }) {
-  return markers
-    .filter(marker => !input.category || marker.category === input.category)
-    .map(marker => ({ ...marker, distanceMeters: distanceMeters(input, marker) }))
-    .filter(marker => marker.distanceMeters <= NEARBY_RADIUS_METERS)
-    .sort((left, right) => left.distanceMeters - right.distanceMeters || left.placeId.localeCompare(right.placeId));
-}
 
 export function listInput(event: Event) {
   const { category, keyword, tags, cursor, pageSize } = event;
@@ -66,12 +49,6 @@ export async function handlePlaceRequest(event: Event, dependencies: { repositor
   if (event.action === 'markers') {
     try { return ok({ items: await dependencies.repository.markers() }); }
     catch { return fail('INTERNAL_ERROR', '地图地点暂时无法加载。'); }
-  }
-  if (event.action === 'nearby') {
-    try {
-      // The request coordinate is used only for this calculation and is never persisted or logged.
-      return ok({ items: nearby(await dependencies.repository.markers(), nearbyInput(event)) });
-    } catch (error) { return fail(error instanceof InvalidPlaceInputError ? 'INVALID_INPUT' : 'INTERNAL_ERROR', error instanceof InvalidPlaceInputError ? error.message : '附近地点暂时无法加载。'); }
   }
   return fail('INVALID_INPUT', '不支持的地点服务请求。');
 }

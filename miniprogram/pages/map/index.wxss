@@ -10,8 +10,8 @@ page { height: 100%; overflow: hidden; }
 .map-filter-tab.is-active .map-filter-label { color: var(--color-brand); }
 .map-bottom-stack { position: absolute; z-index: 3; left: 24rpx; right: 24rpx; bottom: calc(48rpx + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: stretch; gap: 16rpx; }
 .map-actions { display: flex; flex-direction: column; align-items: center; gap: 12rpx; }
-.nearby-button, .settings-button, .detail-button { display: flex; box-sizing: border-box; align-items: center; justify-content: center; height: 72rpx; min-height: 72rpx; margin: 0; padding: 0 24rpx; border-radius: 999rpx; font-size: 25rpx; font-weight: 700; line-height: 1; }
-.nearby-button, .settings-button { border: 1rpx solid var(--color-border); background: rgba(255, 255, 255, .97); color: var(--color-brand); box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .08); }
+.region-button, .detail-button { display: flex; box-sizing: border-box; align-items: center; justify-content: center; height: 72rpx; min-height: 72rpx; margin: 0; padding: 0 24rpx; border-radius: 999rpx; font-size: 25rpx; font-weight: 700; line-height: 1; }
+.region-button { border: 1rpx solid var(--color-border); background: rgba(255, 255, 255, .97); color: var(--color-brand); box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .08); }
 .detail-button { border: 0; background: var(--color-brand); color: #fff; }
 .map-notice { max-width: 460rpx; padding: 16rpx 20rpx; border: 1rpx solid var(--color-border); border-radius: 18rpx; background: rgba(255, 255, 255, .97); color: var(--color-text); font-size: 24rpx; box-shadow: 0 8rpx 22rpx rgba(53, 39, 92, .08); }
 .marker-card { display: flex; box-sizing: border-box; align-items: center; gap: 24rpx; min-height: 280rpx; padding: 28rpx 24rpx; border: 1rpx solid rgba(90, 70, 138, .12); border-radius: 30rpx; background: rgba(255, 255, 255, .98); box-shadow: 0 16rpx 38rpx rgba(53, 39, 92, .14); }

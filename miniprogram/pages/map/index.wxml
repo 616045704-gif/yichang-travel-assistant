@@ -1,5 +1,5 @@
 <view class="page map-page">
-  <map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="11" markers="{{markers}}" show-location="{{showLocation}}" bindmarkertap="onMarkerTap" enable-scroll="{{true}}" enable-zoom="{{true}}" />
+  <map id="city-map" class="city-map" latitude="{{center.latitude}}" longitude="{{center.longitude}}" scale="{{scale}}" markers="{{markers}}" show-location="{{false}}" bindmarkertap="onMarkerTap" enable-scroll="{{true}}" enable-zoom="{{true}}" />
   <cover-view class="map-filters">
     <cover-view class="map-filter-track">
       <cover-view wx:for="{{mapCategories}}" wx:key="value" class="map-filter-tab {{category === item.value ? 'is-active' : ''}} {{item.value === 'culture' ? 'is-wide' : ''}}" data-category="{{item.value}}" bindtap="onMapCategoryTap" aria-role="button" aria-label="按{{item.label}}筛选">
@@ -9,7 +9,7 @@
     </cover-view>
   </cover-view>
   <view class="map-bottom-stack">
-    <view class="map-actions"><button class="nearby-button" loading="{{locating}}" disabled="{{locating}}" bindtap="locateNearby">定位我的附近</button><text wx:if="{{notice}}" class="map-notice">{{notice}}</text><button wx:if="{{showSettings}}" class="settings-button" bindtap="onOpenSettings">打开设置</button></view>
+    <view class="map-actions"><picker class="region-picker" mode="selector" range="{{mapRegions}}" range-key="label" value="{{regionIndex}}" bindchange="onRegionChange"><button class="region-button">选择区域 · {{mapRegions[regionIndex].label}}</button></picker><text wx:if="{{notice}}" class="map-notice">{{notice}}</text></view>
     <view wx:if="{{selectedPlace}}" class="marker-card">
       <image class="marker-cover" src="/assets/provided/place-placeholder.jpg" mode="aspectFill" />
       <view class="marker-copy">

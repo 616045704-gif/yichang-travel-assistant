@@ -159,7 +159,8 @@ describe('provided visual assets and UI boundary', () => {
     ]);
     expect(home).toContain('bindtap="openAiChat"');
     expect(home).toContain('bindtap="openTripForm"');
-    expect(map).toContain('bindtap="locateNearby"');
+    expect(map).toContain('bindchange="onRegionChange"');
+    expect(map).toContain('选择区域');
     expect(me).not.toContain('意见反馈');
     expect(me).not.toContain('parking');
   });

@@ -51,7 +51,7 @@ describe('four-tab application', () => {
     let app: { globalData: { cloudStatus: string }; onLaunch(): void };
     vi.stubGlobal('App', (value: typeof app) => { app = value; });
     const init = vi.fn();
-    vi.stubGlobal('wx', { cloud: { init }, getLocation: vi.fn() });
+    vi.stubGlobal('wx', { cloud: { init } });
     await import('../../miniprogram/app');
     app!.onLaunch();
     expect(init).not.toHaveBeenCalled();
@@ -62,26 +62,22 @@ describe('four-tab application', () => {
     let app: { globalData: { cloudStatus: string }; onLaunch(): void };
     vi.stubGlobal('App', (value: typeof app) => { app = value; });
     const init = vi.fn(() => { if (state === 'error') throw new Error('synthetic error'); });
-    const getLocation = vi.fn();
-    vi.stubGlobal('wx', { cloud: state === 'unavailable' ? undefined : { init }, getLocation });
+    vi.stubGlobal('wx', { cloud: state === 'unavailable' ? undefined : { init } });
     await import('../../miniprogram/app');
     app!.onLaunch();
     expect(app!.globalData.cloudStatus).toBe(state);
     if (state !== 'unavailable') expect(init).toHaveBeenCalledWith({ env: 'synthetic-development-env', traceUser: false });
-    expect(getLocation).not.toHaveBeenCalled();
   });
-  it.each(['discover', 'map'])('%s changes category without reading location', async name => {
+  it.each(['discover', 'map'])('%s changes category without location APIs', async name => {
     let page: { data: { category: string; markers?: unknown[] }; setData: ReturnType<typeof vi.fn>; onCategoryChange(event: unknown): void };
     vi.stubGlobal('Page', (value: typeof page) => { page = value; });
-    const getLocation = vi.fn();
     const callFunction = vi.fn();
-    vi.stubGlobal('wx', { getLocation, cloud: { callFunction } });
+    vi.stubGlobal('wx', { cloud: { callFunction } });
     if (name === 'discover') await import('../../miniprogram/pages/discover/index');
     else await import('../../miniprogram/pages/map/index');
     page!.setData = vi.fn();
     page!.onCategoryChange({ detail: { category: 'camping' } });
     expect(page!.setData).toHaveBeenCalledWith(expect.objectContaining({ category: 'camping' }));
-    expect(getLocation).not.toHaveBeenCalled();
     if (name === 'discover') expect(callFunction).toHaveBeenCalledWith(expect.objectContaining({ name: 'placeService' }));
     else expect(callFunction).not.toHaveBeenCalled();
     if (name === 'map') expect(page!.data.markers).toEqual([]);
@@ -89,10 +85,10 @@ describe('four-tab application', () => {
   it('registers personal routes and gives privacy its own truthful page', async () => {
     const app = JSON.parse(await readFile('miniprogram/app.json', 'utf8'));
     expect(app.pages).toEqual(expect.arrayContaining(['pages/records/index', 'pages/preferences/index', 'pages/privacy/index']));
-    expect(app.requiredPrivateInfos).toEqual(expect.arrayContaining(['getLocation']));
+    expect(app.requiredPrivateInfos).toBeUndefined();
     const privacy = await readFile('miniprogram/pages/privacy/index.wxml', 'utf8');
-    expect(privacy).toContain('定位我的附近');
-    expect(privacy).toContain('不会持续定位，也不会长期保存');
+    expect(privacy).toContain('手动选择');
+    expect(privacy).toContain('不会读取、申请或保存你的当前位置');
     expect(privacy).toContain('第三方 AI 服务');
     expect(privacy).toContain('616045704@qq.com');
   });
@@ -120,7 +116,8 @@ describe('four-tab application', () => {
     const map = await readFile('miniprogram/pages/map/index.wxml', 'utf8');
     expect(map).toContain('bindmarkertap="onMarkerTap"');
     expect(map).not.toContain('看看身边的宜昌');
-    expect(map).toContain('定位我的附近');
+    expect(map).toContain('选择区域');
+    expect(map).not.toContain('定位我的附近');
     expect(map).not.toContain('page-title');
     expect(map).not.toContain('async-state');
   });
@@ -156,7 +153,7 @@ describe('four-tab application', () => {
     expect(smoke).toContain('if (queryType) assert.equal(destinationPage.query.type, queryType)');
     expect(smoke).toContain('AI cards must have equal visible widths');
     expect(smoke).toContain('Map preview must preserve its 280rpx minimum height');
-    expect(smoke).toContain('Nearby button and preview card must share one center line');
+    expect(smoke).toContain('Region selector and preview card must share one center line');
     expect(smoke).toContain('Map action buttons must share one visible height');
     expect(smoke).toContain("await categoryTabs[0].tap()");
     expect(smoke).toContain('await waitForItemsChange(page, itemsBeforeCategoryReset)');

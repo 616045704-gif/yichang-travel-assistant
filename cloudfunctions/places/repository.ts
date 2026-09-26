@@ -26,7 +26,7 @@ function summary(document: Record<string, unknown>): PlaceSummary {
 
 function marker(document: Record<string, unknown>): PlaceMarker {
   const place = summary(document);
-  return { placeId: place.placeId, name: place.name, category: place.category, latitude: place.latitude, longitude: place.longitude, coordinateSystem: place.coordinateSystem };
+  return { placeId: place.placeId, name: place.name, category: place.category, district: place.district, latitude: place.latitude, longitude: place.longitude, coordinateSystem: place.coordinateSystem };
 }
 
 function matches(document: Record<string, unknown>, input: { category?: Category; keyword?: string; tags?: string[] }) {

@@ -119,10 +119,10 @@ describe('place repository', () => {
     expect(markers).toMatchObject({ code: 'OK' });
     const listed = (list.data as { items: Array<{ placeId: string; coverFileId: string | null; coverUrl: string | null; latitude: number; longitude: number }> }).items[0];
     const detailed = detail.data as { placeId: string; coverFileId: string | null; coverUrl: string | null };
-    const marker = (markers.data as { items: Array<{ placeId: string; latitude: number; longitude: number }> }).items.find(item => item.placeId === listed.placeId);
+    const marker = (markers.data as { items: Array<{ placeId: string; district: string; latitude: number; longitude: number }> }).items.find(item => item.placeId === listed.placeId);
 
     expect(listed).toMatchObject({ placeId: scenicPlace.placeId, coverFileId: covered.coverFileId, coverUrl: 'https://temp.example/synthetic.jpg' });
     expect(detailed).toMatchObject({ placeId: listed.placeId, coverFileId: listed.coverFileId, coverUrl: listed.coverUrl });
-    expect(marker).toMatchObject({ placeId: listed.placeId, latitude: listed.latitude, longitude: listed.longitude });
+    expect(marker).toMatchObject({ placeId: listed.placeId, district: scenicPlace.district, latitude: listed.latitude, longitude: listed.longitude });
   });
 });

@@ -87,6 +87,7 @@ export interface PlaceMarker {
   placeId: string;
   name: string;
   category: Category;
+  district: string;
   latitude: number;
   longitude: number;
   coordinateSystem: 'GCJ-02';
